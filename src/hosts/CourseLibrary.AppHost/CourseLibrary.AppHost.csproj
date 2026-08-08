@@ -12,5 +12,6 @@
 	</ItemGroup>
 	<ItemGroup>
 	  <ProjectReference Include="..\CourseLibrary.Api\CourseLibrary.Api.csproj" />
+	  <ProjectReference Include="..\CourseLibrary.Gateway\CourseLibrary.Gateway.csproj" />
 	</ItemGroup>
 </Project>

@@ -1,0 +1,55 @@
+﻿using CourseLibrary.Gateway.Configuration.Observability;
+using CourseLibrary.Gateway.Configuration.Observability.Logs;
+using Microsoft.AspNetCore.HttpLogging;
+using System.Diagnostics;
+using CourseLibrary.Infrastructure.Resilience;
+
+namespace CourseLibrary.Gateway.Configuration;
+
+internal static class CourseLibraryHostExtensions
+{
+    public static WebApplicationBuilder AddCourseLibraryServices(
+        this WebApplicationBuilder builder)
+    {
+        // W3C distributed tracing format.
+        Activity.DefaultIdFormat = ActivityIdFormat.W3C;
+        Activity.ForceDefaultIdFormat = true;
+
+        // .NET framework services.
+        builder.Services.AddOptions();
+        builder.Services.AddHttpClient();
+        builder.Services.AddHttpContextAccessor();
+
+        builder.Services.AddAuthentication();
+        builder.Services.AddAuthorization();
+        builder.Services.AddCors();
+
+        // HTTP logging.
+        builder.Services.AddHttpLogging();
+
+        builder.Services.AddServiceDiscovery();
+
+        builder.Services
+            .AddReverseProxy()
+            .AddServiceDiscoveryDestinationResolver()
+            .LoadFromConfig(
+                builder.Configuration.GetSection("ReverseProxy"));
+
+        // Observability.
+        builder.AddObservability();
+
+        builder.Services.AddCourseLibraryHttpResilience(builder.Configuration);
+        builder.Services.AddCourseLibraryResilience();
+        builder.Services.AddSingleton<PolicyFactory>();
+
+        return builder;
+    }
+
+    public static WebApplication UseCourseLibraryPipeline(
+        this WebApplication app)
+    {
+        app.MapReverseProxy();
+
+        return app;
+    }
+}
