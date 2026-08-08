@@ -19,5 +19,6 @@
 		<PackageReference Include="Microsoft.Extensions.Resilience" Version="10.8.0" />
 		<PackageReference Include="OpenTelemetry" Version="1.17.0" />
 		<PackageReference Include="OpenTelemetry.Api" Version="1.17.0" />
+		<PackageReference Include="ZiggyCreatures.FusionCache" Version="2.6.0" />
 	</ItemGroup>
 </Project>
