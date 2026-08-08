@@ -1,12 +1,12 @@
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.Extensions.DependencyInjection;
-using CourseLibrary.Gateway.Configuration.Authentication;
 
 namespace CourseLibrary.Gateway.Configuration.Authorization;
 
 internal static class GatewayAuthorizationConstants
 {
-    public const string PolicyName = "ApiAccess";
+    public const string UserPolicy = "GatewayUser";
+    public const string M2MPolicy = "GatewayM2M";
+    public const string UserOrM2MPolicy = "GatewayUserOrM2M";
 }
 
 internal static class GatewayAuthorizationExtensions
@@ -14,19 +14,45 @@ internal static class GatewayAuthorizationExtensions
     public static WebApplicationBuilder AddGatewayAuthorization(
         this WebApplicationBuilder builder)
     {
-        builder.Services.AddSingleton<IAuthorizationHandler, ApiAccessAuthorizationHandler>();
-
         builder.Services.AddAuthorization(options =>
         {
-            options.AddPolicy(GatewayAuthorizationConstants.PolicyName, policy =>
-            {
-                policy.RequireAuthenticatedUser();
-                policy.AddAuthenticationSchemes(
-                    GatewayAuthenticationConstants.JwtScheme,
-                    GatewayAuthenticationConstants.M2MScheme);
-                policy.Requirements.Add(new ApiAccessRequirement());
-            });
+            options.AddPolicy(
+                GatewayAuthorizationConstants.UserPolicy,
+                policy =>
+                {
+                    policy.RequireAuthenticatedUser();
+
+                    policy.AddRequirements(
+                        new UserTokenRequirement());
+                });
+
+            options.AddPolicy(
+                GatewayAuthorizationConstants.M2MPolicy,
+                policy =>
+                {
+                    policy.RequireAuthenticatedUser();
+
+                    policy.AddRequirements(
+                        new M2MClientRequirement());
+                });
+
+            options.AddPolicy(
+                GatewayAuthorizationConstants.UserOrM2MPolicy,
+                policy =>
+                {
+                    policy.RequireAuthenticatedUser();
+                });
         });
+
+        //builder.Services.AddScoped<
+        //    IAuthorizationHandler,
+        //    UserTokenAuthorizationHandler>();
+
+        //builder.Services.AddScoped<
+        //    IAuthorizationHandler,
+        //    M2MClientAuthorizationHandler>();
+
+        builder.Services.AddSingleton<IAuthorizationHandler, ApiAccessAuthorizationHandler>();
 
         return builder;
     }
