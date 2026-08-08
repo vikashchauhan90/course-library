@@ -1,15 +1,11 @@
+using CourseLibrary.Gateway.Configuration;
+
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddServiceDiscovery();
-
-builder.Services
-    .AddReverseProxy()
-    .AddServiceDiscoveryDestinationResolver()
-    .LoadFromConfig(
-        builder.Configuration.GetSection("ReverseProxy"));
+builder.AddCourseLibraryServices();
 
 var app = builder.Build();
 
-app.MapReverseProxy();
+app.UseCourseLibraryPipeline();
 
 app.Run();
