@@ -14,7 +14,6 @@ namespace CourseLibrary.Gateway.Configuration;
 
 internal static class CourseLibraryHostExtensions
 {
-    private const string CorsPolicyName = "GatewayCors";
     private const string AuthorizationPolicyName = "ApiAccess";
     private const string IpPolicyName = "IpRateLimit";
     private const string UserPolicyName = "UserRateLimit";
@@ -48,16 +47,9 @@ internal static class CourseLibraryHostExtensions
             .LoadFromConfig(
                 builder.Configuration.GetSection("ReverseProxy"));
 
-        if (builder.Configuration.GetValue<bool>("Observability:Enabled", true))
-        {
-            builder.AddObservability();
-        }
+        builder.AddObservability();
 
         builder.AddGatewayRateLimiting();
-
-        builder.Services.AddCourseLibraryHttpResilience(builder.Configuration);
-        builder.Services.AddCourseLibraryResilience();
-        builder.Services.AddSingleton<PolicyFactory>();
 
         return builder;
     }
@@ -65,10 +57,11 @@ internal static class CourseLibraryHostExtensions
     public static WebApplication UseCourseLibraryPipeline(
         this WebApplication app)
     {
-        app.UseGatewayProxy();
+        app.UseForwardedHeaders();
+        app.UseHttpsRedirection();
         app.UseHttpLogging();
         app.UseRouting();
-        app.UseCors(CorsPolicyName);
+        app.UseCors();
         app.UseAuthentication();
         app.UseAuthorization();
         app.UseRateLimiter();

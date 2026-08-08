@@ -14,7 +14,7 @@ internal static class GatewayProxyExtensions
             options.ForwardedHeaders = ForwardedHeaders.XForwardedFor |
                                        ForwardedHeaders.XForwardedProto |
                                        ForwardedHeaders.XForwardedHost;
-            options.ForwardLimit = 2;
+            options.ForwardLimit = 5;
             options.KnownIPNetworks.Clear();
             options.KnownProxies.Clear();
         });
@@ -22,10 +22,4 @@ internal static class GatewayProxyExtensions
         return builder;
     }
 
-    public static WebApplication UseGatewayProxy(this WebApplication app)
-    {
-        app.UseForwardedHeaders();
-        app.UseHttpsRedirection();
-        return app;
-    }
 }
