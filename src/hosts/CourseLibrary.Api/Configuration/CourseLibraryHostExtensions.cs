@@ -1,10 +1,14 @@
 ﻿using Carter;
+using CourseLibrary.Api.Configuration.Filters;
 using CourseLibrary.Api.Configuration.Observability;
 using CourseLibrary.Api.Configuration.Observability.Logs;
+using CourseLibrary.Api.Configuration.Observability.Logs.Middlewares;
+using CourseLibrary.Infrastructure.Caching;
+using CourseLibrary.Infrastructure.Idempotency;
+using CourseLibrary.Infrastructure.Resilience;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.HttpLogging;
 using System.Diagnostics;
-using CourseLibrary.Infrastructure.Resilience;
 
 namespace CourseLibrary.Api.Configuration;
 
@@ -32,6 +36,9 @@ internal static class CourseLibraryHostExtensions
 
         // Application services.
         builder.Services.AddCarter();
+
+        builder.Services.AddCourseLibraryCaching();
+        builder.Services.AddCourseLibraryIdempotency();
 
         // Observability.
         builder.AddObservability();
