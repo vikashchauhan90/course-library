@@ -10,7 +10,6 @@ namespace CourseLibrary.Gateway.Configuration;
 
 internal static class CourseLibraryHostExtensions
 {
-    private const string AuthorizationPolicyName = "ApiAccess";
 
     public static WebApplicationBuilder AddCourseLibraryServices(
         this WebApplicationBuilder builder)
@@ -66,7 +65,7 @@ internal static class CourseLibraryHostExtensions
         .Get<GatewayRateLimitingOptions>()!;
 
         app.MapReverseProxy()
-            .RequireAuthorization(AuthorizationPolicyName)
+            .RequireAuthorization(GatewayAuthorizationConstants.UserOrM2MPolicy)
             .RequireRateLimiting(rateLimitOptions.Ip.Name)
             .RequireRateLimiting(rateLimitOptions.User.Name)
             .RequireRateLimiting(rateLimitOptions.Concurrency.Name);
