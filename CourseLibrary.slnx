@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/core/">
+    <Project Path="src/core/CourseLibrary.Application/CourseLibrary.Application.csproj" Id="e3762092-40c5-498a-8603-2925bb385484" />
+    <Project Path="src/core/CourseLibrary.Domain/CourseLibrary.Domain.csproj" Id="b9aa2d1b-3001-4770-822a-5fe387ba3941" />
+    <Project Path="src/core/CourseLibrary.Infrastructure/CourseLibrary.Infrastructure.csproj" Id="c3b48a74-0a80-4ebe-b9c8-292a135ddf93" />
+  </Folder>
+  <Folder Name="/hosts/">
+    <Project Path="src/hosts/CourseLibrary.Api/CourseLibrary.Api.csproj" />
+  </Folder>
+</Solution>
