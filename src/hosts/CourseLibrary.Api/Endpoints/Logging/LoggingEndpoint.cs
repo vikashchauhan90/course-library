@@ -7,10 +7,10 @@ public sealed class LoggingModule : ICarterModule
 {
     public void AddRoutes(IEndpointRouteBuilder app)
     {
-        app.MapGet("/test-log", (ILogger<LoggingModule> logger) =>
+        app.MapGet("/test-log", async (ILogger<LoggingModule> logger) =>
         {
             var email = "vikash.chauhan@gmail.com";
-
+            await Task.Delay(TimeSpan.FromSeconds(1));
             logger.UserLoggedIn(email);
             logger.LogInformation(
                 "This is testing message with user {UserId}",

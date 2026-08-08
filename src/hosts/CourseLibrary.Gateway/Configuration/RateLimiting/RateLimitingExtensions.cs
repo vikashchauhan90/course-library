@@ -1,70 +1,125 @@
-using Microsoft.AspNetCore.RateLimiting;
-using Microsoft.Extensions.DependencyInjection;
 using System.Threading.RateLimiting;
 
 namespace CourseLibrary.Gateway.Configuration.RateLimiting;
-
-internal static class GatewayRateLimitingConstants
-{
-    public const string IpPolicyName = "IpRateLimit";
-    public const string UserPolicyName = "UserRateLimit";
-    public const string ConcurrentPolicyName = "ConcurrentRequestLimit";
-}
 
 internal static class GatewayRateLimitingExtensions
 {
     public static WebApplicationBuilder AddGatewayRateLimiting(
         this WebApplicationBuilder builder)
     {
+        var section = builder.Configuration
+            .GetSection("RateLimiting");
+
+        builder.Services.Configure<GatewayRateLimitingOptions>(section);
+
+        var settings = section.Get<GatewayRateLimitingOptions>()
+            ?? new GatewayRateLimitingOptions();
+
         builder.Services.AddRateLimiter(options =>
         {
-            options.AddPolicy(GatewayRateLimitingConstants.IpPolicyName, httpContext =>
+            /*
+             * IP-based Sliding Window
+             */
+            if (settings.Ip.Enabled)
             {
-                var partitionKey = httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown-ip";
-                return RateLimitPartition.GetTokenBucketLimiter(
-                    partitionKey,
-                    _ => new TokenBucketRateLimiterOptions
+                options.AddPolicy(
+                    settings.Ip.Name,
+                    httpContext =>
                     {
-                        TokenLimit = 200,
-                        TokensPerPeriod = 200,
-                        ReplenishmentPeriod = TimeSpan.FromMinutes(1),
-                        AutoReplenishment = true,
-                        QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
-                        QueueLimit = 0
-                    });
-            });
+                        var partitionKey =
+                            httpContext.Connection.RemoteIpAddress?
+                                .ToString()
+                            ?? "unknown-ip";
 
-            options.AddPolicy(GatewayRateLimitingConstants.UserPolicyName, httpContext =>
+                        return RateLimitPartition.GetSlidingWindowLimiter(
+                            partitionKey,
+                            _ => new SlidingWindowRateLimiterOptions
+                            {
+                                PermitLimit = settings.Ip.PermitLimit,
+
+                                Window = TimeSpan.FromSeconds(
+                                    settings.Ip.WindowSeconds),
+
+                                SegmentsPerWindow =
+                                    settings.Ip.SegmentsPerWindow,
+
+                                QueueProcessingOrder =
+                                    QueueProcessingOrder.OldestFirst,
+
+                                QueueLimit =
+                                    settings.Ip.QueueLimit
+                            });
+                    });
+            }
+
+            /*
+             * User-based Sliding Window
+             */
+            if (settings.User.Enabled)
             {
-                var userKey = httpContext.User?.FindFirst("sub")?.Value
-                    ?? httpContext.User?.Identity?.Name
-                    ?? httpContext.Connection.RemoteIpAddress?.ToString()
-                    ?? "anonymous";
-
-                return RateLimitPartition.GetTokenBucketLimiter(
-                    userKey,
-                    _ => new TokenBucketRateLimiterOptions
+                options.AddPolicy(
+                    settings.User.Name,
+                    httpContext =>
                     {
-                        TokenLimit = 120,
-                        TokensPerPeriod = 120,
-                        ReplenishmentPeriod = TimeSpan.FromMinutes(1),
-                        AutoReplenishment = true,
-                        QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
-                        QueueLimit = 0
+                        var userKey =
+                            httpContext.User?
+                                .FindFirst("sub")?.Value
+                            ?? httpContext.User?
+                                .Identity?.Name
+                            ?? httpContext.Connection.RemoteIpAddress?
+                                .ToString()
+                            ?? "anonymous";
+
+                        return RateLimitPartition.GetSlidingWindowLimiter(
+                            userKey,
+                            _ => new SlidingWindowRateLimiterOptions
+                            {
+                                PermitLimit =
+                                    settings.User.PermitLimit,
+
+                                Window = TimeSpan.FromSeconds(
+                                    settings.User.WindowSeconds),
+
+                                SegmentsPerWindow =
+                                    settings.User.SegmentsPerWindow,
+
+                                QueueProcessingOrder =
+                                    QueueProcessingOrder.OldestFirst,
+
+                                QueueLimit =
+                                    settings.User.QueueLimit
+                            });
                     });
-            });
+            }
 
-            options.AddPolicy(GatewayRateLimitingConstants.ConcurrentPolicyName, _ =>
-                RateLimitPartition.GetConcurrencyLimiter(
-                    "global",
-                    _ => new ConcurrencyLimiterOptions
-                    {
-                        PermitLimit = 50,
-                        QueueLimit = 0,
-                        QueueProcessingOrder = QueueProcessingOrder.OldestFirst
-                    }));
+            /*
+             * Global Concurrency Limit
+             */
+            if (settings.Concurrency.Enabled)
+            {
+                options.AddPolicy(
+                    settings.Concurrency.Name,
+                    _ =>
+                        RateLimitPartition.GetConcurrencyLimiter(
+                            "global",
+                            _ => new ConcurrencyLimiterOptions
+                            {
+                                PermitLimit =
+                                    settings.Concurrency.PermitLimit,
 
-            options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+                                QueueLimit =
+                                    settings.Concurrency.QueueLimit,
+
+                                QueueProcessingOrder =
+                                    QueueProcessingOrder.OldestFirst
+                            }));
+            }
+
+            /*
+             * Response when rate limit is exceeded.
+             */
+            options.RejectionStatusCode =
+                StatusCodes.Status429TooManyRequests;
         });
 
         return builder;

@@ -2,22 +2,15 @@
 using CourseLibrary.Gateway.Configuration.Authorization;
 using CourseLibrary.Gateway.Configuration.Cors;
 using CourseLibrary.Gateway.Configuration.Observability;
-using CourseLibrary.Gateway.Configuration.Observability.Logs;
 using CourseLibrary.Gateway.Configuration.Proxy;
 using CourseLibrary.Gateway.Configuration.RateLimiting;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.HttpLogging;
 using System.Diagnostics;
-using CourseLibrary.Infrastructure.Resilience;
 
 namespace CourseLibrary.Gateway.Configuration;
 
 internal static class CourseLibraryHostExtensions
 {
     private const string AuthorizationPolicyName = "ApiAccess";
-    private const string IpPolicyName = "IpRateLimit";
-    private const string UserPolicyName = "UserRateLimit";
-    private const string ConcurrentPolicyName = "ConcurrentRequestLimit";
 
     public static WebApplicationBuilder AddCourseLibraryServices(
         this WebApplicationBuilder builder)
@@ -66,11 +59,17 @@ internal static class CourseLibraryHostExtensions
         app.UseAuthorization();
         app.UseRateLimiter();
 
+
+        var rateLimitOptions =
+    app.Configuration
+        .GetSection("RateLimiting")
+        .Get<GatewayRateLimitingOptions>()!;
+
         app.MapReverseProxy()
             .RequireAuthorization(AuthorizationPolicyName)
-            .RequireRateLimiting(IpPolicyName)
-            .RequireRateLimiting(UserPolicyName)
-            .RequireRateLimiting(ConcurrentPolicyName);
+            .RequireRateLimiting(rateLimitOptions.Ip.Name)
+            .RequireRateLimiting(rateLimitOptions.User.Name)
+            .RequireRateLimiting(rateLimitOptions.Concurrency.Name);
 
         return app;
     }
