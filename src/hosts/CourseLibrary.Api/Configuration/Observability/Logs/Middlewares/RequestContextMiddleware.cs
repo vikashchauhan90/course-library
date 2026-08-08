@@ -42,7 +42,7 @@ internal sealed class RequestContextMiddleware(
             ["request.route"] = route,
             ["request.user_agent"] = context.Request.Headers["User-Agent"].ToString(),
             ["request.remote_ip"] = context.Connection.RemoteIpAddress?.ToString(),
-            ["request.content_type"] = context.Request.ContentType,
+            ["request.content_type"] = context.Request.ContentType?.ToString(),
 
             ["trace.id"] = activity?.TraceId.ToString(),
             ["trace.parent_id"] = traceParent,

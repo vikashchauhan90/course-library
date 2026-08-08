@@ -68,7 +68,10 @@ internal static class OpenTelemetryExtensions
              {
                  metrics
                      .AddMeter(InfrastructureObservability.Metrics.Meters.Infrastructure.Name)
+                     .AddMeter(ApiObservability.Metrics.Meters.Api.Name)
                      .AddMeter("Microsoft.AspNetCore.Hosting")
+                     .AddMeter("Microsoft.AspNetCore*")
+                     .AddMeter("CourseLibrary*")
                      .AddMeter("Microsoft.AspNetCore.Server.Kestrel")
                      .AddMeter("Microsoft.Extensions.Diagnostics.ResourceMonitoring")
 
