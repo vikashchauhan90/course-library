@@ -2,8 +2,8 @@ namespace CourseLibrary.Infrastructure.Idempotency;
 
 public interface IIdempotencyStore
 {
-    Task<object?> GetResponseAsync(string key, CancellationToken cancellationToken = default);
-    Task StoreResponseAsync(string key, object response, TimeSpan ttl, CancellationToken cancellationToken = default);
+    Task<IdempotencyEntry?> GetAsync(string key, CancellationToken cancellationToken = default);
+    Task StoreAsync(string key, IdempotencyEntry entry, TimeSpan ttl, CancellationToken cancellationToken = default);
     Task<bool> ExistsAsync(string key, CancellationToken cancellationToken = default);
     Task RemoveAsync(string key, CancellationToken cancellationToken = default);
 }

@@ -1,5 +1,8 @@
+using CourseLibrary.Infrastructure.Idempotency;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
+using System.Net.Mime;
+using System.Text;
 using System.Text.Json;
 
 namespace CourseLibrary.Api.Configuration.Filters;
@@ -32,31 +35,93 @@ public sealed class IdempotencyAttribute : Attribute, IAsyncActionFilter
         var cacheKey = $"idempotency:{key}";
         if (await store.ExistsAsync(cacheKey, context.HttpContext.RequestAborted))
         {
-            var stored = await store.GetResponseAsync(cacheKey, context.HttpContext.RequestAborted);
+            var stored = await store.GetAsync(cacheKey, context.HttpContext.RequestAborted);
             if (stored is not null)
             {
-                context.Result = new JsonResult(stored);
+                var result = new ContentResult
+                {
+                    StatusCode = stored.ResponseStatusCode,
+                    ContentType = stored.ResponseContentType,
+                    Content = Encoding.UTF8.GetString(stored.ResponseBody)
+                };
+
+                context.Result = result;
                 return;
             }
         }
 
         var actionResultContext = await next();
+        var resultEntry = await CreateEntryAsync(context, actionResultContext);
+        if (resultEntry is not null)
+        {
+            await store.StoreAsync(cacheKey, resultEntry, _ttl, context.HttpContext.RequestAborted);
+        }
+    }
+
+    private static async Task<IdempotencyEntry?> CreateEntryAsync(
+        ActionExecutingContext context,
+        ActionExecutedContext actionResultContext)
+    {
+        var request = context.HttpContext.Request;
+        var entry = new IdempotencyEntry
+        {
+            RequestPath = request.Path,
+            RequestMethod = request.Method,
+            RequestContentType = request.ContentType
+        };
 
         if (actionResultContext.Result is ObjectResult objectResult)
         {
-            await store.StoreResponseAsync(cacheKey, objectResult.Value ?? new { }, _ttl, context.HttpContext.RequestAborted);
+            return new IdempotencyEntry
+            {
+                RequestPath = entry.RequestPath,
+                RequestMethod = entry.RequestMethod,
+                RequestContentType = entry.RequestContentType,
+                ResponseStatusCode = objectResult.StatusCode ?? 200,
+                ResponseContentType = objectResult.ContentTypes.FirstOrDefault() ?? MediaTypeNames.Application.Json,
+                ResponseBody = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(objectResult.Value))
+            };
         }
-        else if (actionResultContext.Result is JsonResult jsonResult)
+
+        if (actionResultContext.Result is JsonResult jsonResult)
         {
-            await store.StoreResponseAsync(cacheKey, jsonResult.Value ?? new { }, _ttl, context.HttpContext.RequestAborted);
+            return new IdempotencyEntry
+            {
+                RequestPath = entry.RequestPath,
+                RequestMethod = entry.RequestMethod,
+                RequestContentType = entry.RequestContentType,
+                ResponseStatusCode = 200,
+                ResponseContentType = MediaTypeNames.Application.Json,
+                ResponseBody = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(jsonResult.Value))
+            };
         }
-        else if (actionResultContext.Result is ContentResult contentResult)
+
+        if (actionResultContext.Result is ContentResult contentResult)
         {
-            await store.StoreResponseAsync(cacheKey, contentResult.Content ?? string.Empty, _ttl, context.HttpContext.RequestAborted);
+            return new IdempotencyEntry
+            {
+                RequestPath = entry.RequestPath,
+                RequestMethod = entry.RequestMethod,
+                RequestContentType = entry.RequestContentType,
+                ResponseStatusCode = contentResult.StatusCode ?? 200,
+                ResponseContentType = contentResult.ContentType ?? MediaTypeNames.Text.Plain,
+                ResponseBody = Encoding.UTF8.GetBytes(contentResult.Content ?? string.Empty)
+            };
         }
-        else
+
+        if (actionResultContext.Result is StatusCodeResult statusCodeResult)
         {
-            await store.StoreResponseAsync(cacheKey, new { status = actionResultContext.Result?.ToString() ?? string.Empty }, _ttl, context.HttpContext.RequestAborted);
+            return new IdempotencyEntry
+            {
+                RequestPath = entry.RequestPath,
+                RequestMethod = entry.RequestMethod,
+                RequestContentType = entry.RequestContentType,
+                ResponseStatusCode = statusCodeResult.StatusCode,
+                ResponseContentType = MediaTypeNames.Text.Plain,
+                ResponseBody = Encoding.UTF8.GetBytes(string.Empty)
+            };
         }
+
+        return null;
     }
 }

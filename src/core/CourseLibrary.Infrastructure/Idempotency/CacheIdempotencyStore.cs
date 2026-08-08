@@ -11,14 +11,18 @@ public sealed class CacheIdempotencyStore : IIdempotencyStore
         _cacheProvider = cacheProvider;
     }
 
-    public Task<object?> GetResponseAsync(string key, CancellationToken cancellationToken = default)
+    public Task<IdempotencyEntry?> GetAsync(string key, CancellationToken cancellationToken = default)
     {
-        return _cacheProvider.GetAsync(key, cancellationToken);
+        return _cacheProvider.GetAsync(key, cancellationToken)
+            .ContinueWith(task => task.Result as IdempotencyEntry,
+                cancellationToken,
+                TaskContinuationOptions.OnlyOnRanToCompletion,
+                TaskScheduler.Current);
     }
 
-    public Task StoreResponseAsync(string key, object response, TimeSpan ttl, CancellationToken cancellationToken = default)
+    public Task StoreAsync(string key, IdempotencyEntry entry, TimeSpan ttl, CancellationToken cancellationToken = default)
     {
-        return _cacheProvider.SetAsync(key, response, ttl, cancellationToken);
+        return _cacheProvider.SetAsync(key, entry, ttl, cancellationToken);
     }
 
     public Task<bool> ExistsAsync(string key, CancellationToken cancellationToken = default)
