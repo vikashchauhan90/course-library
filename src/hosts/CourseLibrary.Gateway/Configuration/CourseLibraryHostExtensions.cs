@@ -2,6 +2,7 @@
 using CourseLibrary.Gateway.Configuration.Authorization;
 using CourseLibrary.Gateway.Configuration.Cors;
 using CourseLibrary.Gateway.Configuration.Observability;
+using CourseLibrary.Gateway.Configuration.Observability.Logs;
 using CourseLibrary.Gateway.Configuration.Proxy;
 using CourseLibrary.Gateway.Configuration.RateLimiting;
 using System.Diagnostics;
@@ -50,12 +51,15 @@ internal static class CourseLibraryHostExtensions
         this WebApplication app)
     {
         app.UseForwardedHeaders();
+        app.UseRequestContext();
         app.UseHttpsRedirection();
         app.UseHttpLogging();
         app.UseRouting();
         app.UseCors();
         app.UseAuthentication();
+        app.UseUserContext();
         app.UseAuthorization();
+        app.UseUserIdentityForwarding();
         app.UseRateLimiter();
 
 

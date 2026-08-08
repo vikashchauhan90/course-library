@@ -1,6 +1,7 @@
 ﻿using Carter;
 using CourseLibrary.Api.Configuration.Observability;
 using CourseLibrary.Api.Configuration.Observability.Logs;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.HttpLogging;
 using System.Diagnostics;
 using CourseLibrary.Infrastructure.Resilience;
@@ -24,6 +25,7 @@ internal static class CourseLibraryHostExtensions
         builder.Services.AddAuthentication();
         builder.Services.AddAuthorization();
         builder.Services.AddCors();
+        builder.Services.AddHealthChecks();
 
         // HTTP logging.
         builder.Services.AddHttpLogging();
@@ -58,6 +60,9 @@ internal static class CourseLibraryHostExtensions
 
         // Application endpoints.
         app.MapCarter();
+
+        app.MapHealthChecks("/health/live").AllowAnonymous();
+        app.MapHealthChecks("/health/ready").AllowAnonymous();
 
         return app;
     }

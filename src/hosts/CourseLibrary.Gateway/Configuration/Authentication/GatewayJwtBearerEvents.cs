@@ -26,6 +26,27 @@ internal sealed class GatewayJwtBearerEvents : JwtBearerEvents
         return Task.CompletedTask;
     }
 
+    public override Task Challenge(
+        JwtBearerChallengeContext context)
+    {
+        _logger.LogWarning(
+            "JWT authentication challenge for {Path}. Error: {Error}",
+            context.Request.Path,
+            context.Error);
+
+        return Task.CompletedTask;
+    }
+
+    public override Task Forbidden(
+        ForbiddenContext context)
+    {
+        _logger.LogWarning(
+            "JWT authorization forbidden for {Path}.",
+            context.Request.Path);
+
+        return Task.CompletedTask;
+    }
+
     public override Task TokenValidated(
         TokenValidatedContext context)
     {
