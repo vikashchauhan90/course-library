@@ -55,6 +55,7 @@ internal static class CourseLibraryHostExtensions
 
         // Security.
         app.UseAuthentication();
+        app.UseMiddleware<HeaderUserContextMiddleware>();
         app.UseUserContext();
         app.UseAuthorization();
 
