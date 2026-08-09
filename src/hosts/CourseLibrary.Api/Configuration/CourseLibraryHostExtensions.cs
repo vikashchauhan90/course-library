@@ -9,6 +9,7 @@ using CourseLibrary.Application.Abstractions.Serialization;
 using CourseLibrary.Application.Abstractions.Serializers;
 using CourseLibrary.Infrastructure;
 using CourseLibrary.Infrastructure.Caching;
+using CourseLibrary.Infrastructure.Cosmos;
 using CourseLibrary.Infrastructure.Idempotency;
 using CourseLibrary.Infrastructure.Resilience;
 using CourseLibrary.Infrastructure.Serializers;
@@ -46,6 +47,7 @@ internal static class CourseLibraryHostExtensions
 
         builder.Services.AddCourseLibraryMemoryCache();
         builder.Services.AddCourseLibraryIdempotency();
+        builder.Services.AddCourseLibraryCosmosRepositories(builder.Configuration);
 
         // Observability.
         builder.AddObservability();

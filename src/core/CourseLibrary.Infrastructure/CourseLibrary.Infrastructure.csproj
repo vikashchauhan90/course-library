@@ -23,5 +23,7 @@
 		<PackageReference Include="Microsoft.Extensions.Resilience" Version="10.8.0" />
 		<PackageReference Include="OpenTelemetry" Version="1.17.0" />
 		<PackageReference Include="OpenTelemetry.Api" Version="1.17.0" />
+		<PackageReference Include="Microsoft.Azure.Cosmos" Version="3.62.0" />
+		<PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
 	</ItemGroup>
 </Project>
