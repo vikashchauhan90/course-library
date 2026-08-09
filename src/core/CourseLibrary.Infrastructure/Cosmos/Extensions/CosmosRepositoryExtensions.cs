@@ -1,9 +1,11 @@
+using CourseLibrary.Application.Abstractions.Repositories;
+using CourseLibrary.Infrastructure.Cosmos.Configurations;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
-namespace CourseLibrary.Infrastructure.Cosmos;
+namespace CourseLibrary.Infrastructure.Cosmos.Extensions;
 
 public static class CosmosRepositoryExtensions
 {
@@ -42,6 +44,16 @@ public static class CosmosRepositoryExtensions
                 clientOptions);
         });
 
+        
+    }
 
+    public  static void AddRepositories(
+        this IServiceCollection services)
+    {
+        services.AddSingleton(typeof(ICosmosRepository<>), typeof(CosmosRepository<>));
+        services.AddSingleton<IAuthorRepository, CosmosAuthorRepository>();
+        services.AddSingleton<ICommentRepository, CosmosCommentRepository>();
+        services.AddSingleton<ICourseRepository, CosmosCourseRepository>();
+        services.AddSingleton<IDiscussionRepository, CosmosDiscussionRepository>();
     }
 }

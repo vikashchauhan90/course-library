@@ -1,4 +1,4 @@
-namespace CourseLibrary.Infrastructure.Cosmos;
+namespace CourseLibrary.Infrastructure.Cosmos.Configurations;
 
 public sealed class CosmosOptions
 {

@@ -1,5 +1,7 @@
 using CourseLibrary.Domain.Abstractions;
+using CourseLibrary.Domain.Entities;
 using CourseLibrary.Domain.Models;
+using CourseLibrary.Infrastructure.Cosmos.Configurations;
 using CourseLibrary.Infrastructure.Cosmos.Extensions;
 using CourseLibrary.Infrastructure.Observability.Traces;
 using Microsoft.AspNetCore.Http;
@@ -7,26 +9,33 @@ using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 using System.Net;
+using System.Reflection;
 
 namespace CourseLibrary.Infrastructure.Cosmos;
 
-public abstract class CosmosRepository<TDocument, TRepository>
+public class CosmosRepository<TDocument>
     : ICosmosRepository<TDocument>
     where TDocument : ICosmosPartitioned
 {
     private readonly Lazy<Container> _container;
-    protected readonly ILogger<TRepository> _logger;   
+    protected readonly ILogger<CosmosRepository<TDocument>> _logger;   
     protected readonly string ContainerName;
     protected CosmosRepository(
         CosmosClient client,
         CosmosOptions options,
-        string containerName,
-        ILogger<TRepository> logger)
+        ILogger<CosmosRepository<TDocument>> logger)
     {
         ArgumentNullException.ThrowIfNull(client);
         ArgumentNullException.ThrowIfNull(options);
-        ArgumentException.ThrowIfNullOrWhiteSpace(containerName);
         ArgumentNullException.ThrowIfNull(logger);
+
+        var containerName =
+        typeof(TDocument)
+            .GetCustomAttribute<CosmosContainerAttribute>()
+            ?.ContainerName
+        ?? throw new InvalidOperationException(
+            $"Cosmos container attribute is missing for document type '{typeof(TDocument).Name}'.");
+
         ContainerName = containerName;
         _logger = logger;
         _container = new Lazy<Container>(
@@ -98,11 +107,10 @@ public abstract class CosmosRepository<TDocument, TRepository>
 
     public async Task<IReadOnlyList<TDocument>> QueryAsync(
         QueryDefinition query,
-        string partitionKey,
+        string? partitionKey = null,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(query);
-        ArgumentException.ThrowIfNullOrWhiteSpace(partitionKey);
 
         using var activity =
         ActivitySources.Infrastructure.StartActivity(
@@ -115,10 +123,12 @@ public abstract class CosmosRepository<TDocument, TRepository>
 
         try
         {
-            var requestOptions = new QueryRequestOptions
+            var requestOptions = new QueryRequestOptions();
+
+            if (!string.IsNullOrWhiteSpace(partitionKey))
             {
-                PartitionKey = new PartitionKey(partitionKey)
-            };
+                requestOptions.PartitionKey = new PartitionKey(partitionKey);
+            }
 
             using var iterator =
                 Container.GetItemQueryIterator<TDocument>(
@@ -159,13 +169,12 @@ public abstract class CosmosRepository<TDocument, TRepository>
 
     public async Task<PageResult<TDocument>> QueryPageAsync(
         QueryDefinition query,
-        string partitionKey,
+        string? partitionKey = null,
         string? continuationToken = null,
         int pageSize = 20,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(query);
-        ArgumentException.ThrowIfNullOrWhiteSpace(partitionKey);
 
         if (pageSize is < 1 or > 100)
         {
@@ -181,7 +190,7 @@ public abstract class CosmosRepository<TDocument, TRepository>
            ActivityKind.Client);
 
         activity.SetCosmosOperation(
-            "QueryPage",
+            "Cosmos.QueryPage",
             ContainerName);
 
         activity?.SetTag(
@@ -196,9 +205,13 @@ public abstract class CosmosRepository<TDocument, TRepository>
         {
             var requestOptions = new QueryRequestOptions
             {
-                PartitionKey = new PartitionKey(partitionKey),
                 MaxItemCount = pageSize
             };
+
+            if (!string.IsNullOrWhiteSpace(partitionKey))
+            {
+                requestOptions.PartitionKey = new PartitionKey(partitionKey);
+            }
 
             using var iterator =
                 Container.GetItemQueryIterator<TDocument>(

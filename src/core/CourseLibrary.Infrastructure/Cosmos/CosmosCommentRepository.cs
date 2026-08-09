@@ -15,10 +15,13 @@ public sealed class CosmosCommentRepository : ICommentRepository
     public Task<Comment?> GetByIdAsync(string commentId, string courseId, CancellationToken cancellationToken = default)
         => _repository.GetByIdAsync(commentId, courseId, cancellationToken);
 
-    public Task<IEnumerable<Comment>> GetByCourseAsync(string courseId, CancellationToken cancellationToken = default)
+    public Task<IReadOnlyList<Comment>> GetByCourseAsync(string courseId, CancellationToken cancellationToken = default)
     {
-        var query = "SELECT * FROM c WHERE c.courseId = @courseId ORDER BY c.createdAt DESC";
-        return _repository.QueryAsync(query, courseId, new Microsoft.Azure.Cosmos.QueryRequestOptions { PartitionKey = new Microsoft.Azure.Cosmos.PartitionKey(courseId) }, cancellationToken);
+        var query = new Microsoft.Azure.Cosmos.QueryDefinition(
+            "SELECT * FROM c WHERE c.courseId = @courseId ORDER BY c.createdAt DESC")
+            .WithParameter("@courseId", courseId);
+
+        return _repository.QueryAsync(query, partitionKey: courseId, cancellationToken: cancellationToken);
     }
 
     public Task UpsertAsync(Comment comment, CancellationToken cancellationToken = default)

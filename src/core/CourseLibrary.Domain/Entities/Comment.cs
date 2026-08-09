@@ -2,6 +2,7 @@ using CourseLibrary.Domain.Abstractions;
 
 namespace CourseLibrary.Domain.Entities;
 
+[CosmosContainer("comments")]
 public sealed record Comment : ICosmosPartitioned
 {
     public required string Id { get; init; }

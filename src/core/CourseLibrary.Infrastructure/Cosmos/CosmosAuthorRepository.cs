@@ -15,10 +15,12 @@ public sealed class CosmosAuthorRepository : IAuthorRepository
     public Task<Author?> GetByIdAsync(string authorId, CancellationToken cancellationToken = default)
         => _repository.GetByIdAsync(authorId, authorId, cancellationToken);
 
-    public Task<IEnumerable<Author>> GetAllAsync(CancellationToken cancellationToken = default)
+    public Task<IReadOnlyList<Author>> GetAllAsync(CancellationToken cancellationToken = default)
     {
-        var query = "SELECT * FROM c ORDER BY c.updatedAt DESC";
-        return _repository.QueryAsync(query, string.Empty, new Microsoft.Azure.Cosmos.QueryRequestOptions { MaxItemCount = 100 }, cancellationToken);
+        var query = new Microsoft.Azure.Cosmos.QueryDefinition(
+            "SELECT * FROM c ORDER BY c.updatedAt DESC");
+
+        return _repository.QueryAsync(query, cancellationToken: cancellationToken);
     }
 
     public Task UpsertAsync(Author author, CancellationToken cancellationToken = default)

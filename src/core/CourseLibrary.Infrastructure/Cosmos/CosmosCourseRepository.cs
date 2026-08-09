@@ -15,16 +15,22 @@ public sealed class CosmosCourseRepository : ICourseRepository
     public Task<Course?> GetByIdAsync(string courseId, string partitionKey, CancellationToken cancellationToken = default)
         => _repository.GetByIdAsync(courseId, partitionKey, cancellationToken);
 
-    public Task<IEnumerable<Course>> GetByAuthorAsync(string authorId, CancellationToken cancellationToken = default)
+    public Task<IReadOnlyList<Course>> GetByAuthorAsync(string authorId, CancellationToken cancellationToken = default)
     {
-        var query = "SELECT * FROM c WHERE c.authorId = @authorId ORDER BY c.updatedAt DESC";
-        return _repository.QueryAsync(query, authorId, new Microsoft.Azure.Cosmos.QueryRequestOptions { PartitionKey = new Microsoft.Azure.Cosmos.PartitionKey(authorId) }, cancellationToken);
+        var query = new Microsoft.Azure.Cosmos.QueryDefinition(
+            "SELECT * FROM c WHERE c.authorId = @authorId ORDER BY c.updatedAt DESC")
+            .WithParameter("@authorId", authorId);
+
+        return _repository.QueryAsync(query, partitionKey: authorId, cancellationToken: cancellationToken);
     }
 
-    public Task<IEnumerable<Course>> SearchAsync(string query, int pageSize, string? continuationToken, CancellationToken cancellationToken = default)
+    public Task<IReadOnlyList<Course>> SearchAsync(string query, int pageSize, string? continuationToken, CancellationToken cancellationToken = default)
     {
-        var sql = "SELECT * FROM c WHERE CONTAINS(c.title, @query) OR CONTAINS(c.description, @query) ORDER BY c.updatedAt DESC";
-        return _repository.QueryAsync(sql, string.Empty, new Microsoft.Azure.Cosmos.QueryRequestOptions { MaxItemCount = pageSize }, cancellationToken);
+        var sql = new Microsoft.Azure.Cosmos.QueryDefinition(
+            "SELECT * FROM c WHERE CONTAINS(c.title, @query) OR CONTAINS(c.description, @query) ORDER BY c.updatedAt DESC")
+            .WithParameter("@query", query);
+
+        return _repository.QueryAsync(sql, cancellationToken: cancellationToken);
     }
 
     public Task UpsertAsync(Course course, CancellationToken cancellationToken = default)

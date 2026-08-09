@@ -14,12 +14,12 @@ public interface ICosmosRepository<TDocument>
 
     Task<IReadOnlyList<TDocument>> QueryAsync(
         QueryDefinition query,
-        string partitionKey,
+        string? partitionKey = null,
         CancellationToken cancellationToken = default);
 
     Task<PageResult<TDocument>> QueryPageAsync(
         QueryDefinition query,
-        string partitionKey,
+        string? partitionKey = null,
         string? continuationToken = null,
         int pageSize = 20,
         CancellationToken cancellationToken = default);
