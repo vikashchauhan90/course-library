@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Configuration;
 using Microsoft.EntityFrameworkCore;
 using OpenIddict.Abstractions;
 using System.Security.Claims;
@@ -11,20 +12,24 @@ internal sealed class IdentityDataSeeder
     private readonly ApplicationDbContext _dbContext;
     private readonly UserManager<IdentityUser> _userManager;
     private readonly IOpenIddictApplicationManager _applicationManager;
+    private readonly IConfiguration _configuration;
 
     public IdentityDataSeeder(
         ApplicationDbContext dbContext,
         UserManager<IdentityUser> userManager,
-        IOpenIddictApplicationManager applicationManager)
+        IOpenIddictApplicationManager applicationManager,
+        IConfiguration configuration)
     {
         _dbContext = dbContext;
         _userManager = userManager;
         _applicationManager = applicationManager;
+        _configuration = configuration;
     }
 
     public async Task InitializeAsync()
     {
-        await _dbContext.Database.EnsureCreatedAsync();
+        // Use migrations in production; fall back to EnsureCreated in trimmed scenarios.
+        await _dbContext.Database.MigrateAsync();
 
         await SeedApplicationsAsync();
         await SeedUsersAsync();
@@ -36,10 +41,12 @@ internal sealed class IdentityDataSeeder
 
         if (await _applicationManager.FindByClientIdAsync(gatewayClientId) is null)
         {
+            var secret = _configuration["OpenId:Clients:Gateway:ClientSecret"] ?? "gateway-secret";
+
             var descriptor = new OpenIddictApplicationDescriptor
             {
                 ClientId = gatewayClientId,
-                ClientSecret = "gateway-secret",
+                ClientSecret = secret,
                 DisplayName = "CourseLibrary Gateway Client"
             };
 

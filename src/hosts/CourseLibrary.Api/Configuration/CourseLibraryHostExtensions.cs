@@ -1,14 +1,21 @@
 ﻿using Carter;
+using CourseLibrary.Api.Configuration.Caching;
 using CourseLibrary.Api.Configuration.Filters;
+using CourseLibrary.Api.Configuration.Idempotency;
 using CourseLibrary.Api.Configuration.Observability;
 using CourseLibrary.Api.Configuration.Observability.Logs;
 using CourseLibrary.Api.Configuration.Observability.Logs.Middlewares;
+using CourseLibrary.Application.Abstractions.Serialization;
+using CourseLibrary.Application.Abstractions.Serializers;
+using CourseLibrary.Infrastructure;
 using CourseLibrary.Infrastructure.Caching;
 using CourseLibrary.Infrastructure.Idempotency;
 using CourseLibrary.Infrastructure.Resilience;
+using CourseLibrary.Infrastructure.Serializers;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.HttpLogging;
 using System.Diagnostics;
+using System.Text.Json;
 
 namespace CourseLibrary.Api.Configuration;
 
@@ -37,7 +44,7 @@ internal static class CourseLibraryHostExtensions
         // Application services.
         builder.Services.AddCarter();
 
-        builder.Services.AddCourseLibraryCaching();
+        builder.Services.AddCourseLibraryMemoryCache();
         builder.Services.AddCourseLibraryIdempotency();
 
         // Observability.
