@@ -1,3 +1,5 @@
+using Microsoft.AspNetCore.Mvc;
+using System.Diagnostics;
 using System.Threading.RateLimiting;
 
 namespace CourseLibrary.Gateway.Configuration.RateLimiting;
@@ -120,6 +122,33 @@ internal static class GatewayRateLimitingExtensions
              */
             options.RejectionStatusCode =
                 StatusCodes.Status429TooManyRequests;
+
+            options.OnRejected = async (context, cancellationToken) =>
+            {
+                context.HttpContext.Response.ContentType =
+                    "application/problem+json";
+
+                var problemDetails = new ProblemDetails
+                {
+                    Type = "https://api.courselibrary.com/errors/rate-limit",
+                    Title = "Too many requests",
+                    Status = StatusCodes.Status429TooManyRequests,
+                    Detail = "Too many requests. Please try again later.",
+                    Instance = context.HttpContext.Request.Path
+                };
+
+                problemDetails.Extensions["traceId"] =
+                    Activity.Current?.TraceId.ToString()
+                    ?? context.HttpContext.TraceIdentifier;
+
+                problemDetails.Extensions["timestamp"] =
+           DateTimeOffset.UtcNow;
+
+                await context.HttpContext.Response.WriteAsJsonAsync(
+                    problemDetails,
+                    cancellationToken);
+            };
+
         });
 
         return builder;

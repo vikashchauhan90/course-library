@@ -1,6 +1,7 @@
 ﻿using CourseLibrary.Gateway.Configuration.Authentication;
 using CourseLibrary.Gateway.Configuration.Authorization;
 using CourseLibrary.Gateway.Configuration.Cors;
+using CourseLibrary.Gateway.Configuration.Exceptions;
 using CourseLibrary.Gateway.Configuration.Observability;
 using CourseLibrary.Gateway.Configuration.Observability.Logs;
 using CourseLibrary.Gateway.Configuration.Proxy;
@@ -50,6 +51,7 @@ internal static class CourseLibraryHostExtensions
     public static WebApplication UseCourseLibraryPipeline(
         this WebApplication app)
     {
+        app.UseGlobalExceptionHandler();
         app.UseForwardedHeaders();
         app.UseRequestContext();
         app.UseHttpsRedirection();
