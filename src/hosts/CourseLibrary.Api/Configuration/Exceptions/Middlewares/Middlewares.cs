@@ -15,6 +15,18 @@ public sealed class GlobalExceptionHandlerMiddleware(
         {
             await next(context);
         }
+        catch (OperationCanceledException)
+            when (context.RequestAborted.IsCancellationRequested)
+        {
+            // The client disconnected or the request was explicitly cancelled.
+            // Do not attempt to write a response.
+            logger.LogDebug(
+                "Request was cancelled by the client. TraceId: {TraceId}, Path: {Path}",
+                Activity.Current?.Id ?? context.TraceIdentifier,
+                context.Request.Path);
+
+            return;
+        }
         catch (Exception exception)
         {
             await HandleExceptionAsync(context, exception);
@@ -30,7 +42,7 @@ public sealed class GlobalExceptionHandlerMiddleware(
         if (exception is OperationCanceledException &&
             context.RequestAborted.IsCancellationRequested)
         {
-            logger.LogInformation(
+            logger.LogDebug(
                 "Request was cancelled by the client. TraceId: {TraceId}, Path: {Path}",
                 Activity.Current?.Id ?? context.TraceIdentifier,
                 context.Request.Path);
@@ -81,9 +93,10 @@ public sealed class GlobalExceptionHandlerMiddleware(
 
         var problemDetails = new ProblemDetails
         {
+            Type = GetProblemType(error.StatusCode),
             Status = error.StatusCode,
             Title = error.Title,
-            Detail = error.Message,
+            Detail = error.Detail,
             Instance = context.Request.Path
         };
 
@@ -95,156 +108,223 @@ public sealed class GlobalExceptionHandlerMiddleware(
             problemDetails.Extensions["errors"] = error.Errors;
         }
 
-        await context.Response.WriteAsJsonAsync(
-            problemDetails,
-            context.RequestAborted);
+        try
+        {
+            await context.Response.WriteAsJsonAsync(
+             problemDetails,
+             context.RequestAborted);
+        }
+        catch (OperationCanceledException)
+            when (context.RequestAborted.IsCancellationRequested)
+        {
+
+            logger.LogDebug(
+                "Request was cancelled while writing the error response. TraceId: {TraceId}, Path: {Path} ",
+                traceId,
+                context.Request.Path);
+        }
     }
 
-    private static ExceptionMapping MapException(Exception exception)
+    private static ExceptionMapping MapException(
+         Exception exception)
     {
         return exception switch
         {
             BaseException baseException =>
-            new ExceptionMapping(
-                baseException.StatusCode,
-                GetTitle(baseException.StatusCode),
-                baseException.Message),
+                new ExceptionMapping(
+                    baseException.StatusCode,
+                    GetTitle(baseException.StatusCode),
+                    baseException.Message,
+                    GetProblemType(baseException.StatusCode)),
 
-            // FluentValidation
             FluentValidation.ValidationException validationException =>
                 new ExceptionMapping(
                     StatusCodes.Status422UnprocessableEntity,
                     "Validation failed",
                     "One or more validation errors occurred.",
+                    GetProblemType(
+                        StatusCodes.Status422UnprocessableEntity),
                     validationException.Errors
                         .GroupBy(x => x.PropertyName)
                         .ToDictionary(
-                            g => g.Key,
-                            g => g.Select(x => x.ErrorMessage).ToArray())),
+                            group => group.Key,
+                            group => group
+                                .Select(x => x.ErrorMessage)
+                                .ToArray())),
 
-            // ASP.NET / DataAnnotations validation
-            ValidationException dataAnnotationsException =>
+            ValidationException =>
                 new ExceptionMapping(
                     StatusCodes.Status422UnprocessableEntity,
                     "Validation failed",
-                    dataAnnotationsException.Message),
+                    "One or more validation errors occurred.",
+                    GetProblemType(
+                        StatusCodes.Status422UnprocessableEntity)),
 
-            // Bad arguments
             ArgumentNullException =>
                 new ExceptionMapping(
                     StatusCodes.Status400BadRequest,
                     "Bad request",
-                    "The request contains an invalid argument."),
+                    "The request contains an invalid argument.",
+                    GetProblemType(
+                        StatusCodes.Status400BadRequest)),
 
             ArgumentOutOfRangeException =>
                 new ExceptionMapping(
                     StatusCodes.Status400BadRequest,
                     "Bad request",
-                    "The request contains an argument outside the allowed range."),
+                    "The request contains an argument outside the allowed range.",
+                    GetProblemType(
+                        StatusCodes.Status400BadRequest)),
 
             ArgumentException =>
                 new ExceptionMapping(
                     StatusCodes.Status400BadRequest,
                     "Bad request",
-                    "The request contains invalid arguments."),
+                    "The request contains invalid arguments.",
+                    GetProblemType(
+                        StatusCodes.Status400BadRequest)),
 
             FormatException =>
                 new ExceptionMapping(
                     StatusCodes.Status400BadRequest,
                     "Bad request",
-                    "The request contains an invalid format."),
+                    "The request contains an invalid format.",
+                    GetProblemType(
+                        StatusCodes.Status400BadRequest)),
 
-            // Resource not found
             KeyNotFoundException =>
                 new ExceptionMapping(
                     StatusCodes.Status404NotFound,
                     "Resource not found",
-                    "The requested resource was not found."),
+                    "The requested resource was not found.",
+                    GetProblemType(
+                        StatusCodes.Status404NotFound)),
 
             FileNotFoundException =>
                 new ExceptionMapping(
                     StatusCodes.Status404NotFound,
                     "Resource not found",
-                    "The requested resource was not found."),
+                    "The requested resource was not found.",
+                    GetProblemType(
+                        StatusCodes.Status404NotFound)),
 
-            // TODO Authorization exceptions (e.g., UnauthorizedAccessException) can be handled here as well.
-            // Authentication / authorization
-            UnauthorizedAccessException =>
-                new ExceptionMapping(
-                    StatusCodes.Status401Unauthorized,
-                    "Unauthorized",
-                    "Authentication is required to access this resource."),
-
-
-            // Conflict
-            InvalidOperationException =>
-                new ExceptionMapping(
-                    StatusCodes.Status409Conflict,
-                    "Conflict",
-                    "The requested operation could not be completed because of a conflict."),
-
-            // Rate limiting
             _ when IsTooManyRequests(exception) =>
                 new ExceptionMapping(
                     StatusCodes.Status429TooManyRequests,
                     "Too many requests",
-                    "Too many requests were sent. Please try again later."),
+                    "Too many requests were sent. Please try again later.",
+                    GetProblemType(
+                        StatusCodes.Status429TooManyRequests)),
 
-            // Timeout
             TimeoutException =>
                 new ExceptionMapping(
                     StatusCodes.Status504GatewayTimeout,
-                    "Request timeout",
-                    "The request could not be completed within the allowed time."),
+                    "Gateway timeout",
+                    "The downstream operation did not complete within the allowed time.",
+                    GetProblemType(
+                        StatusCodes.Status504GatewayTimeout)),
 
-            // Server-side cancellation / timeout
-            OperationCanceledException =>
-                new ExceptionMapping(
-                    StatusCodes.Status408RequestTimeout,
-                    "Request timeout",
-                    "The request was cancelled or timed out."),
-
-            // Everything else
             _ =>
                 new ExceptionMapping(
                     StatusCodes.Status500InternalServerError,
                     "Internal server error",
-                    "An unexpected error occurred.")
+                    "An unexpected error occurred.",
+                    GetProblemType(
+                        StatusCodes.Status500InternalServerError))
         };
     }
 
     private static bool IsTooManyRequests(Exception exception)
     {
-        // Replace this with your actual rate-limit exception
-        // if you have one.
-        return exception.GetType().Name is
-            "TooManyRequestsException" or
-            "RateLimitExceededException";
+        return exception is
+           TooManyRequestsException;
     }
 
+    private static string GetProblemType(
+      int statusCode)
+    {
+        return statusCode switch
+        {
+            StatusCodes.Status400BadRequest =>
+                "https://httpstatuses.com/400",
+
+            StatusCodes.Status401Unauthorized =>
+                "https://httpstatuses.com/401",
+
+            StatusCodes.Status403Forbidden =>
+                "https://httpstatuses.com/403",
+
+            StatusCodes.Status404NotFound =>
+                "https://httpstatuses.com/404",
+
+            StatusCodes.Status409Conflict =>
+                "https://httpstatuses.com/409",
+
+            StatusCodes.Status422UnprocessableEntity =>
+                "https://httpstatuses.com/422",
+
+            StatusCodes.Status429TooManyRequests =>
+                "https://httpstatuses.com/429",
+
+            StatusCodes.Status502BadGateway =>
+                "https://httpstatuses.com/502",
+
+            StatusCodes.Status503ServiceUnavailable =>
+                "https://httpstatuses.com/503",
+
+            StatusCodes.Status504GatewayTimeout =>
+                "https://httpstatuses.com/504",
+
+            _ =>
+                "https://httpstatuses.com/500"
+        };
+    }
     private static string GetTitle(int statusCode)
     {
         return statusCode switch
         {
-            400 => "Bad request",
-            401 => "Unauthorized",
-            403 => "Forbidden",
-            404 => "Resource not found",
-            409 => "Conflict",
-            422 => "Validation failed",
-            429 => "Too many requests",
-            408 => "Request timeout",
-            502 => "Bad gateway",
-            503 => "Service unavailable",
-            504 => "Gateway timeout",
-            _ when statusCode >= 500 => "Internal server error",
-            _ => "Request failed"
+            StatusCodes.Status400BadRequest =>
+                "Bad request",
+
+            StatusCodes.Status401Unauthorized =>
+                "Unauthorized",
+
+            StatusCodes.Status403Forbidden =>
+                "Forbidden",
+
+            StatusCodes.Status404NotFound =>
+                "Resource not found",
+
+            StatusCodes.Status409Conflict =>
+                "Conflict",
+
+            StatusCodes.Status422UnprocessableEntity =>
+                "Validation failed",
+
+            StatusCodes.Status429TooManyRequests =>
+                "Too many requests",
+
+            StatusCodes.Status502BadGateway =>
+                "Bad gateway",
+
+            StatusCodes.Status503ServiceUnavailable =>
+                "Service unavailable",
+
+            StatusCodes.Status504GatewayTimeout =>
+                "Gateway timeout",
+
+            _ when statusCode >= 500 =>
+                "Internal server error",
+
+            _ =>
+                "Request failed"
         };
     }
 
     private sealed record ExceptionMapping(
-        int StatusCode,
-        string Title,
-        string Message,
-        object? Errors = null);
+          int StatusCode,
+          string Title,
+          string Detail,
+          string Type,
+          object? Errors = null);
 }
