@@ -1,57 +1,373 @@
 using CourseLibrary.Domain.Abstractions;
+using CourseLibrary.Domain.Models;
+using CourseLibrary.Infrastructure.Cosmos.Extensions;
+using CourseLibrary.Infrastructure.Observability.Traces;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Azure.Cosmos;
+using Microsoft.Extensions.Logging;
+using System.Diagnostics;
+using System.Net;
 
 namespace CourseLibrary.Infrastructure.Cosmos;
 
-public sealed class CosmosRepository<T> : ICosmosRepository<T> where T : ICosmosPartitioned
+public abstract class CosmosRepository<TDocument, TRepository>
+    : ICosmosRepository<TDocument>
+    where TDocument : ICosmosPartitioned
 {
-    private readonly Container _container;
-
-    public CosmosRepository(CosmosClient client, string databaseName, string containerName)
+    private readonly Lazy<Container> _container;
+    protected readonly ILogger<TRepository> _logger;   
+    protected readonly string ContainerName;
+    protected CosmosRepository(
+        CosmosClient client,
+        CosmosOptions options,
+        string containerName,
+        ILogger<TRepository> logger)
     {
         ArgumentNullException.ThrowIfNull(client);
-        ArgumentException.ThrowIfNullOrWhiteSpace(databaseName);
+        ArgumentNullException.ThrowIfNull(options);
         ArgumentException.ThrowIfNullOrWhiteSpace(containerName);
-
-        _container = client.GetContainer(databaseName, containerName);
+        ArgumentNullException.ThrowIfNull(logger);
+        ContainerName = containerName;
+        _logger = logger;
+        _container = new Lazy<Container>(
+            () => client.GetContainer(
+                options.DatabaseName,
+                containerName),
+            LazyThreadSafetyMode.ExecutionAndPublication);
     }
 
-    public async Task<T?> GetByIdAsync(string id, string partitionKey, CancellationToken cancellationToken = default)
+    protected Container Container =>
+        _container.Value;
+
+
+    public async Task<TDocument?> GetByIdAsync(
+        string id,
+        string partitionKey,
+        CancellationToken cancellationToken = default)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(id);
+        ArgumentException.ThrowIfNullOrWhiteSpace(partitionKey);
+
+        using var activity =
+         ActivitySources.Infrastructure.StartActivity(
+             "Cosmos.GetItem",
+             ActivityKind.Client);
+
+        activity.SetCosmosOperation(
+            "ReadItem",
+            ContainerName);
+
         try
         {
-            var response = await _container.ReadItemAsync<T>(id, new PartitionKey(partitionKey), cancellationToken: cancellationToken);
+            var response = await Container.ReadItemAsync<TDocument>(
+                id,
+                new PartitionKey(partitionKey),
+                cancellationToken: cancellationToken);
+
+            activity.RecordSuccess(
+            response.RequestCharge);
+
             return response.Resource;
         }
-        catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+        catch (CosmosException ex) when (
+            ex.StatusCode == HttpStatusCode.NotFound)
         {
+            activity?.SetTag(
+             "http.response.status_code",
+             StatusCodes.Status404NotFound);
+
+            _logger.DocumentNotFound(
+                 "ReadItem",
+                 ContainerName,
+                 id);
+
+
             return default;
         }
+        catch (CosmosException ex)
+        {
+            activity.RecordFailure(ex);
+
+            LogCosmosFailure(
+                 "ReadItem",
+                 ex);
+
+            throw ex.ToApplicationException();
+        }
     }
 
-    public async Task<IEnumerable<T>> QueryAsync(string query, string partitionKey, QueryRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<TDocument>> QueryAsync(
+        QueryDefinition query,
+        string partitionKey,
+        CancellationToken cancellationToken = default)
     {
-        var queryDefinition = new QueryDefinition(query);
-        var iterator = _container.GetItemQueryIterator<T>(queryDefinition, requestOptions: requestOptions ?? new QueryRequestOptions { PartitionKey = new PartitionKey(partitionKey) });
-        var results = new List<T>();
+        ArgumentNullException.ThrowIfNull(query);
+        ArgumentException.ThrowIfNullOrWhiteSpace(partitionKey);
 
-        while (iterator.HasMoreResults)
+        using var activity =
+        ActivitySources.Infrastructure.StartActivity(
+            "Cosmos.Query",
+            ActivityKind.Client);
+
+        activity.SetCosmosOperation(
+            "Query",
+            ContainerName);
+
+        try
         {
-            var response = await iterator.ReadNextAsync(cancellationToken);
-            results.AddRange(response.Resource);
+            var requestOptions = new QueryRequestOptions
+            {
+                PartitionKey = new PartitionKey(partitionKey)
+            };
+
+            using var iterator =
+                Container.GetItemQueryIterator<TDocument>(
+                    queryDefinition: query,
+                    requestOptions: requestOptions);
+
+            var results = new List<TDocument>();
+            double totalRequestCharge = 0;
+            while (iterator.HasMoreResults)
+            {
+                var response =
+                    await iterator.ReadNextAsync(
+                        cancellationToken);
+
+                results.AddRange(response.Resource);
+                totalRequestCharge += response.RequestCharge;
+            }
+
+            activity.RecordSuccess(
+          totalRequestCharge);
+
+            activity?.SetTag(
+                "cosmos.result_count",
+                results.Count);
+
+            return results;
+        }
+        catch (CosmosException ex)
+        {
+            activity.RecordFailure(ex);
+
+            LogCosmosFailure(
+                "Query",
+                ex);
+            throw ex.ToApplicationException();
+        }
+    }
+
+    public async Task<PageResult<TDocument>> QueryPageAsync(
+        QueryDefinition query,
+        string partitionKey,
+        string? continuationToken = null,
+        int pageSize = 20,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(query);
+        ArgumentException.ThrowIfNullOrWhiteSpace(partitionKey);
+
+        if (pageSize is < 1 or > 100)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(pageSize),
+                pageSize,
+                "Page size must be between 1 and 100.");
         }
 
-        return results;
+        using var activity =
+       ActivitySources.Infrastructure.StartActivity(
+           "Cosmos.QueryPage",
+           ActivityKind.Client);
+
+        activity.SetCosmosOperation(
+            "QueryPage",
+            ContainerName);
+
+        activity?.SetTag(
+        "cosmos.page_size",
+        pageSize);
+
+        activity?.SetTag(
+            "cosmos.has_continuation_token",
+            !string.IsNullOrWhiteSpace(continuationToken));
+
+        try
+        {
+            var requestOptions = new QueryRequestOptions
+            {
+                PartitionKey = new PartitionKey(partitionKey),
+                MaxItemCount = pageSize
+            };
+
+            using var iterator =
+                Container.GetItemQueryIterator<TDocument>(
+                    queryDefinition: query,
+                    continuationToken: continuationToken,
+                    requestOptions: requestOptions);
+
+            if (!iterator.HasMoreResults)
+            {
+                return new PageResult<TDocument>(
+                    [],
+                    null,
+                    false);
+            }
+
+            var response =
+                await iterator.ReadNextAsync(
+                    cancellationToken);
+
+            var items = response.Resource.ToList();
+
+            var nextToken = response.ContinuationToken;
+
+            activity?.SetTag(
+            "cosmos.result_count",
+            items.Count);
+
+            activity?.SetTag(
+                "cosmos.has_next_page",
+                !string.IsNullOrWhiteSpace(nextToken));
+
+            return new PageResult<TDocument>(
+                items,
+                nextToken,
+                !string.IsNullOrWhiteSpace(nextToken));
+        }
+        catch (CosmosException ex)
+        {
+            activity.RecordFailure(ex);
+
+            LogCosmosFailure(
+                "QueryPage",
+                ex);
+            throw ex.ToApplicationException();
+        }
     }
 
-    public async Task UpsertAsync(T item, CancellationToken cancellationToken = default)
+    public async Task UpsertAsync(
+        TDocument item,
+        CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(item);
-        await _container.UpsertItemAsync(item, new PartitionKey(item.PartitionKeyValue), cancellationToken: cancellationToken);
+        ArgumentException.ThrowIfNullOrWhiteSpace(
+            item.PartitionKeyValue);
+
+
+        using var activity =
+        ActivitySources.Infrastructure.StartActivity(
+            "Cosmos.UpsertItem",
+            ActivityKind.Client);
+
+        activity.SetCosmosOperation(
+            "UpsertItem",
+            ContainerName);
+
+        try
+        {
+            var response =
+            await Container.UpsertItemAsync(
+                item,
+                new PartitionKey(
+                    item.PartitionKeyValue),
+                cancellationToken: cancellationToken);
+
+            activity.RecordSuccess(
+                response.RequestCharge);
+        }
+        catch (CosmosException ex)
+        {
+            activity.RecordFailure(ex);
+
+            LogCosmosFailure(
+               "UpsertItem",
+               ex);
+
+            throw ex.ToApplicationException();
+        }
     }
 
-    public async Task DeleteAsync(string id, string partitionKey, CancellationToken cancellationToken = default)
+    public async Task<bool> DeleteAsync(
+        string id,
+        string partitionKey,
+        CancellationToken cancellationToken = default)
     {
-        await _container.DeleteItemAsync<T>(id, new PartitionKey(partitionKey), cancellationToken: cancellationToken);
+        ArgumentException.ThrowIfNullOrWhiteSpace(id);
+        ArgumentException.ThrowIfNullOrWhiteSpace(partitionKey);
+
+        using var activity =
+       ActivitySources.Infrastructure.StartActivity(
+           "Cosmos.DeleteItem",
+           ActivityKind.Client);
+
+        activity.SetCosmosOperation(
+            "DeleteItem",
+            ContainerName);
+
+        try
+        {
+            var response =
+           await Container.DeleteItemAsync<TDocument>(
+               id,
+               new PartitionKey(partitionKey),
+               cancellationToken: cancellationToken);
+
+            activity.RecordSuccess(
+                response.RequestCharge);
+
+            return true;
+        }
+        catch (CosmosException ex) when (
+            ex.StatusCode == HttpStatusCode.NotFound)
+        {
+            activity?.SetTag(
+            "http.response.status_code",
+            StatusCodes.Status404NotFound);
+
+            _logger.DocumentNotFound(
+                 "DeleteItem",
+                 ContainerName,
+                 id);
+
+            return false;
+        }
+        catch (CosmosException ex)
+        {
+            activity.RecordFailure(ex);
+
+            LogCosmosFailure(
+               "DeleteItem",
+               ex);
+            throw ex.ToApplicationException();
+        }
+    }
+
+    protected void LogCosmosFailure(
+        string operation,
+        CosmosException exception)
+    {
+        var statusCode = (int)exception.StatusCode;
+
+        if (statusCode >= 500)
+        {
+            _logger.OperationError(
+                operation,
+                ContainerName,
+                statusCode,
+                exception.ActivityId,
+                exception.RequestCharge,
+                exception);
+
+            return;
+        }
+
+        _logger.OperationWarning(
+            operation,
+            ContainerName,
+            statusCode,
+            exception.ActivityId,
+            exception.RequestCharge,
+            exception);
     }
 }
