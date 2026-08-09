@@ -3,7 +3,7 @@ using CourseLibrary.Idp.Domain.Entities;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
-namespace CourseLibrary.Idp.Infrastructure.Identity;
+namespace CourseLibrary.Idp.Infrastructure.Persistence;
 
 public class ApplicationDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, string>
 {

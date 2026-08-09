@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
-namespace CourseLibrary.Idp.Infrastructure.Identity.Configurations;
+namespace CourseLibrary.Idp.Infrastructure.Persistence.Configurations;
 
 public sealed class ApplicationRoleConfiguration : IEntityTypeConfiguration<ApplicationRole>
 {
