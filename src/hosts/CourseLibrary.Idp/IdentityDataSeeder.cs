@@ -3,6 +3,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.EntityFrameworkCore;
 using OpenIddict.Abstractions;
 using System.Security.Claims;
+using Microsoft.Data.Sqlite;
 using static OpenIddict.Abstractions.OpenIddictConstants;
 
 namespace CourseLibrary.Idp;
@@ -13,26 +14,61 @@ internal sealed class IdentityDataSeeder
     private readonly UserManager<IdentityUser> _userManager;
     private readonly IOpenIddictApplicationManager _applicationManager;
     private readonly IConfiguration _configuration;
+    private readonly ILogger<IdentityDataSeeder> _logger;
 
     public IdentityDataSeeder(
         ApplicationDbContext dbContext,
         UserManager<IdentityUser> userManager,
         IOpenIddictApplicationManager applicationManager,
-        IConfiguration configuration)
+        IConfiguration configuration,
+        ILogger<IdentityDataSeeder> logger)
     {
         _dbContext = dbContext;
         _userManager = userManager;
         _applicationManager = applicationManager;
         _configuration = configuration;
+        _logger = logger;
     }
 
     public async Task InitializeAsync()
     {
-        // Use migrations in production; fall back to EnsureCreated in trimmed scenarios.
-        await _dbContext.Database.MigrateAsync();
+        try
+        {
+            _logger.LogInformation("Applying migrations for IdP database...");
+            await _dbContext.Database.MigrateAsync();
+            _logger.LogInformation("Database migrations applied.");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Applying migrations failed — falling back to EnsureCreated.");
+            await _dbContext.Database.EnsureCreatedAsync();
+            _logger.LogInformation("Database ensured created.");
+        }
 
-        await SeedApplicationsAsync();
-        await SeedUsersAsync();
+        try
+        {
+            await SeedApplicationsAsync();
+            await SeedUsersAsync();
+        }
+        catch (SqliteException ex) when (ex.Message.Contains("no such table", StringComparison.OrdinalIgnoreCase))
+        {
+            _logger.LogWarning(ex, "Detected missing table during seeding. Recreating database and retrying seeding.");
+            await _dbContext.Database.EnsureDeletedAsync();
+
+            try
+            {
+                await _dbContext.Database.MigrateAsync();
+            }
+            catch (Exception migEx)
+            {
+                _logger.LogWarning(migEx, "Migrate failed on retry — falling back to EnsureCreated.");
+                await _dbContext.Database.EnsureCreatedAsync();
+            }
+
+            // Retry seeding once after recreating database.
+            await SeedApplicationsAsync();
+            await SeedUsersAsync();
+        }
     }
 
     private async Task SeedApplicationsAsync()
