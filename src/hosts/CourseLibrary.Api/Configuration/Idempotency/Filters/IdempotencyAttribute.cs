@@ -6,7 +6,7 @@ using System.Net.Mime;
 using System.Text;
 using System.Text.Json;
 
-namespace CourseLibrary.Api.Configuration.Filters;
+namespace CourseLibrary.Api.Configuration.Idempotency.Filters;
 
 [AttributeUsage(AttributeTargets.Method | AttributeTargets.Class)]
 public sealed class IdempotencyAttribute : Attribute, IAsyncActionFilter

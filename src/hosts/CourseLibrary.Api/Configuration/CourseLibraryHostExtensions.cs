@@ -6,6 +6,8 @@ using CourseLibrary.Api.Configuration.Idempotency;
 using CourseLibrary.Api.Configuration.Observability;
 using CourseLibrary.Api.Configuration.Observability.Logs;
 using CourseLibrary.Api.Configuration.Observability.Logs.Middlewares;
+using CourseLibrary.Api.Configuration.Observability.Metrics;
+using CourseLibrary.Api.Configuration.Security;
 using CourseLibrary.Application.Abstractions.Serialization;
 using CourseLibrary.Application.Abstractions.Serializers;
 using CourseLibrary.Infrastructure;
@@ -48,7 +50,6 @@ internal static class CourseLibraryHostExtensions
 
         builder.Services.AddCourseLibraryMemoryCache();
         builder.Services.AddCourseLibraryIdempotency();
-        builder.Services.AddCourseLibraryCosmosRepositories(builder.Configuration);
 
         // Observability.
         builder.AddObservability();
@@ -63,6 +64,8 @@ internal static class CourseLibraryHostExtensions
     public static WebApplication UseCourseLibraryPipeline(
         this WebApplication app)
     {
+        app.UseRequestMetrics();
+        app.UseSecurityHeaders();
         app.UseGlobalExceptionHandler();
         // Transport.
         app.UseHttpsRedirection();
