@@ -1,3 +1,4 @@
+using System.Threading;
 using CourseLibrary.Idp.Domain.Abstractions;
 using CourseLibrary.Idp.Domain.Entities;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
@@ -5,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CourseLibrary.Idp.Infrastructure.Persistence;
 
-public class ApplicationDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, string>
+public class ApplicationDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, string>, IApplicationDbContext
 {
     protected ApplicationDbContext() : base() { }
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options) { }
@@ -17,5 +18,10 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
 
         // Seeding via dedicated seeder class
         //InitialDataSeeder.Seed(builder);
+    }
+
+    public Task MigrateAsync(CancellationToken cancellationToken = default)
+    {
+        throw new NotImplementedException();
     }
 }

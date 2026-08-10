@@ -1,8 +1,9 @@
-using CourseLibrary.Idp;
 using CourseLibrary.Idp.Domain.Entities;
 using CourseLibrary.Idp.Domain.Abstractions;
-using CourseLibrary.Idp.Infrastructure.Identity;
+using CourseLibrary.Idp.Infrastructure.Persistence;
+using CourseLibrary.Idp.Infrastructure.Persistence.Interceptors;
 using CourseLibrary.Idp.Application.Services;
+using CourseLibrary.Idp.Infrastructure.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using OpenIddict.Abstractions;
@@ -17,14 +18,20 @@ var builder = WebApplication.CreateBuilder(args);
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
                        ?? "Host=localhost;Port=5432;Database=course_library_idp;Username=course_library;Password=change_me";
 
-builder.Services.AddDbContext<ApplicationIdentityDbContext>(options =>
+builder.Services.AddScoped<AuditEntityInterceptor>();
+builder.Services.AddScoped<SecurityEntityInterceptor>();
+
+builder.Services.AddDbContext<ApplicationDbContext>((provider, options) =>
 {
     options.UseNpgsql(connectionString);
     options.UseOpenIddict();
+    options.AddInterceptors(
+        provider.GetRequiredService<AuditEntityInterceptor>(),
+        provider.GetRequiredService<SecurityEntityInterceptor>());
 });
 
 builder.Services.AddScoped<IApplicationDbContext>(provider =>
-    provider.GetRequiredService<ApplicationIdentityDbContext>());
+    provider.GetRequiredService<ApplicationDbContext>());
 
 builder.Services.AddIdentity<ApplicationUser, ApplicationRole>(options =>
     {
@@ -37,14 +44,14 @@ builder.Services.AddIdentity<ApplicationUser, ApplicationRole>(options =>
         options.Lockout.MaxFailedAccessAttempts = 5;
         options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
     })
-    .AddEntityFrameworkStores<ApplicationIdentityDbContext>()
+    .AddEntityFrameworkStores<ApplicationDbContext>()
     .AddDefaultTokenProviders();
 
 builder.Services.AddOpenIddict()
     .AddCore(options =>
     {
         options.UseEntityFrameworkCore()
-            .UseDbContext<ApplicationIdentityDbContext>();
+            .UseDbContext<ApplicationDbContext>();
     })
     .AddServer(options =>
     {
@@ -70,7 +77,7 @@ builder.Services.AddOpenIddict()
         options.UseAspNetCore();
     });
 
-builder.Services.AddScoped<IIdentityProvisioningService, IdentityProvisioningService>();
+builder.Services.AddScoped<IIdentityProvisioningService, CourseLibrary.Idp.Infrastructure.Services.IdentityProvisioningService>();
 
 builder.Services.AddAuthentication()
     .AddCookie();
@@ -154,78 +161,6 @@ app.MapPost("/connect/token", async (HttpContext context) =>
             }
         }
 
-        claims.Add(new Claim("aud", "resource_server"));
-
-        var claimsIdentity = new ClaimsIdentity(claims,
-            OpenIddictServerAspNetCoreDefaults.AuthenticationScheme,
-            Claims.Name,
-            Claims.Role);
-
-        var claimsPrincipal = new ClaimsPrincipal(claimsIdentity);
-
-        await context.SignInAsync(OpenIddictServerAspNetCoreDefaults.AuthenticationScheme, claimsPrincipal);
-        return Results.Ok();
-    }
-
-    return Results.BadRequest();
-});
-
-app.Run();
-
-if (!app.Environment.IsDevelopment())
-{
-    app.UseHsts();
-}
-app.UseHttpsRedirection();
-
-app.UseRouting();
-app.UseCors("DefaultCors");
-app.UseAuthentication();
-app.UseAuthorization();
-
-app.MapHealthChecks("/health");
-
-app.MapPost("/connect/token", async (HttpContext context) =>
-{
-    var form = await context.Request.ReadFormAsync();
-    var grantType = form["grant_type"].ToString();
-    if (string.Equals(grantType, "password", StringComparison.OrdinalIgnoreCase))
-    {
-        var username = form["username"].ToString();
-        var password = form["password"].ToString();
-        var scope = form["scope"].ToString();
-
-        var userManager = context.RequestServices.GetRequiredService<UserManager<IdentityUser>>();
-        var signInManager = context.RequestServices.GetRequiredService<SignInManager<IdentityUser>>();
-        var user = await userManager.FindByNameAsync(username);
-        if (user is null)
-        {
-            return Results.BadRequest();
-        }
-
-        var signInResult = await signInManager.CheckPasswordSignInAsync(user, password, lockoutOnFailure: false).ConfigureAwait(false);
-        if (!signInResult.Succeeded)
-        {
-            return Results.BadRequest();
-        }
-
-        var claims = new List<Claim>
-        {
-            new Claim(Claims.Subject, user.Id),
-            new Claim(Claims.Name, user.UserName ?? string.Empty),
-            new Claim(Claims.Email, user.Email ?? string.Empty),
-        };
-
-        // add scopes as scope claims so token contains them
-        if (!string.IsNullOrEmpty(scope))
-        {
-            foreach (var s in scope.Split(' ', StringSplitOptions.RemoveEmptyEntries))
-            {
-                claims.Add(new Claim("scope", s));
-            }
-        }
-
-        // audience/resource
         claims.Add(new Claim("aud", "resource_server"));
 
         var claimsIdentity = new ClaimsIdentity(claims,
