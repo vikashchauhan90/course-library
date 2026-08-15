@@ -1,10 +1,11 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using CourseLibrary.Infrastructure.Resilience;
+using Microsoft.Extensions.DependencyInjection;
 using Polly;
 using Polly.CircuitBreaker;
 using Polly.Retry;
 
 
-namespace CourseLibrary.Infrastructure.Resilience;
+namespace CourseLibrary.Infrastructure.Configuration.Resilience;
 
 public static class ResiliencePipelineExtensions
 {

@@ -6,10 +6,12 @@ namespace CourseLibrary.Application.Operations.Discussions.Update;
 public sealed class UpdateDiscussionCommandHandler : IHandler<UpdateDiscussionCommand, CourseLibrary.Domain.Entities.Discussion>
 {
     private readonly IDiscussionRepository _repository;
+    private readonly IEventDispatcher _eventDispatcher;
 
-    public UpdateDiscussionCommandHandler(IDiscussionRepository repository)
+    public UpdateDiscussionCommandHandler(IDiscussionRepository repository, IEventDispatcher eventDispatcher)
     {
         _repository = repository;
+        _eventDispatcher = eventDispatcher;
     }
 
     public async Task<CourseLibrary.Domain.Entities.Discussion> HandleAsync(UpdateDiscussionCommand command, CancellationToken ct)
@@ -26,6 +28,7 @@ public sealed class UpdateDiscussionCommandHandler : IHandler<UpdateDiscussionCo
         };
 
         await _repository.UpsertAsync(updated, ct);
+        await _eventDispatcher.PublishAsync(new DiscussionUpdatedEvent(updated.Id, updated.CourseId, updated.Title, updated.UpdatedAt), ct);
         return updated;
     }
 }

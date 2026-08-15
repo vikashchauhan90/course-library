@@ -1,7 +1,8 @@
 ﻿using CourseLibrary.Application.Abstractions.Idempotency;
 using CourseLibrary.Infrastructure.Idempotency;
+using Microsoft.Extensions.DependencyInjection;
 
-namespace CourseLibrary.Api.Configuration.Idempotency;
+namespace CourseLibrary.Infrastructure.Configuration.Idempotency;
 
 internal static class IdempotencyExtensions
 {

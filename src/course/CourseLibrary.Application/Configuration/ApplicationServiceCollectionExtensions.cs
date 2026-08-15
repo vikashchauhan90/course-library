@@ -1,5 +1,16 @@
 ﻿using CourseLibrary.Application.Behaviors;
+using CourseLibrary.Application.Operations.Authors.Create;
+using CourseLibrary.Application.Operations.Authors.Delete;
+using CourseLibrary.Application.Operations.Authors.Update;
+using CourseLibrary.Application.Operations.Comments.Create;
+using CourseLibrary.Application.Operations.Comments.Delete;
+using CourseLibrary.Application.Operations.Comments.Update;
 using CourseLibrary.Application.Operations.Courses.Create;
+using CourseLibrary.Application.Operations.Courses.Delete;
+using CourseLibrary.Application.Operations.Courses.Update;
+using CourseLibrary.Application.Operations.Discussions.Create;
+using CourseLibrary.Application.Operations.Discussions.Delete;
+using CourseLibrary.Application.Operations.Discussions.Update;
 using FluentValidation;
 using MediatorForge;
 using MediatorForge.Abstractions;
@@ -24,6 +35,9 @@ public static class ApplicationServiceCollectionExtensions
 
         // Register FluentValidation validators from the application assembly
         services.AddValidatorsFromAssemblyContaining<CreateCourseValidator>(includeInternalTypes: true);
+        services.AddValidatorsFromAssemblyContaining<CreateAuthorValidator>(includeInternalTypes: true);
+        services.AddValidatorsFromAssemblyContaining<CreateCommentValidator>(includeInternalTypes: true);
+        services.AddValidatorsFromAssemblyContaining<CreateDiscussionValidator>(includeInternalTypes: true);
 
         // Register event handlers from the application assembly
         services.AddEventHandlersFromAssemblyContaining<CourseCreatedEventHandler>();

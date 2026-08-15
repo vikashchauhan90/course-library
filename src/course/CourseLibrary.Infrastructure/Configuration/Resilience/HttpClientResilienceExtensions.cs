@@ -2,7 +2,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Http.Resilience;
 
-namespace CourseLibrary.Infrastructure.Resilience;
+namespace CourseLibrary.Infrastructure.Configuration.Resilience;
 
 public static class HttpClientResilienceExtensions
 {

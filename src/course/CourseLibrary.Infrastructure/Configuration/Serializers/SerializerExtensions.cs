@@ -1,9 +1,10 @@
 ﻿using CourseLibrary.Application.Abstractions.Serialization;
 using CourseLibrary.Application.Abstractions.Serializers;
 using CourseLibrary.Infrastructure.Serializers;
+using Microsoft.Extensions.DependencyInjection;
 using System.Text.Json;
 
-namespace CourseLibrary.Api.Configuration.Serializers;
+namespace CourseLibrary.Infrastructure.Configuration.Serializers;
 
 internal static class SerializerExtensions
 {

@@ -6,10 +6,12 @@ namespace CourseLibrary.Application.Operations.Courses.Update;
 public sealed class UpdateCourseCommandHandler : IHandler<UpdateCourseCommand, Domain.Entities.Course>
 {
     private readonly ICourseRepository _repository;
+    private readonly IEventDispatcher _eventDispatcher;
 
-    public UpdateCourseCommandHandler(ICourseRepository repository)
+    public UpdateCourseCommandHandler(ICourseRepository repository, IEventDispatcher eventDispatcher)
     {
         _repository = repository;
+        _eventDispatcher = eventDispatcher;
     }
 
     public async Task<Domain.Entities.Course> HandleAsync(UpdateCourseCommand command, CancellationToken ct)
@@ -28,6 +30,7 @@ public sealed class UpdateCourseCommandHandler : IHandler<UpdateCourseCommand, D
         };
 
         await _repository.UpsertAsync(updated, ct);
+        await _eventDispatcher.PublishAsync(new CourseUpdatedEvent(updated.Id, updated.AuthorId, updated.Title, updated.UpdatedAt), ct);
         return updated;
     }
 }

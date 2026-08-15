@@ -6,10 +6,12 @@ namespace CourseLibrary.Application.Operations.Comments.Update;
 public sealed class UpdateCommentCommandHandler : IHandler<UpdateCommentCommand, CourseLibrary.Domain.Entities.Comment>
 {
     private readonly ICommentRepository _repository;
+    private readonly IEventDispatcher _eventDispatcher;
 
-    public UpdateCommentCommandHandler(ICommentRepository repository)
+    public UpdateCommentCommandHandler(ICommentRepository repository, IEventDispatcher eventDispatcher)
     {
         _repository = repository;
+        _eventDispatcher = eventDispatcher;
     }
 
     public async Task<CourseLibrary.Domain.Entities.Comment> HandleAsync(UpdateCommentCommand command, CancellationToken ct)
@@ -25,6 +27,7 @@ public sealed class UpdateCommentCommandHandler : IHandler<UpdateCommentCommand,
         };
 
         await _repository.UpsertAsync(updated, ct);
+        await _eventDispatcher.PublishAsync(new CommentUpdatedEvent(updated.Id, updated.CourseId, updated.AuthorId, updated.UpdatedAt), ct);
         return updated;
     }
 }

@@ -1,7 +1,10 @@
-﻿using CourseLibrary.Application.Abstractions.Caching;
+﻿using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+
+using CourseLibrary.Application.Abstractions.Caching;
 using CourseLibrary.Infrastructure.Caching;
 
-namespace CourseLibrary.Api.Configuration.Caching;
+namespace CourseLibrary.Infrastructure.Configuration.Caching;
 
 internal static class CachingExtensions
 {

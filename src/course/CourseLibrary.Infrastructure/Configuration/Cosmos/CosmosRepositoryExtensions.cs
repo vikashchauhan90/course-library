@@ -1,11 +1,12 @@
 using CourseLibrary.Application.Abstractions.Repositories;
+using CourseLibrary.Infrastructure.Cosmos;
 using CourseLibrary.Infrastructure.Cosmos.Configurations;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
-namespace CourseLibrary.Infrastructure.Cosmos.Extensions;
+namespace CourseLibrary.Infrastructure.Configuration.Cosmos;
 
 public static class CosmosRepositoryExtensions
 {

@@ -7,6 +7,7 @@ using CourseLibrary.Infrastructure.Observability.Traces;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using System.Diagnostics;
 using System.Net;
 using System.Reflection;
@@ -18,16 +19,17 @@ public class CosmosRepository<TDocument>
     where TDocument : ICosmosPartitioned
 {
     private readonly Lazy<Container> _container;
-    protected readonly ILogger<CosmosRepository<TDocument>> _logger;   
-    protected readonly string ContainerName;
-    protected CosmosRepository(
+    private readonly ILogger<CosmosRepository<TDocument>> _logger;
+    private readonly string ContainerName;
+    public CosmosRepository(
         CosmosClient client,
-        CosmosOptions options,
+        IOptions<CosmosOptions> options,
         ILogger<CosmosRepository<TDocument>> logger)
     {
         ArgumentNullException.ThrowIfNull(client);
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(logger);
+        ArgumentNullException.ThrowIfNull(options.Value);
 
         var containerName =
         typeof(TDocument)
@@ -40,12 +42,12 @@ public class CosmosRepository<TDocument>
         _logger = logger;
         _container = new Lazy<Container>(
             () => client.GetContainer(
-                options.DatabaseName,
+                options.Value.DatabaseName,
                 containerName),
             LazyThreadSafetyMode.ExecutionAndPublication);
     }
 
-    protected Container Container =>
+    private Container Container =>
         _container.Value;
 
 
