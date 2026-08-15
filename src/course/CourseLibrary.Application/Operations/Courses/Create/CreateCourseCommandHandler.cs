@@ -8,11 +8,13 @@ public sealed class CreateCourseCommandHandler : IHandler<CreateCourseCommand, D
 {
     private readonly ICourseRepository _repository;
     private readonly ILogger<CreateCourseCommandHandler> _logger;
+    private readonly IEventDispatcher _eventDispatcher;
 
-    public CreateCourseCommandHandler(ICourseRepository repository, ILogger<CreateCourseCommandHandler> logger)
+    public CreateCourseCommandHandler(ICourseRepository repository, ILogger<CreateCourseCommandHandler> logger, IEventDispatcher eventDispatcher)
     {
         _repository = repository;
         _logger = logger;
+        _eventDispatcher = eventDispatcher;
     }
 
     public async Task<Domain.Entities.Course> HandleAsync(CreateCourseCommand command, CancellationToken ct)
@@ -31,6 +33,9 @@ public sealed class CreateCourseCommandHandler : IHandler<CreateCourseCommand, D
         _logger.LogInformation("Creating course {CourseId} for author {AuthorId}", course.Id, course.AuthorId);
 
         await _repository.UpsertAsync(course, ct);
+
+        // Publish course created event for downstream consumers
+        await _eventDispatcher.PublishAsync(new CourseCreatedEvent(course.Id, course.AuthorId, course.Title, course.CreatedAt), ct);
 
         return course;
     }

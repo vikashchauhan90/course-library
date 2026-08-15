@@ -1,5 +1,4 @@
 ﻿using Carter;
-using CourseLibrary.Api.Configuration.Application;
 using CourseLibrary.Api.Configuration.Caching;
 using CourseLibrary.Api.Configuration.Exceptions;
 using CourseLibrary.Api.Configuration.Idempotency;
@@ -9,6 +8,7 @@ using CourseLibrary.Api.Configuration.Security;
 using CourseLibrary.Api.Configuration.Serializers;
 using CourseLibrary.Infrastructure.Resilience;
 using System.Diagnostics;
+using CourseLibrary.Application.Configuration;
 
 namespace CourseLibrary.Api.Configuration;
 
