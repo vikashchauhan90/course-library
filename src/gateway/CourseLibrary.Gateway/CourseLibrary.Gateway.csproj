@@ -25,7 +25,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\..\core\CourseLibrary.Infrastructure\CourseLibrary.Infrastructure.csproj" />
+		<ProjectReference Include="..\..\course\CourseLibrary.Infrastructure\CourseLibrary.Infrastructure.csproj" />
 	</ItemGroup>
 
 </Project>

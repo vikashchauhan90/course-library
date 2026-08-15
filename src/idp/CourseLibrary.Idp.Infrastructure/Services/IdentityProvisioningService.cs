@@ -1,6 +1,9 @@
 using CourseLibrary.Idp.Domain.Abstractions;
 using CourseLibrary.Idp.Domain.Entities;
+using CourseLibrary.Idp.Application.Services;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using OpenIddict.Abstractions;
 using System.Security.Claims;
 using static OpenIddict.Abstractions.OpenIddictConstants;
@@ -52,10 +55,11 @@ public sealed class IdentityProvisioningService : IIdentityProvisioningService
             return;
         }
 
-        var role = new ApplicationRole(adminRole)
+        var role = new ApplicationRole
         {
-            IsDeleted = false,
+            Name = adminRole,
             CreatedAt = DateTimeOffset.UtcNow,
+            DeletedAt = null,
         };
 
         var result = await _roleManager.CreateAsync(role).ConfigureAwait(false);
@@ -76,13 +80,14 @@ public sealed class IdentityProvisioningService : IIdentityProvisioningService
             return;
         }
 
-        var user = new ApplicationUser(userName)
+        var user = new ApplicationUser
         {
+            UserName = userName,
             FullName = "Alice Administrator",
             Email = userEmail,
             EmailConfirmed = true,
-            IsDeleted = false,
             CreatedAt = DateTimeOffset.UtcNow,
+            DeletedAt = null,
         };
 
         var createResult = await _userManager.CreateAsync(user, password).ConfigureAwait(false);

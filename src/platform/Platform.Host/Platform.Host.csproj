@@ -1,0 +1,20 @@
+<Project Sdk="Aspire.AppHost.Sdk/13.2.4">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <UserSecretsId>be1f4a68-9cee-4bf5-acc2-d2334b4e38e3</UserSecretsId>
+    <AssemblyName>Platform.Host</AssemblyName>
+    <RootNamespace>Platform</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="MessagePack" Version="3.1.8" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\course\CourseLibrary.Api\CourseLibrary.Api.csproj" />
+    <ProjectReference Include="..\..\gateway\CourseLibrary.Gateway\CourseLibrary.Gateway.csproj" />
+    <ProjectReference Include="..\..\idp\CourseLibrary.Idp\CourseLibrary.Idp.csproj" />
+  </ItemGroup>
+</Project>

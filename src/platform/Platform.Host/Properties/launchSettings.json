@@ -5,7 +5,7 @@
       "commandName": "Project",
       "dotnetRunMessages": true,
       "launchBrowser": true,
-      "applicationUrl": "https://courselibrary-apphost.dev.localhost:17054;http://courselibrary-apphost.dev.localhost:15289",
+      "applicationUrl": "https://platform-host.dev.localhost:17054;http://platform-host.dev.localhost:15289",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
         "DOTNET_ENVIRONMENT": "Development",
@@ -18,7 +18,7 @@
       "commandName": "Project",
       "dotnetRunMessages": true,
       "launchBrowser": true,
-      "applicationUrl": "http://courselibrary-apphost.dev.localhost:15289",
+      "applicationUrl": "http://platform-host.dev.localhost:15289",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
         "DOTNET_ENVIRONMENT": "Development",

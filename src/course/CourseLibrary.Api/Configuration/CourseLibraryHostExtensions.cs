@@ -1,7 +1,6 @@
 ﻿using Carter;
 using CourseLibrary.Api.Configuration.Caching;
 using CourseLibrary.Api.Configuration.Exceptions;
-using CourseLibrary.Api.Configuration.Filters;
 using CourseLibrary.Api.Configuration.Idempotency;
 using CourseLibrary.Api.Configuration.Observability;
 using CourseLibrary.Api.Configuration.Observability.Logs;
