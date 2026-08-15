@@ -10,8 +10,7 @@ internal static class CachingExtensions
     {
         services.AddMemoryCache();
 
-        services.AddKeyedSingleton<ICacheProvider, MemoryCacheProvider>(
-            CacheType.Memory);
+        services.AddSingleton<ICacheProvider, MemoryCacheProvider>();
 
         return services;
     }
@@ -35,8 +34,7 @@ internal static class CachingExtensions
             options.InstanceName = "CourseLibrary:";
         });
 
-        services.AddKeyedSingleton<ICacheProvider, RedisCacheProvider>(
-            CacheType.Redis);
+        services.AddSingleton<ICacheProvider, RedisCacheProvider>();
 
         return services;
     }
@@ -64,50 +62,7 @@ internal static class CachingExtensions
 
         services.AddHybridCache();
 
-        services.AddKeyedSingleton<ICacheProvider, HybridCacheProvider>(
-            CacheType.Hybrid);
-
-        return services;
-    }
-
-    public static IServiceCollection AddCourseLibraryCaching(
-        this IServiceCollection services,
-        IConfiguration configuration)
-    {
-        var cacheType = configuration.GetValue<CacheType>(
-            "Caching:CacheType");
-
-        switch (cacheType)
-        {
-            case CacheType.Memory:
-                services.AddCourseLibraryMemoryCache();
-                break;
-
-            case CacheType.Redis:
-                services.AddCourseLibraryRedisCache(configuration);
-                break;
-
-            case CacheType.Hybrid:
-                services.AddCourseLibraryHybridCache(configuration);
-                break;
-
-            default:
-                throw new InvalidOperationException(
-                    $"Unsupported cache type: {cacheType}");
-        }
-
-        services.AddDefaultCacheProvider(cacheType);
-
-        return services;
-    }
-
-    private static IServiceCollection AddDefaultCacheProvider(
-        this IServiceCollection services,
-        CacheType cacheType)
-    {
-        services.AddSingleton<ICacheProvider>(serviceProvider =>
-            serviceProvider.GetRequiredKeyedService<ICacheProvider>(
-                cacheType));
+        services.AddSingleton<ICacheProvider, HybridCacheProvider>();
 
         return services;
     }

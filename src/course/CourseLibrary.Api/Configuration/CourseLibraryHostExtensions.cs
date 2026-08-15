@@ -5,6 +5,7 @@ using CourseLibrary.Api.Configuration.Idempotency;
 using CourseLibrary.Api.Configuration.Observability;
 using CourseLibrary.Api.Configuration.Observability.Metrics;
 using CourseLibrary.Api.Configuration.Security;
+using CourseLibrary.Api.Configuration.Serializers;
 using CourseLibrary.Infrastructure.Resilience;
 using System.Diagnostics;
 
@@ -31,6 +32,7 @@ internal static class CourseLibraryHostExtensions
         // Application services.
         builder.Services.AddCarter();
 
+        builder.Services.AddCourseLibrarySerializers();
         builder.Services.AddCourseLibraryMemoryCache();
         builder.Services.AddCourseLibraryIdempotency();
 

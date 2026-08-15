@@ -2,7 +2,7 @@
 using Polly;
 using Polly.CircuitBreaker;
 using Polly.Retry;
-using Polly.Timeout;
+
 
 namespace CourseLibrary.Infrastructure.Resilience;
 
