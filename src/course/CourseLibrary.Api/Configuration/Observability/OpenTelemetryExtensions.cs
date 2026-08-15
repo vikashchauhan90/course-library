@@ -1,4 +1,5 @@
 ﻿using CourseLibrary.Api.Configuration.Observability.Logs;
+using CourseLibrary.Api.Configuration.Observability.Traces.Middlewares;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using OpenTelemetry;
 using OpenTelemetry.Metrics;
@@ -100,5 +101,15 @@ internal static class OpenTelemetryExtensions
                     [ApiObservability.Traces.Attributes.DeploymentEnvironment] = env.EnvironmentName,
                     [ApiObservability.Traces.Attributes.ServiceInstanceId] = Environment.MachineName
                 });
+    }
+
+    public static IApplicationBuilder UseRequestContext(this IApplicationBuilder app)
+    {
+        return app.UseMiddleware<RequestContextMiddleware>();
+    }
+
+    public static IApplicationBuilder UseUserContext(this IApplicationBuilder app)
+    {
+        return app.UseMiddleware<UserContextMiddleware>();
     }
 }

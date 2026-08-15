@@ -3,22 +3,10 @@ using CourseLibrary.Api.Configuration.Caching;
 using CourseLibrary.Api.Configuration.Exceptions;
 using CourseLibrary.Api.Configuration.Idempotency;
 using CourseLibrary.Api.Configuration.Observability;
-using CourseLibrary.Api.Configuration.Observability.Logs;
-using CourseLibrary.Api.Configuration.Observability.Logs.Middlewares;
 using CourseLibrary.Api.Configuration.Observability.Metrics;
 using CourseLibrary.Api.Configuration.Security;
-using CourseLibrary.Application.Abstractions.Serialization;
-using CourseLibrary.Application.Abstractions.Serializers;
-using CourseLibrary.Infrastructure;
-using CourseLibrary.Infrastructure.Caching;
-using CourseLibrary.Infrastructure.Cosmos;
-using CourseLibrary.Infrastructure.Idempotency;
 using CourseLibrary.Infrastructure.Resilience;
-using CourseLibrary.Infrastructure.Serializers;
-using Microsoft.AspNetCore.Diagnostics.HealthChecks;
-using Microsoft.AspNetCore.HttpLogging;
 using System.Diagnostics;
-using System.Text.Json;
 
 namespace CourseLibrary.Api.Configuration;
 
@@ -35,10 +23,6 @@ internal static class CourseLibraryHostExtensions
         builder.Services.AddOptions();
         builder.Services.AddHttpClient();
         builder.Services.AddHttpContextAccessor();
-
-        builder.Services.AddAuthentication();
-        builder.Services.AddAuthorization();
-        builder.Services.AddCors();
         builder.Services.AddHealthChecks();
 
         // HTTP logging.
@@ -66,22 +50,11 @@ internal static class CourseLibraryHostExtensions
         app.UseRequestMetrics();
         app.UseSecurityHeaders();
         app.UseGlobalExceptionHandler();
-        // Transport.
         app.UseHttpsRedirection();
-
-        // Request context / observability.
         app.UseRequestContext();
         app.UseHttpLogging();
-
-        // Security.
-        app.UseAuthentication();
-        app.UseMiddleware<HeaderUserContextMiddleware>();
         app.UseUserContext();
-        app.UseAuthorization();
-
-        // Application endpoints.
         app.MapCarter();
-
         app.MapHealthChecks("/health/live").AllowAnonymous();
         app.MapHealthChecks("/health/ready").AllowAnonymous();
 

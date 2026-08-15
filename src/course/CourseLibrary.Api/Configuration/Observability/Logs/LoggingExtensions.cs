@@ -1,5 +1,4 @@
-﻿using CourseLibrary.Api.Configuration.Observability.Logs.Middlewares;
-using CourseLibrary.Infrastructure.Observability.Logs.Processors;
+﻿using CourseLibrary.Infrastructure.Observability.Logs.Processors;
 using CourseLibrary.Infrastructure.Observability.Logs.Redaction;
 using Microsoft.Extensions.Compliance.Redaction;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -42,15 +41,5 @@ internal static class LoggingExtensions
 
 
         return builder;
-    }
-
-    public static IApplicationBuilder UseRequestContext(this IApplicationBuilder app)
-    {
-        return app.UseMiddleware<RequestContextMiddleware>();
-    }
-
-    public static IApplicationBuilder UseUserContext(this IApplicationBuilder app)
-    {
-        return app.UseMiddleware<UserContextMiddleware>();
     }
 }

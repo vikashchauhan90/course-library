@@ -3,7 +3,7 @@ using InfrastructureObservability = CourseLibrary.Infrastructure.Observability;
 using Microsoft.Extensions.Primitives;
 using System.Diagnostics;
 
-namespace CourseLibrary.Api.Configuration.Observability.Logs.Middlewares;
+namespace CourseLibrary.Api.Configuration.Observability.Traces.Middlewares;
 
 internal sealed class RequestContextMiddleware(
     RequestDelegate next,
@@ -16,6 +16,7 @@ internal sealed class RequestContextMiddleware(
 
         if (activity is null)
         {
+            logger.LogWarning("Current activity is null. Starting a new activity for request context.");
             activity = ApiObservability.Traces.ActivitySources.Api
                 .StartActivity(activityName);
 
@@ -62,6 +63,10 @@ internal sealed class RequestContextMiddleware(
         // from traceparent/tracestate.
         if (!context.Response.Headers.ContainsKey("X-Correlation-ID"))
         {
+            logger.LogDebug(
+                "Adding X-Correlation-ID header to response: {CorrelationId}",
+                correlationId);
+
             context.Response.Headers["X-Correlation-ID"] = correlationId;
         }
 
@@ -75,7 +80,7 @@ internal sealed class RequestContextMiddleware(
         }
     }
 
-    private static string ResolveCorrelationId(
+    private string ResolveCorrelationId(
         HttpContext context,
         Activity? activity)
     {
@@ -87,12 +92,13 @@ internal sealed class RequestContextMiddleware(
             return correlationId.ToString();
         }
 
+        logger.LogWarning("Correlation ID not found in request headers. Generating a new correlation ID.");
         // Correlation ID has its own fallback.
         // It must NOT fall back to traceparent or tracestate.
         return InfrastructureObservability.Traces.TracingHelper.GenerateTraceIdentifier(activity);
     }
 
-    private static string ResolveTraceParent(
+    private string ResolveTraceParent(
         HttpContext context,
         Activity? activity)
     {
@@ -104,10 +110,12 @@ internal sealed class RequestContextMiddleware(
             return traceParent.ToString();
         }
 
+        logger.LogWarning("Traceparent not found in request headers. Generating a new traceparent.");
+
         return InfrastructureObservability.Traces.TracingHelper.GenerateTraceParent(activity);
     }
 
-    private static string ResolveTraceState(
+    private  string ResolveTraceState(
         HttpContext context,
         Activity? activity)
     {
@@ -118,6 +126,8 @@ internal sealed class RequestContextMiddleware(
         {
             return traceState.ToString();
         }
+
+        logger.LogWarning("Tracestate not found in request headers. Generating a new tracestate.");
 
         return InfrastructureObservability.Traces.TracingHelper.GenerateTraceState(activity);
     }
