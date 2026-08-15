@@ -1,4 +1,5 @@
 ﻿using Carter;
+using CourseLibrary.Api.Configuration.Application;
 using CourseLibrary.Api.Configuration.Caching;
 using CourseLibrary.Api.Configuration.Exceptions;
 using CourseLibrary.Api.Configuration.Idempotency;
@@ -42,6 +43,9 @@ internal static class CourseLibraryHostExtensions
         builder.Services.AddCourseLibraryHttpResilience(builder.Configuration);
         builder.Services.AddCourseLibraryResilience();
         builder.Services.AddSingleton<PolicyFactory>();
+
+        // Application CQRS and behaviors
+        builder.Services.AddCourseLibraryApplication();
 
         return builder;
     }
