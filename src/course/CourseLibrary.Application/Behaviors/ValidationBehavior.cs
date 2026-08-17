@@ -8,6 +8,8 @@ public sealed class ValidationBehavior<TRequest, TResponse>(
     IEnumerable<IValidator<TRequest>> validators,
     ILogger<ValidationBehavior<TRequest, TResponse>> logger)
     : IPipelineBehavior<TRequest, TResponse>
+    where TRequest : notnull
+    where TResponse : notnull
 {
 
     public async Task<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken ct)
@@ -22,7 +24,11 @@ public sealed class ValidationBehavior<TRequest, TResponse>(
 
             if (failures.Any())
             {
-                logger.LogWarning("Validation failed for {RequestName}: {Errors}", typeof(TRequest).Name, failures.Select(f => f.ErrorMessage));
+                logger.LogWarning(
+                    "Validation failed for {RequestName}: {Errors}",
+                    typeof(TRequest).Name,
+                    failures.Select(f => f.ErrorMessage));
+
                 throw new ValidationException(failures);
             }
         }

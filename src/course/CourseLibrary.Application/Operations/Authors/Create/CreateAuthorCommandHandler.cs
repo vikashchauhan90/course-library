@@ -1,22 +1,14 @@
 using MediatorForge.Abstractions;
 using Microsoft.Extensions.Logging;
 using CourseLibrary.Application.Abstractions.Repositories;
-using CourseLibrary.Application.Operations.Authors;
 
 namespace CourseLibrary.Application.Operations.Authors.Create;
 
-public sealed class CreateAuthorCommandHandler : IHandler<CreateAuthorCommand, AuthorResponse>
+public sealed class CreateAuthorCommandHandler(
+    IAuthorRepository repository,
+    ILogger<CreateAuthorCommandHandler> logger,
+    IEventDispatcher eventDispatcher) : IHandler<CreateAuthorCommand, AuthorResponse>
 {
-    private readonly IAuthorRepository _repository;
-    private readonly ILogger<CreateAuthorCommandHandler> _logger;
-    private readonly IEventDispatcher _eventDispatcher;
-
-    public CreateAuthorCommandHandler(IAuthorRepository repository, ILogger<CreateAuthorCommandHandler> logger, IEventDispatcher eventDispatcher)
-    {
-        _repository = repository;
-        _logger = logger;
-        _eventDispatcher = eventDispatcher;
-    }
 
     public async Task<AuthorResponse> HandleAsync(CreateAuthorCommand command, CancellationToken ct)
     {
@@ -31,10 +23,10 @@ public sealed class CreateAuthorCommandHandler : IHandler<CreateAuthorCommand, A
             UpdatedAt = now
         };
 
-        _logger.LogInformation("Creating author {AuthorId} ({Name})", author.Id, author.Name);
-        await _repository.UpsertAsync(author, ct);
+        logger.CreatingAuthor(author.Id, author.Name);
+        await repository.UpsertAsync(author, ct);
 
-        await _eventDispatcher.PublishAsync(new AuthorCreatedEvent(author.Id, author.Name, author.CreatedAt), ct);
+        await eventDispatcher.PublishAsync(new AuthorCreatedEvent(author.Id, author.Name, author.CreatedAt), ct);
 
         return AuthorMapper.ToResponse(author);
     }

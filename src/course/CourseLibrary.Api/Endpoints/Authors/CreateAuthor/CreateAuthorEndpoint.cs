@@ -3,6 +3,8 @@ using CourseLibrary.Api.Configuration;
 using CourseLibrary.Application.Operations.Authors;
 using CourseLibrary.Application.Operations.Authors.Create;
 using CourseLibrary.Domain.Entities;
+using Hal.Core;
+using Hal.Core.Builders;
 using MediatorForge.Abstractions;
 
 namespace CourseLibrary.Api.Endpoints.Authors.CreateAuthor;
@@ -19,6 +21,7 @@ public sealed class CreateAuthorEndpoint : ICarterModule
                 "/",
                 async (
                     HttpContext httpContext,
+                    LinkGenerator linkGenerator,
                     CreateAuthorRequest request,
                     IDispatcher dispatcher,
                     ILogger<CreateAuthorEndpoint> logger) =>
@@ -36,11 +39,40 @@ public sealed class CreateAuthorEndpoint : ICarterModule
                             command,
                             ct);
 
-                    logger.AuthorCreated(author.Id);
+                    logger.AuthorCreated(author.Name, author.Id);
+
+                    var authorPath = linkGenerator.GetPathByName(
+                        "GetAuthor",
+                        values: new { version = "1" ,authorId = author.Id });
+
+                    var response = new ResourceBuilder<AuthorResponse>(author)
+                   .AddLink(
+                       "self",
+                       authorPath!,
+                       HttpVerbs.Get)
+                   .AddLink(
+                       "collection",
+                       linkGenerator.GetPathByName(
+                           "GetAuthors",
+                           values: new { version = "1" })!,
+                       HttpVerbs.Get)
+                    .AddLink(
+                       "update",
+                       linkGenerator.GetPathByName(
+                           "UpdateAuthor",
+                           values: new { version = "1", authorId = author.Id })!,
+                       HttpVerbs.Put)
+                     .AddLink(
+                       "delete",
+                       linkGenerator.GetPathByName(
+                           "DeleteAuthor",
+                           values: new { version = "1", authorId = author.Id })!,
+                       HttpVerbs.Delete)
+                   .Build();
 
                     return Results.Created(
-                        $"/api/v1/authors/{author.Id}",
-                        author);
+                         authorPath,
+                        response);
                 })
             .WithName("CreateAuthor")
             .HasApiVersion(1.0);

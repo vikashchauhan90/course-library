@@ -4,21 +4,22 @@ using System.Diagnostics;
 
 namespace CourseLibrary.Application.Behaviors;
 
-public sealed class PerformanceBehavior<TRequest, TResponse> : IPipelineBehavior<TRequest, TResponse>
+public sealed class PerformanceBehavior<TRequest, TResponse>(
+    ILogger<PerformanceBehavior<TRequest, TResponse>> logger)
+    : IPipelineBehavior<TRequest, TResponse>
+    where TRequest : notnull
+    where TResponse : notnull
 {
-    private readonly ILogger<PerformanceBehavior<TRequest, TResponse>> _logger;
-
-    public PerformanceBehavior(ILogger<PerformanceBehavior<TRequest, TResponse>> logger)
-    {
-        _logger = logger;
-    }
 
     public async Task<TResponse> HandleAsync(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken ct)
     {
-        var sw = Stopwatch.StartNew();
+        var requestStart = Stopwatch.GetTimestamp();
         var response = await next();
-        sw.Stop();
-        _logger.LogInformation("Request {RequestName} executed in {ElapsedMs}ms", typeof(TRequest).Name, sw.Elapsed.TotalMilliseconds);
+        var elapsed = Stopwatch.GetElapsedTime(requestStart);
+        logger.LogInformation(
+            "Request {RequestName} executed in {ElapsedMs}ms",
+            typeof(TRequest).Name,
+            elapsed.TotalMilliseconds);
         return response;
     }
 }

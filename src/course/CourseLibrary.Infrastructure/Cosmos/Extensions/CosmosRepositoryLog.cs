@@ -1,11 +1,12 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using CourseLibrary.Domain;
+using Microsoft.Extensions.Logging;
 
 namespace CourseLibrary.Infrastructure.Cosmos;
 
 internal static partial class CosmosRepositoryLog
 {
     [LoggerMessage(
-        EventId = 1001,
+        EventId = EventIds.Infrastructure.Cosmos + 1,
         Level = LogLevel.Debug,
         Message = "Cosmos document was not found. Operation: {Operation}, Container: {ContainerName}, Id: {Id}")]
     public static partial void DocumentNotFound(
@@ -15,7 +16,7 @@ internal static partial class CosmosRepositoryLog
         string id);
 
     [LoggerMessage(
-        EventId = 1002,
+        EventId = EventIds.Infrastructure.Cosmos + 2,
         Level = LogLevel.Warning,
         Message = "Cosmos operation failed. Operation: {Operation}, Container: {ContainerName}, StatusCode: {StatusCode}, ActivityId: {ActivityId}, RequestCharge: {RequestCharge}")]
     public static partial void OperationWarning(
@@ -28,7 +29,7 @@ internal static partial class CosmosRepositoryLog
         Exception exception);
 
     [LoggerMessage(
-        EventId = 1003,
+        EventId = EventIds.Infrastructure.Cosmos + 3,
         Level = LogLevel.Error,
         Message = "Cosmos operation failed. Operation: {Operation}, Container: {ContainerName}, StatusCode: {StatusCode}, ActivityId: {ActivityId}, RequestCharge: {RequestCharge}")]
     public static partial void OperationError(
