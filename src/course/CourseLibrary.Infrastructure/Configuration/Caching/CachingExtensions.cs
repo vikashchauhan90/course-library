@@ -1,8 +1,7 @@
-﻿using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-
-using CourseLibrary.Application.Abstractions.Caching;
+﻿using CourseLibrary.Application.Abstractions.Caching;
 using CourseLibrary.Infrastructure.Caching;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace CourseLibrary.Infrastructure.Configuration.Caching;
 
@@ -22,19 +21,25 @@ internal static class CachingExtensions
         this IServiceCollection services,
         IConfiguration configuration)
     {
-        var connectionString =
-            configuration.GetConnectionString("Redis");
+        services
+            .AddOptions<RedisOptions>()
+            .Bind(configuration.GetSection(RedisOptions.SectionName))
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
 
-        if (string.IsNullOrWhiteSpace(connectionString))
-        {
-            throw new InvalidOperationException(
-                "Redis connection string is not configured.");
-        }
+        var cacheOptions = configuration
+           .GetSection(RedisOptions.SectionName)
+           .Get<RedisOptions>()
+           ?? throw new InvalidOperationException(
+               "Redis configuration is missing.");
 
         services.AddStackExchangeRedisCache(options =>
         {
-            options.Configuration = connectionString;
-            options.InstanceName = "CourseLibrary:";
+            options.Configuration =
+               cacheOptions.ConnectionString;
+
+            options.InstanceName =
+                cacheOptions.InstanceName;
         });
 
         services.AddSingleton<ICacheProvider, RedisCacheProvider>();
@@ -46,21 +51,25 @@ internal static class CachingExtensions
         this IServiceCollection services,
         IConfiguration configuration)
     {
-        // HybridCache uses memory as its L1 cache.
-        // If Redis is your L2 provider, register it first.
-        var connectionString =
-            configuration.GetConnectionString("Redis");
+        services
+           .AddOptions<RedisOptions>()
+           .Bind(configuration.GetSection(RedisOptions.SectionName))
+           .ValidateDataAnnotations()
+           .ValidateOnStart();
 
-        if (string.IsNullOrWhiteSpace(connectionString))
-        {
-            throw new InvalidOperationException(
-                "Redis connection string is not configured.");
-        }
+        var cacheOptions = configuration
+           .GetSection(RedisOptions.SectionName)
+           .Get<RedisOptions>()
+           ?? throw new InvalidOperationException(
+               "Redis configuration is missing.");
 
         services.AddStackExchangeRedisCache(options =>
         {
-            options.Configuration = connectionString;
-            options.InstanceName = "CourseLibrary:";
+            options.Configuration =
+               cacheOptions.ConnectionString;
+
+            options.InstanceName =
+                cacheOptions.InstanceName;
         });
 
         services.AddHybridCache();

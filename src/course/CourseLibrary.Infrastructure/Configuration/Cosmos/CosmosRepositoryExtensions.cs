@@ -1,6 +1,5 @@
 using CourseLibrary.Application.Abstractions.Repositories;
 using CourseLibrary.Infrastructure.Cosmos;
-using CourseLibrary.Infrastructure.Cosmos.Configurations;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;

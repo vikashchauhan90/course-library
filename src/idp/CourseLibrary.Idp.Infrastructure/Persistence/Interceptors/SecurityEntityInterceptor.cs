@@ -1,10 +1,11 @@
 ﻿using CourseLibrary.Idp.Domain.Abstractions;
 using Microsoft.EntityFrameworkCore.Diagnostics;
+using Microsoft.Extensions.Logging;
 
 
 namespace CourseLibrary.Idp.Infrastructure.Persistence.Interceptors;
 
-public class SecurityEntityInterceptor : SaveChangesInterceptor
+public class SecurityEntityInterceptor(ILogger<SecurityEntityInterceptor> logger) : SaveChangesInterceptor
 {
     public override ValueTask<InterceptionResult<int>> SavingChangesAsync(DbContextEventData eventData,
         InterceptionResult<int> result,
@@ -17,6 +18,7 @@ public class SecurityEntityInterceptor : SaveChangesInterceptor
         {
             if (string.IsNullOrEmpty(entry.Entity.ConcurrencyStamp))
             {
+                logger.LogDebug("Setting ConcurrencyStamp for entity of type {EntityType},", entry.Entity.GetType().Name);
                 entry.Entity.ConcurrencyStamp = Guid.NewGuid().ToString();
             }
         }
