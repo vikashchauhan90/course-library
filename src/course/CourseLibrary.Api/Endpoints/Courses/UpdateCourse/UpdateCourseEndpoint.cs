@@ -1,6 +1,7 @@
 using Carter;
 using CourseLibrary.Api.Configuration;
 using CourseLibrary.Api.Endpoints.Courses.UpdateCourse;
+using CourseLibrary.Application.Operations.Courses;
 using CourseLibrary.Application.Operations.Courses.Update;
 using MediatorForge.Abstractions;
 
@@ -29,7 +30,7 @@ public sealed class UpdateCourseEndpoint : ICarterModule
 
                 var command = UpdateCourseMapper.ToCommand(courseId, request);
 
-                var course = await dispatcher.SendAsync<UpdateCourseCommand, Domain.Entities.Course>(
+                var course = await dispatcher.SendAsync<UpdateCourseCommand, CourseResponse>(
                     command,
                     ct);
 

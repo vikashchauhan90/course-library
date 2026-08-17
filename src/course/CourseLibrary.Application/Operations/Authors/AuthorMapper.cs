@@ -20,12 +20,6 @@ public static class AuthorMapper
             author.UpdatedAt);
 
     /// <summary>
-    /// Maps a nullable domain Author entity to a nullable AuthorResponse record.
-    /// </summary>
-    public static AuthorResponse? ToResponse(Author? author)
-        => author is null ? null : ToResponse(author);
-
-    /// <summary>
     /// Maps a collection of domain Author entities to AuthorResponse records.
     /// </summary>
     public static IReadOnlyList<AuthorResponse> ToResponses(IReadOnlyList<Author> authors)

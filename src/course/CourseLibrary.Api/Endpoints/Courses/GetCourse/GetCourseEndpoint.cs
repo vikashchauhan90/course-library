@@ -1,6 +1,7 @@
 using Carter;
 using CourseLibrary.Api.Configuration;
 using CourseLibrary.Api.Endpoints.Courses.GetCourse;
+using CourseLibrary.Application.Operations.Courses;
 using CourseLibrary.Application.Operations.Courses.Get;
 using MediatorForge.Abstractions;
 
@@ -28,7 +29,7 @@ public sealed class GetCourseEndpoint : ICarterModule
 
                 var query = GetCourseMapper.ToQuery(courseId, partitionKey);
 
-                var course = await dispatcher.QueryAsync<GetCourseQuery, Domain.Entities.Course?>(
+                var course = await dispatcher.QueryAsync<GetCourseQuery, CourseResponse?>(
                     query,
                     ct);
 

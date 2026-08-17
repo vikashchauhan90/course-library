@@ -1,5 +1,6 @@
 ﻿using Carter;
 using CourseLibrary.Api.Configuration;
+using CourseLibrary.Application.Operations.Authors;
 using CourseLibrary.Application.Operations.Authors.Create;
 using CourseLibrary.Domain.Entities;
 using MediatorForge.Abstractions;
@@ -31,7 +32,7 @@ public sealed class CreateAuthorEndpoint : ICarterModule
                     var author =
                         await dispatcher.SendAsync<
                             CreateAuthorCommand,
-                            Author>(
+                            AuthorResponse>(
                             command,
                             ct);
 

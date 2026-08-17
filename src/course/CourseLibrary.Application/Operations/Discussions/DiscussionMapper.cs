@@ -16,9 +16,6 @@ public static class DiscussionMapper
             discussion.CreatedAt,
             discussion.UpdatedAt);
 
-    public static DiscussionResponse? ToResponse(Discussion? discussion)
-        => discussion is null ? null : ToResponse(discussion);
-
     public static IReadOnlyList<DiscussionResponse> ToResponses(IReadOnlyList<Discussion> discussions)
         => discussions.Select(ToResponse).ToList().AsReadOnly();
 }

@@ -1,6 +1,7 @@
 using Carter;
 using CourseLibrary.Api.Configuration;
 using CourseLibrary.Api.Endpoints.Authors.UpdateAuthor;
+using CourseLibrary.Application.Operations.Authors;
 using CourseLibrary.Application.Operations.Authors.Update;
 using MediatorForge.Abstractions;
 
@@ -28,7 +29,7 @@ public sealed class UpdateAuthorEndpoint : ICarterModule
 
                 var command = UpdateAuthorMapper.ToCommand(authorId, request);
 
-                var author = await dispatcher.SendAsync<UpdateAuthorCommand, Domain.Entities.Author>(
+                var author = await dispatcher.SendAsync<UpdateAuthorCommand, AuthorResponse>(
                     command,
                     ct);
 

@@ -1,6 +1,7 @@
 using Carter;
 using CourseLibrary.Api.Configuration;
 using CourseLibrary.Api.Endpoints.Discussions.CreateDiscussion;
+using CourseLibrary.Application.Operations.Discussions;
 using CourseLibrary.Application.Operations.Discussions.Create;
 using CourseLibrary.Domain.Entities;
 using MediatorForge.Abstractions;
@@ -28,7 +29,7 @@ public sealed class CreateDiscussionEndpoint : ICarterModule
 
                 var command = CreateDiscussionMapper.ToCommand(request);
 
-                var discussion = await dispatcher.SendAsync<CreateDiscussionCommand, Discussion>(
+                var discussion = await dispatcher.SendAsync<CreateDiscussionCommand, DiscussionResponse>(
                     command,
                     ct);
 

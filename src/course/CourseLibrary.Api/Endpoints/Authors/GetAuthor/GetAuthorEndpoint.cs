@@ -1,6 +1,7 @@
 using Carter;
 using CourseLibrary.Api.Configuration;
 using CourseLibrary.Api.Endpoints.Authors.GetAuthor;
+using CourseLibrary.Application.Operations.Authors;
 using CourseLibrary.Application.Operations.Authors.Get;
 using MediatorForge.Abstractions;
 
@@ -27,7 +28,7 @@ public sealed class GetAuthorEndpoint : ICarterModule
 
                 var query = GetAuthorMapper.ToQuery(authorId);
 
-                var author = await dispatcher.QueryAsync<GetAuthorQuery, Domain.Entities.Author?>(
+                var author = await dispatcher.QueryAsync<GetAuthorQuery, AuthorResponse?>(
                     query,
                     ct);
 

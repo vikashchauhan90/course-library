@@ -16,9 +16,6 @@ public static class CourseMapper
             course.CreatedAt,
             course.UpdatedAt);
 
-    public static CourseResponse? ToResponse(Course? course)
-        => course is null ? null : ToResponse(course);
-
     public static IReadOnlyList<CourseResponse> ToResponses(IReadOnlyList<Course> courses)
         => courses.Select(ToResponse).ToList().AsReadOnly();
 }

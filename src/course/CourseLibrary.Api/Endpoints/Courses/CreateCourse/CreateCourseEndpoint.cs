@@ -1,6 +1,7 @@
 using Carter;
 using CourseLibrary.Api.Configuration;
 using CourseLibrary.Api.Endpoints.Courses.CreateCourse;
+using CourseLibrary.Application.Operations.Courses;
 using CourseLibrary.Application.Operations.Courses.Create;
 using CourseLibrary.Domain.Entities;
 using MediatorForge.Abstractions;
@@ -28,7 +29,7 @@ public sealed class CreateCourseEndpoint : ICarterModule
 
                 var command = CreateCourseMapper.ToCommand(request);
 
-                var course = await dispatcher.SendAsync<CreateCourseCommand, Course>(
+                var course = await dispatcher.SendAsync<CreateCourseCommand, CourseResponse>(
                     command,
                     ct);
 

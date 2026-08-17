@@ -9,4 +9,13 @@ public static class ApiRouteGroupExtensions
 
         return app.MapGroup($"/api/v{{version:apiVersion}}{resource}");
     }
+
+    public static RouteGroupBuilder MapApiVersionedGroup(this IEndpointRouteBuilder app, string resource, string groupName)
+    {
+        ArgumentNullException.ThrowIfNull(app);
+        ArgumentNullException.ThrowIfNull(resource);
+        ArgumentNullException.ThrowIfNull(groupName);
+        return app.MapGroup($"/api/v{{version:apiVersion}}{resource}")
+            .WithGroupName(groupName);
+    }
 }

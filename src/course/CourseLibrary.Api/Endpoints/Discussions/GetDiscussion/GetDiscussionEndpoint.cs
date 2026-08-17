@@ -1,6 +1,7 @@
 using Carter;
 using CourseLibrary.Api.Configuration;
 using CourseLibrary.Api.Endpoints.Discussions.GetDiscussion;
+using CourseLibrary.Application.Operations.Discussions;
 using CourseLibrary.Application.Operations.Discussions.Get;
 using MediatorForge.Abstractions;
 
@@ -28,7 +29,7 @@ public sealed class GetDiscussionEndpoint : ICarterModule
 
                 var query = GetDiscussionMapper.ToQuery(discussionId, courseId);
 
-                var discussion = await dispatcher.QueryAsync<GetDiscussionQuery, Domain.Entities.Discussion?>(
+                var discussion = await dispatcher.QueryAsync<GetDiscussionQuery, DiscussionResponse?>(
                     query,
                     ct);
 

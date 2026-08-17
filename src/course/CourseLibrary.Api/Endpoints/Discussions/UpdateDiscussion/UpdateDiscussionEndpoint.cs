@@ -1,6 +1,7 @@
 using Carter;
 using CourseLibrary.Api.Configuration;
 using CourseLibrary.Api.Endpoints.Discussions.UpdateDiscussion;
+using CourseLibrary.Application.Operations.Discussions;
 using CourseLibrary.Application.Operations.Discussions.Update;
 using MediatorForge.Abstractions;
 
@@ -29,7 +30,7 @@ public sealed class UpdateDiscussionEndpoint : ICarterModule
 
                 var command = UpdateDiscussionMapper.ToCommand(discussionId, courseId, request);
 
-                var discussion = await dispatcher.SendAsync<UpdateDiscussionCommand, Domain.Entities.Discussion>(
+                var discussion = await dispatcher.SendAsync<UpdateDiscussionCommand, DiscussionResponse>(
                     command,
                     ct);
 

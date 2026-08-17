@@ -17,8 +17,6 @@ public static class CommentMapper
             comment.CreatedAt,
             comment.UpdatedAt);
 
-    public static CommentResponse? ToResponse(Comment? comment)
-        => comment is null ? null : ToResponse(comment);
 
     public static IReadOnlyList<CommentResponse> ToResponses(IReadOnlyList<Comment> comments)
         => comments.Select(ToResponse).ToList().AsReadOnly();
