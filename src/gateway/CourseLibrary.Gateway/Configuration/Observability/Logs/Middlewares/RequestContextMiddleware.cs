@@ -1,7 +1,6 @@
-﻿using GatewayObservability = CourseLibrary.Gateway.Configuration.Observability;
-using InfrastructureObservability = CourseLibrary.Infrastructure.Observability;
-using Microsoft.Extensions.Primitives;
+﻿using Microsoft.Extensions.Primitives;
 using System.Diagnostics;
+using CourseLibrary.Gateway.Configuration.Observability.Traces;
 
 namespace CourseLibrary.Gateway.Configuration.Observability.Logs.Middlewares;
 
@@ -16,7 +15,7 @@ internal sealed class RequestContextMiddleware(
 
         if (activity is null)
         {
-            activity = GatewayObservability.Traces.ActivitySources.Gateway
+            activity = ActivitySources.Gateway
                 .StartActivity(activityName);
 
             activity ??= new Activity(activityName).Start();
@@ -51,7 +50,7 @@ internal sealed class RequestContextMiddleware(
 
         using var scope = logger.BeginScope(scopeValues);
 
-        GatewayObservability.Traces.RequestContextActivityTags.Apply(
+        RequestContextActivityTags.Apply(
             activity,
             context,
             correlationId,
@@ -71,7 +70,7 @@ internal sealed class RequestContextMiddleware(
         }
         finally
         {
-            GatewayObservability.Traces.RequestContextActivityTags.ApplyResponse(activity, context);
+            RequestContextActivityTags.ApplyResponse(activity, context);
         }
     }
 
@@ -86,10 +85,7 @@ internal sealed class RequestContextMiddleware(
         {
             return correlationId.ToString();
         }
-
-        // Correlation ID has its own fallback.
-        // It must NOT fall back to traceparent or tracestate.
-        return InfrastructureObservability.Traces.TracingHelper.GenerateTraceIdentifier(activity);
+        return string.Empty;
     }
 
     private static string ResolveTraceParent(
@@ -104,7 +100,7 @@ internal sealed class RequestContextMiddleware(
             return traceParent.ToString();
         }
 
-        return InfrastructureObservability.Traces.TracingHelper.GenerateTraceParent(activity);
+        return string.Empty;
     }
 
     private static string ResolveTraceState(
@@ -119,7 +115,7 @@ internal sealed class RequestContextMiddleware(
             return traceState.ToString();
         }
 
-        return InfrastructureObservability.Traces.TracingHelper.GenerateTraceState(activity);
+        return string.Empty;
     }
 
     private static string GetSafeRequestPath(HttpRequest request)

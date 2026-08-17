@@ -24,8 +24,4 @@
 		<PackageReference Include="Microsoft.Extensions.Telemetry" Version="10.8.0" />
 	</ItemGroup>
 
-	<ItemGroup>
-		<ProjectReference Include="..\..\course\CourseLibrary.Infrastructure\CourseLibrary.Infrastructure.csproj" />
-	</ItemGroup>
-
 </Project>
