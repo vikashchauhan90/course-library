@@ -1,5 +1,7 @@
 using CourseLibrary.Application.Abstractions.Repositories;
 using CourseLibrary.Domain.Entities;
+using CourseLibrary.Domain.Models;
+using Microsoft.Azure.Cosmos;
 
 namespace CourseLibrary.Infrastructure.Cosmos;
 
@@ -28,4 +30,16 @@ public sealed class CosmosAuthorRepository : IAuthorRepository
 
     public Task DeleteAsync(string authorId, CancellationToken cancellationToken = default)
         => _repository.DeleteAsync(authorId, authorId, cancellationToken);
+    public Task<PageResult<Author>> QueryPageAsync(int pageSize, string? pageToken, CancellationToken cancellationToken = default)
+    {
+        const string queryText = """
+        SELECT *
+        FROM c
+        ORDER BY c.createdAt DESC
+        """;
+
+        var query = new QueryDefinition(queryText);
+
+        return _repository.QueryPageAsync(query, null, pageToken, pageSize, cancellationToken);
+    }
 }

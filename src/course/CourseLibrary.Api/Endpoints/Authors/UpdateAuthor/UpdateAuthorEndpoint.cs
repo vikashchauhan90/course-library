@@ -3,6 +3,7 @@ using CourseLibrary.Api.Configuration;
 using CourseLibrary.Api.Endpoints.Authors.UpdateAuthor;
 using CourseLibrary.Application.Operations.Authors;
 using CourseLibrary.Application.Operations.Authors.Update;
+using Hal.Core;
 using MediatorForge.Abstractions;
 
 namespace CourseLibrary.Api.Endpoints.Authors.UpdateAuthor;
@@ -18,6 +19,7 @@ public sealed class UpdateAuthorEndpoint : ICarterModule
             "/{authorId}",
             async (
                 HttpContext httpContext,
+                LinkGenerator linkGenerator,
                 IDispatcher dispatcher,
                 string authorId,
                 UpdateAuthorRequest request,
@@ -34,7 +36,11 @@ public sealed class UpdateAuthorEndpoint : ICarterModule
                     ct);
 
                 logger.AuthorUpdated(authorId);
-                return Results.Ok(author);
+
+                IResource<AuthorResponse> response =
+            AuthorHelper.GetAuthorResponse(linkGenerator, author);
+
+                return Results.Ok(response);
             })
             .WithName("UpdateAuthor")
             .HasApiVersion(1.0);

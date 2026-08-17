@@ -3,6 +3,8 @@ using CourseLibrary.Api.Configuration;
 using CourseLibrary.Api.Endpoints.Authors.GetAuthor;
 using CourseLibrary.Application.Operations.Authors;
 using CourseLibrary.Application.Operations.Authors.Get;
+using Hal.Core;
+using Hal.Core.Builders;
 using MediatorForge.Abstractions;
 
 namespace CourseLibrary.Api.Endpoints.Authors.GetAuthor;
@@ -18,6 +20,7 @@ public sealed class GetAuthorEndpoint : ICarterModule
             "/{authorId}",
             async (
                 HttpContext httpContext,
+                LinkGenerator linkGenerator,
                 IDispatcher dispatcher,
                 string authorId,
                 ILogger<GetAuthorEndpoint> logger) =>
@@ -39,7 +42,10 @@ public sealed class GetAuthorEndpoint : ICarterModule
                 }
 
                 logger.AuthorRetrieved(authorId);
-                return Results.Ok(author);
+                IResource<AuthorResponse> response =
+                AuthorHelper.GetAuthorResponse(linkGenerator, author);
+
+                return Results.Ok(response);
             })
             .WithName("GetAuthor")
             .HasApiVersion(1.0);

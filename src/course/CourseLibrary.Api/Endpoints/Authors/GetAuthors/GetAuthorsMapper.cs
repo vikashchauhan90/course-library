@@ -4,6 +4,6 @@ namespace CourseLibrary.Api.Endpoints.Authors.GetAuthors;
 
 public static class GetAuthorsMapper
 {
-    public static GetAuthorsQuery ToQuery()
-        => new();
+    public static GetAuthorsQuery ToQuery(int pageSize, string? pageToken)
+        => new(pageSize, pageToken);
 }

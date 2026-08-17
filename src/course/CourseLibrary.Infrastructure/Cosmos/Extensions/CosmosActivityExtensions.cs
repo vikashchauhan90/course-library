@@ -8,16 +8,29 @@ internal static class CosmosActivityExtensions
     public static void SetCosmosOperation(
         this Activity? activity,
         string operation,
-        string containerName)
+        string containerName,
+        string databaseName)
     {
         if (activity is null)
         {
             return;
         }
 
-        activity.SetTag("db.system", "cosmosdb");
-        activity.SetTag("db.operation.name", operation);
-        activity.SetTag("db.namespace", containerName);
+        activity.SetTag(
+            "db.system",
+            "cosmosdb");
+
+        activity.SetTag(
+            "cosmos.operation.name",
+            operation);
+
+        activity.SetTag(
+            "cosmos.database.name",
+            databaseName);
+
+        activity.SetTag(
+            "cosmos.collection.name",
+            containerName);
     }
 
     public static void RecordSuccess(

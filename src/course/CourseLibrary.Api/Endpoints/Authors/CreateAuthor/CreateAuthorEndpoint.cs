@@ -41,38 +41,10 @@ public sealed class CreateAuthorEndpoint : ICarterModule
 
                     logger.AuthorCreated(author.Name, author.Id);
 
-                    var authorPath = linkGenerator.GetPathByName(
-                        "GetAuthor",
-                        values: new { version = "1" ,authorId = author.Id });
+                    IResource<AuthorResponse> response =
+              AuthorHelper.GetAuthorResponse(linkGenerator, author);
 
-                    var response = new ResourceBuilder<AuthorResponse>(author)
-                   .AddLink(
-                       "self",
-                       authorPath!,
-                       HttpVerbs.Get)
-                   .AddLink(
-                       "collection",
-                       linkGenerator.GetPathByName(
-                           "GetAuthors",
-                           values: new { version = "1" })!,
-                       HttpVerbs.Get)
-                    .AddLink(
-                       "update",
-                       linkGenerator.GetPathByName(
-                           "UpdateAuthor",
-                           values: new { version = "1", authorId = author.Id })!,
-                       HttpVerbs.Put)
-                     .AddLink(
-                       "delete",
-                       linkGenerator.GetPathByName(
-                           "DeleteAuthor",
-                           values: new { version = "1", authorId = author.Id })!,
-                       HttpVerbs.Delete)
-                   .Build();
-
-                    return Results.Created(
-                         authorPath,
-                        response);
+                    return Results.Created(response.Links.First(x => x.Rel.Equals("self")).Href, response);
                 })
             .WithName("CreateAuthor")
             .HasApiVersion(1.0);

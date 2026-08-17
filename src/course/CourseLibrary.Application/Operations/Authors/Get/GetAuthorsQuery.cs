@@ -1,6 +1,6 @@
+using CourseLibrary.Domain.Models;
 using MediatorForge.Abstractions;
-using CourseLibrary.Application.Operations.Authors;
 
 namespace CourseLibrary.Application.Operations.Authors.Get;
 
-public sealed record GetAuthorsQuery() : IQuery<IReadOnlyList<AuthorResponse>>;
+public sealed record GetAuthorsQuery(int PageSize, string? PageToken) : IQuery<PageResult<AuthorResponse>>;

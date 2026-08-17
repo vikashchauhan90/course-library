@@ -66,7 +66,8 @@ public class CosmosRepository<TDocument>
 
         activity.SetCosmosOperation(
             "ReadItem",
-            ContainerName);
+            ContainerName,
+            Container.Database.Id);
 
         try
         {
@@ -121,7 +122,8 @@ public class CosmosRepository<TDocument>
 
         activity.SetCosmosOperation(
             "Query",
-            ContainerName);
+            ContainerName,
+            Container.Database.Id);
 
         try
         {
@@ -193,7 +195,8 @@ public class CosmosRepository<TDocument>
 
         activity.SetCosmosOperation(
             "Cosmos.QueryPage",
-            ContainerName);
+            ContainerName,
+            Container.Database.Id);
 
         activity?.SetTag(
         "cosmos.page_size",
@@ -245,6 +248,8 @@ public class CosmosRepository<TDocument>
                 "cosmos.has_next_page",
                 !string.IsNullOrWhiteSpace(nextToken));
 
+            activity?.RecordSuccess(response.RequestCharge);
+
             return new PageResult<TDocument>(
                 items,
                 nextToken,
@@ -277,7 +282,8 @@ public class CosmosRepository<TDocument>
 
         activity.SetCosmosOperation(
             "UpsertItem",
-            ContainerName);
+            ContainerName,
+            Container.Database.Id);
 
         try
         {
@@ -318,7 +324,8 @@ public class CosmosRepository<TDocument>
 
         activity.SetCosmosOperation(
             "DeleteItem",
-            ContainerName);
+            ContainerName,
+            Container.Database.Id);
 
         try
         {
