@@ -1,8 +1,10 @@
-﻿using CourseLibrary.Infrastructure.Configuration.Caching;
+﻿using CourseLibrary.Application.Abstractions.RequestContext;
+using CourseLibrary.Infrastructure.Configuration.Caching;
 using CourseLibrary.Infrastructure.Configuration.Cosmos;
 using CourseLibrary.Infrastructure.Configuration.Idempotency;
 using CourseLibrary.Infrastructure.Configuration.Resilience;
 using CourseLibrary.Infrastructure.Configuration.Serializers;
+using CourseLibrary.Infrastructure.RequestContext;
 using CourseLibrary.Infrastructure.Resilience;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -24,6 +26,7 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddCourseLibraryHttpResilience(configuration);
         services.AddCourseLibraryResilience();
         services.AddSingleton<PolicyFactory>();
+        services.AddScoped<IRequestContext, HttpRequestContext>();
 
         return services;
     }
