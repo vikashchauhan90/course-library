@@ -110,6 +110,8 @@ public sealed class GlobalExceptionHandlerMiddleware(
 
         try
         {
+            context.Response.ContentType = "application/problem+json";
+
             await context.Response.WriteAsJsonAsync(
              problemDetails,
              context.RequestAborted);
