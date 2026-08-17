@@ -4,7 +4,7 @@ using CourseLibrary.Api.Endpoints.Authors.UpdateAuthor;
 using CourseLibrary.Application.Operations.Authors.Update;
 using MediatorForge.Abstractions;
 
-namespace CourseLibrary.Api.Endpoints.Authors;
+namespace CourseLibrary.Api.Endpoints.Authors.UpdateAuthor;
 
 public sealed class UpdateAuthorEndpoint : ICarterModule
 {
@@ -13,16 +13,29 @@ public sealed class UpdateAuthorEndpoint : ICarterModule
         var group = app.MapApiVersionedGroup("/authors")
             .WithTags("Authors");
 
-        group.MapPut("/{authorId}", async (IDispatcher dispatcher, string authorId, UpdateAuthorRequest request, CancellationToken ct) =>
-        {
-            var author = await dispatcher.SendAsync<UpdateAuthorCommand, Domain.Entities.Author>(
-                new UpdateAuthorCommand(authorId, request.Name, request.Bio, request.Website),
-                ct);
+        group.MapPut(
+            "/{authorId}",
+            async (
+                HttpContext httpContext,
+                IDispatcher dispatcher,
+                string authorId,
+                UpdateAuthorRequest request,
+                ILogger<UpdateAuthorEndpoint> logger) =>
+            {
+                var ct = httpContext.RequestAborted;
 
-            return Results.Ok(author);
-        })
-        .WithName("UpdateAuthor")
-        .WithTags("Authors")
-        .HasApiVersion(1.0);
+                logger.UpdatingAuthor(authorId);
+
+                var command = UpdateAuthorMapper.ToCommand(authorId, request);
+
+                var author = await dispatcher.SendAsync<UpdateAuthorCommand, Domain.Entities.Author>(
+                    command,
+                    ct);
+
+                logger.AuthorUpdated(authorId);
+                return Results.Ok(author);
+            })
+            .WithName("UpdateAuthor")
+            .HasApiVersion(1.0);
     }
 }

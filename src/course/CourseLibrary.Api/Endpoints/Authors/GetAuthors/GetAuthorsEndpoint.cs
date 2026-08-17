@@ -1,5 +1,6 @@
 using Carter;
 using CourseLibrary.Api.Configuration;
+using CourseLibrary.Api.Endpoints.Authors.GetAuthors;
 using CourseLibrary.Application.Operations.Authors.Get;
 using MediatorForge.Abstractions;
 
@@ -15,17 +16,24 @@ public sealed class GetAuthorsEndpoint : ICarterModule
         group.MapGet(
             "/",
             async (
+                HttpContext httpContext,
                 IDispatcher dispatcher,
-                CancellationToken ct) =>
-        {
-            var authors = await dispatcher.QueryAsync<GetAuthorsQuery, IReadOnlyList<Domain.Entities.Author>>(
-                new GetAuthorsQuery(),
-                ct);
+                ILogger<GetAuthorsEndpoint> logger) =>
+            {
+                var ct = httpContext.RequestAborted;
 
-            return Results.Ok(authors);
-        })
-        .WithName("GetAuthors")
-        .WithTags("Authors")
-        .HasApiVersion(1.0);
+                logger.GettingAllAuthors();
+
+                var query = GetAuthorsMapper.ToQuery();
+
+                var authors = await dispatcher.QueryAsync<GetAuthorsQuery, IReadOnlyList<Domain.Entities.Author>>(
+                    query,
+                    ct);
+
+                logger.AuthorsRetrieved(authors.Count);
+                return Results.Ok(authors);
+            })
+            .WithName("GetAuthors")
+            .HasApiVersion(1.0);
     }
 }

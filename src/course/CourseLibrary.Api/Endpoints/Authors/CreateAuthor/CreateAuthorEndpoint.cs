@@ -24,10 +24,9 @@ public sealed class CreateAuthorEndpoint : ICarterModule
                 {
                     var ct = httpContext.RequestAborted;
 
-                    var command = new CreateAuthorCommand(
-                        request.Name,
-                        request.Bio,
-                        request.Website);
+                    logger.CreatingAuthor(request.Name);
+
+                    var command = CreateAuthorMapper.ToCommand(request);
 
                     var author =
                         await dispatcher.SendAsync<

@@ -1,12 +1,7 @@
-using Asp.Versioning;
 using Carter;
 using CourseLibrary.Api.Configuration;
-using CourseLibrary.Api.Endpoints.Authors.CreateAuthor;
-using CourseLibrary.Api.Endpoints.Authors.UpdateAuthor;
-using CourseLibrary.Application.Operations.Authors.Create;
+using CourseLibrary.Api.Endpoints.Authors.DeleteAuthor;
 using CourseLibrary.Application.Operations.Authors.Delete;
-using CourseLibrary.Application.Operations.Authors.Get;
-using CourseLibrary.Application.Operations.Authors.Update;
 using MediatorForge.Abstractions;
 
 namespace CourseLibrary.Api.Endpoints.Authors;
@@ -21,21 +16,31 @@ public sealed class DeleteAuthorEndpoint : ICarterModule
         group.MapDelete(
             "/{authorId}",
             async (
-                 HttpContext httpContext,
+                HttpContext httpContext,
                 IDispatcher dispatcher,
                 string authorId,
                 ILogger<DeleteAuthorEndpoint> logger) =>
-        {
-            var ct = httpContext.RequestAborted;
+            {
+                var ct = httpContext.RequestAborted;
 
-            var deleted = await dispatcher.SendAsync<DeleteAuthorCommand, bool>(
-                new DeleteAuthorCommand(authorId),
-                ct);
+                logger.DeletingAuthor(authorId);
 
-            return deleted ? Results.NoContent() : Results.NotFound();
-        })
-        .WithName("DeleteAuthor")
-        .WithTags("Authors")
-        .HasApiVersion(1.0);
+                var command = DeleteAuthorMapper.ToCommand(authorId);
+
+                var deleted = await dispatcher.SendAsync<DeleteAuthorCommand, bool>(
+                    command,
+                    ct);
+
+                if (deleted)
+                {
+                    logger.AuthorDeleted(authorId);
+                    return Results.NoContent();
+                }
+
+                logger.AuthorNotFoundForDeletion(authorId);
+                return Results.NotFound();
+            })
+            .WithName("DeleteAuthor")
+            .HasApiVersion(1.0);
     }
 }
