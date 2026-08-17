@@ -4,9 +4,11 @@ using CourseLibrary.Api.Configuration.Exceptions;
 using CourseLibrary.Api.Configuration.Observability;
 using CourseLibrary.Api.Configuration.Observability.Metrics;
 using CourseLibrary.Api.Configuration.Security;
-using System.Diagnostics;
 using CourseLibrary.Application.Configuration;
 using CourseLibrary.Infrastructure.Configuration;
+using System.Diagnostics;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace CourseLibrary.Api.Configuration;
 
@@ -35,6 +37,15 @@ internal static class CourseLibraryHostExtensions
         {
             options.GroupNameFormat = "'v'V";
             options.SubstituteApiVersionInUrl = true;
+        });
+
+        builder.Services.ConfigureHttpJsonOptions(options =>
+        {
+            options.SerializerOptions.Converters.Add(
+                new JsonStringEnumConverter());
+
+            options.SerializerOptions.PropertyNamingPolicy =
+        JsonNamingPolicy.CamelCase;
         });
 
         builder.Services.AddCarter();
