@@ -41,18 +41,14 @@ internal static class GatewayAuthorizationExtensions
                 policy =>
                 {
                     policy.RequireAuthenticatedUser();
+
+                    policy.AddRequirements(
+                        new UserOrM2MRequirement());
                 });
         });
 
-        //builder.Services.AddScoped<
-        //    IAuthorizationHandler,
-        //    UserTokenAuthorizationHandler>();
-
-        //builder.Services.AddScoped<
-        //    IAuthorizationHandler,
-        //    M2MClientAuthorizationHandler>();
-
-        builder.Services.AddSingleton<IAuthorizationHandler, ApiAccessAuthorizationHandler>();
+        builder.Services.AddSingleton<IAuthorizationHandler,
+            TokenIdentityAuthorizationHandler>();
 
         return builder;
     }

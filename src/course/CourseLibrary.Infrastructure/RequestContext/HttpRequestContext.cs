@@ -21,16 +21,20 @@ internal sealed class HttpRequestContext(
             .FirstOrDefault();
 
     public string? UserId =>
-        HttpContext?.User.FindFirst("sub")?.Value;
+        HttpContext?.User.FindFirst("sub")?.Value
+        ?? HttpContext?.Request.Headers["X-User-Id"].FirstOrDefault();
 
     public string? ClientId =>
-        HttpContext?.User.FindFirst("client_id")?.Value;
+        HttpContext?.User.FindFirst("client_id")?.Value
+        ?? HttpContext?.Request.Headers["X-Client-Id"].FirstOrDefault();
 
     public string? IdempotencyKey =>
         HttpContext?.Request.Headers["Idempotency-Key"]
             .FirstOrDefault();
 
     public bool IsAuthenticated =>
-        HttpContext?.User.Identity?.IsAuthenticated == true;
+        HttpContext?.User.Identity?.IsAuthenticated == true
+        || HttpContext?.Request.Headers["X-Identity-Type"].FirstOrDefault()
+            is "User" or "M2M";
 
 }

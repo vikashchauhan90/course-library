@@ -1,6 +1,4 @@
-using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.HttpOverrides;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace CourseLibrary.Gateway.Configuration.Proxy;
 
@@ -14,9 +12,10 @@ internal static class GatewayProxyExtensions
             options.ForwardedHeaders = ForwardedHeaders.XForwardedFor |
                                        ForwardedHeaders.XForwardedProto |
                                        ForwardedHeaders.XForwardedHost;
-            options.ForwardLimit = 5;
-            options.KnownIPNetworks.Clear();
-            options.KnownProxies.Clear();
+            // Keep ASP.NET Core's trusted-proxy defaults. Production ingress
+            // addresses must be added explicitly rather than accepting
+            // X-Forwarded-* values from arbitrary callers.
+            options.ForwardLimit = 1;
         });
 
         return builder;
