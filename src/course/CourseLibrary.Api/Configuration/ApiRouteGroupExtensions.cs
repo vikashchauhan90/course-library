@@ -1,3 +1,4 @@
+using Asp.Versioning;
 using Asp.Versioning.Builder;
 using Asp.Versioning.Conventions;
 
@@ -5,65 +6,45 @@ namespace CourseLibrary.Api.Configuration;
 
 public static class ApiRouteGroupExtensions
 {
+    private const string ApiPrefix = "/api/v{version:apiVersion}";
+
     public static RouteGroupBuilder MapApiVersionedGroup(
         this IEndpointRouteBuilder app,
-        string resource)
+        string resource,
+        string? groupName = null,
+        string[]? tags = null,
+        ApiVersionSet? versionSet = null)
     {
         ArgumentNullException.ThrowIfNull(app);
-        ArgumentNullException.ThrowIfNull(resource);
+        ArgumentException.ThrowIfNullOrWhiteSpace(resource);
 
-        var versionSet = app.NewApiVersionSet()
+        resource = NormalizeResource(resource);
+
+        versionSet ??= app.NewApiVersionSet()
             .HasApiVersion(1.0)
             .ReportApiVersions()
             .Build();
 
-        return app
-            .MapGroup($"/api/v{{version:apiVersion}}{resource}")
+        var group = app.MapGroup($"{ApiPrefix}{resource}")
             .WithApiVersionSet(versionSet);
+
+        if (!string.IsNullOrWhiteSpace(groupName))
+        {
+            group.WithGroupName(groupName);
+        }
+
+        if (tags is { Length: > 0 })
+        {
+            group.WithTags(tags);
+        }
+
+        return group;
     }
 
-    public static RouteGroupBuilder MapApiVersionedGroup(
-        this IEndpointRouteBuilder app,
-        string resource,
-        string groupName)
+    private static string NormalizeResource(string resource)
     {
-        ArgumentNullException.ThrowIfNull(app);
-        ArgumentNullException.ThrowIfNull(resource);
-        ArgumentNullException.ThrowIfNull(groupName);
-        return app.MapGroup($"/api/v{{version:apiVersion}}{resource}")
-            .WithGroupName(groupName);
-    }
-
-    public static RouteGroupBuilder MapApiVersionedGroup(
-        this IEndpointRouteBuilder app,
-        string resource,
-        string groupName,
-        string[] tags)
-    {
-        ArgumentNullException.ThrowIfNull(app);
-        ArgumentNullException.ThrowIfNull(resource);
-        ArgumentNullException.ThrowIfNull(groupName);
-        ArgumentNullException.ThrowIfNull(tags);
-        return app.MapGroup($"/api/v{{version:apiVersion}}{resource}")
-            .WithGroupName(groupName)
-            .WithTags(tags);
-    }
-
-    public static RouteGroupBuilder MapApiVersionedGroup(
-        this IEndpointRouteBuilder app,
-        string resource,
-        string groupName,
-        string[] tags,
-        ApiVersionSet versionSet)
-    {
-        ArgumentNullException.ThrowIfNull(app);
-        ArgumentNullException.ThrowIfNull(resource);
-        ArgumentNullException.ThrowIfNull(groupName);
-        ArgumentNullException.ThrowIfNull(tags);
-        ArgumentNullException.ThrowIfNull(versionSet);
-        return app.MapGroup($"/api/v{{version:apiVersion}}{resource}")
-            .WithGroupName(groupName)
-            .WithTags(tags)
-            .WithApiVersionSet(versionSet);
+        return resource.StartsWith('/')
+            ? resource
+            : $"/{resource}";
     }
 }
