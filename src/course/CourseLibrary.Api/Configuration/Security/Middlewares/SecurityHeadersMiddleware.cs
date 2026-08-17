@@ -17,6 +17,13 @@ public sealed class SecurityHeadersMiddleware(
             headers.TryAdd("X-Content-Type-Options", "nosniff");
             headers.TryAdd("X-Frame-Options", "DENY");
             headers.TryAdd("Referrer-Policy", "no-referrer");
+            headers.TryAdd("X-XSS-Protection", "1; mode=block");
+            headers.TryAdd("Referrer-Policy", "strict-origin-when-cross-origin");
+            headers.TryAdd("Permissions-Policy", "geolocation=(), microphone=(), camera=()");
+            headers.TryAdd("Content-Security-Policy", "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'");
+            headers.TryAdd("Cache-Control", "no-cache, no-store, must-revalidate");
+            headers.TryAdd("Pragma", "no-cache");
+            headers.TryAdd("Expires", "0");
 
             return Task.CompletedTask;
         });
