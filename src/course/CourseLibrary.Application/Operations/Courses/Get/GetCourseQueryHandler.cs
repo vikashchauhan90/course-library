@@ -1,9 +1,10 @@
 using MediatorForge.Abstractions;
 using CourseLibrary.Application.Abstractions.Repositories;
+using CourseLibrary.Application.Operations.Courses;
 
 namespace CourseLibrary.Application.Operations.Courses.Get;
 
-public sealed class GetCourseQueryHandler : IHandler<GetCourseQuery, Domain.Entities.Course?>
+public sealed class GetCourseQueryHandler : IHandler<GetCourseQuery, CourseResponse?>
 {
     private readonly ICourseRepository _repository;
 
@@ -12,8 +13,9 @@ public sealed class GetCourseQueryHandler : IHandler<GetCourseQuery, Domain.Enti
         _repository = repository;
     }
 
-    public Task<Domain.Entities.Course?> HandleAsync(GetCourseQuery query, CancellationToken ct)
+    public async Task<CourseResponse?> HandleAsync(GetCourseQuery query, CancellationToken ct)
     {
-        return _repository.GetByIdAsync(query.CourseId, query.PartitionKey, ct);
+        var course = await _repository.GetByIdAsync(query.CourseId, query.PartitionKey, ct);
+        return CourseMapper.ToResponse(course);
     }
 }

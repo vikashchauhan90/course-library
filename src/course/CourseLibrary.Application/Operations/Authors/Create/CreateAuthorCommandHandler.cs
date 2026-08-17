@@ -1,10 +1,11 @@
 using MediatorForge.Abstractions;
 using Microsoft.Extensions.Logging;
 using CourseLibrary.Application.Abstractions.Repositories;
+using CourseLibrary.Application.Operations.Authors;
 
 namespace CourseLibrary.Application.Operations.Authors.Create;
 
-public sealed class CreateAuthorCommandHandler : IHandler<CreateAuthorCommand, Domain.Entities.Author>
+public sealed class CreateAuthorCommandHandler : IHandler<CreateAuthorCommand, AuthorResponse>
 {
     private readonly IAuthorRepository _repository;
     private readonly ILogger<CreateAuthorCommandHandler> _logger;
@@ -17,7 +18,7 @@ public sealed class CreateAuthorCommandHandler : IHandler<CreateAuthorCommand, D
         _eventDispatcher = eventDispatcher;
     }
 
-    public async Task<Domain.Entities.Author> HandleAsync(CreateAuthorCommand command, CancellationToken ct)
+    public async Task<AuthorResponse> HandleAsync(CreateAuthorCommand command, CancellationToken ct)
     {
         var now = DateTime.UtcNow;
         var author = new Domain.Entities.Author
@@ -35,6 +36,6 @@ public sealed class CreateAuthorCommandHandler : IHandler<CreateAuthorCommand, D
 
         await _eventDispatcher.PublishAsync(new AuthorCreatedEvent(author.Id, author.Name, author.CreatedAt), ct);
 
-        return author;
+        return AuthorMapper.ToResponse(author);
     }
 }

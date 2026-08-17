@@ -1,10 +1,11 @@
 using MediatorForge.Abstractions;
 using Microsoft.Extensions.Logging;
 using CourseLibrary.Application.Abstractions.Repositories;
+using CourseLibrary.Application.Operations.Courses;
 
 namespace CourseLibrary.Application.Operations.Courses.Create;
 
-public sealed class CreateCourseCommandHandler : IHandler<CreateCourseCommand, Domain.Entities.Course>
+public sealed class CreateCourseCommandHandler : IHandler<CreateCourseCommand, CourseResponse>
 {
     private readonly ICourseRepository _repository;
     private readonly ILogger<CreateCourseCommandHandler> _logger;
@@ -17,7 +18,7 @@ public sealed class CreateCourseCommandHandler : IHandler<CreateCourseCommand, D
         _eventDispatcher = eventDispatcher;
     }
 
-    public async Task<Domain.Entities.Course> HandleAsync(CreateCourseCommand command, CancellationToken ct)
+    public async Task<CourseResponse> HandleAsync(CreateCourseCommand command, CancellationToken ct)
     {
         var now = DateTime.UtcNow;
         var course = new Domain.Entities.Course
@@ -37,6 +38,6 @@ public sealed class CreateCourseCommandHandler : IHandler<CreateCourseCommand, D
         // Publish course created event for downstream consumers
         await _eventDispatcher.PublishAsync(new CourseCreatedEvent(course.Id, course.AuthorId, course.Title, course.CreatedAt), ct);
 
-        return course;
+        return CourseMapper.ToResponse(course);
     }
 }

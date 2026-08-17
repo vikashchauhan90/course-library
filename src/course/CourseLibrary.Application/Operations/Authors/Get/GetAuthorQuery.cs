@@ -1,5 +1,6 @@
 using MediatorForge.Abstractions;
+using CourseLibrary.Application.Operations.Authors;
 
 namespace CourseLibrary.Application.Operations.Authors.Get;
 
-public sealed record GetAuthorQuery(string AuthorId) : IQuery<Domain.Entities.Author?>;
+public sealed record GetAuthorQuery(string AuthorId) : IQuery<AuthorResponse?>;

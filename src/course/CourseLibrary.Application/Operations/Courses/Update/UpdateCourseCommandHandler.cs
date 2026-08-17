@@ -1,9 +1,10 @@
 using MediatorForge.Abstractions;
 using CourseLibrary.Application.Abstractions.Repositories;
+using CourseLibrary.Application.Operations.Courses;
 
 namespace CourseLibrary.Application.Operations.Courses.Update;
 
-public sealed class UpdateCourseCommandHandler : IHandler<UpdateCourseCommand, Domain.Entities.Course>
+public sealed class UpdateCourseCommandHandler : IHandler<UpdateCourseCommand, CourseResponse>
 {
     private readonly ICourseRepository _repository;
     private readonly IEventDispatcher _eventDispatcher;
@@ -14,7 +15,7 @@ public sealed class UpdateCourseCommandHandler : IHandler<UpdateCourseCommand, D
         _eventDispatcher = eventDispatcher;
     }
 
-    public async Task<Domain.Entities.Course> HandleAsync(UpdateCourseCommand command, CancellationToken ct)
+    public async Task<CourseResponse> HandleAsync(UpdateCourseCommand command, CancellationToken ct)
     {
         var existing = await _repository.GetByIdAsync(command.Id, command.AuthorId, ct);
         if (existing is null)
@@ -31,6 +32,6 @@ public sealed class UpdateCourseCommandHandler : IHandler<UpdateCourseCommand, D
 
         await _repository.UpsertAsync(updated, ct);
         await _eventDispatcher.PublishAsync(new CourseUpdatedEvent(updated.Id, updated.AuthorId, updated.Title, updated.UpdatedAt), ct);
-        return updated;
+        return CourseMapper.ToResponse(updated);
     }
 }

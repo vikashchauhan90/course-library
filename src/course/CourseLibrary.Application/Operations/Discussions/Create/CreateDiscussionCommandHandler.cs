@@ -1,10 +1,11 @@
 using MediatorForge.Abstractions;
 using Microsoft.Extensions.Logging;
 using CourseLibrary.Application.Abstractions.Repositories;
+using CourseLibrary.Application.Operations.Discussions;
 
 namespace CourseLibrary.Application.Operations.Discussions.Create;
 
-public sealed class CreateDiscussionCommandHandler : IHandler<CreateDiscussionCommand, Domain.Entities.Discussion>
+public sealed class CreateDiscussionCommandHandler : IHandler<CreateDiscussionCommand, DiscussionResponse>
 {
     private readonly IDiscussionRepository _repository;
     private readonly ILogger<CreateDiscussionCommandHandler> _logger;
@@ -17,7 +18,7 @@ public sealed class CreateDiscussionCommandHandler : IHandler<CreateDiscussionCo
         _eventDispatcher = eventDispatcher;
     }
 
-    public async Task<Domain.Entities.Discussion> HandleAsync(CreateDiscussionCommand command, CancellationToken ct)
+    public async Task<DiscussionResponse> HandleAsync(CreateDiscussionCommand command, CancellationToken ct)
     {
         var now = DateTime.UtcNow;
         var discussion = new Domain.Entities.Discussion
@@ -36,6 +37,6 @@ public sealed class CreateDiscussionCommandHandler : IHandler<CreateDiscussionCo
 
         await _eventDispatcher.PublishAsync(new DiscussionCreatedEvent(discussion.Id, discussion.CourseId, discussion.Title, discussion.CreatedAt), ct);
 
-        return discussion;
+        return DiscussionMapper.ToResponse(discussion);
     }
 }

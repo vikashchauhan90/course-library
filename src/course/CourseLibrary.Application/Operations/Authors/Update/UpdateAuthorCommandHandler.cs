@@ -1,9 +1,10 @@
 using MediatorForge.Abstractions;
 using CourseLibrary.Application.Abstractions.Repositories;
+using CourseLibrary.Application.Operations.Authors;
 
 namespace CourseLibrary.Application.Operations.Authors.Update;
 
-public sealed class UpdateAuthorCommandHandler : IHandler<UpdateAuthorCommand, CourseLibrary.Domain.Entities.Author>
+public sealed class UpdateAuthorCommandHandler : IHandler<UpdateAuthorCommand, AuthorResponse>
 {
     private readonly IAuthorRepository _repository;
     private readonly IEventDispatcher _eventDispatcher;
@@ -14,7 +15,7 @@ public sealed class UpdateAuthorCommandHandler : IHandler<UpdateAuthorCommand, C
         _eventDispatcher = eventDispatcher;
     }
 
-    public async Task<CourseLibrary.Domain.Entities.Author> HandleAsync(UpdateAuthorCommand command, CancellationToken ct)
+    public async Task<AuthorResponse> HandleAsync(UpdateAuthorCommand command, CancellationToken ct)
     {
         var existing = await _repository.GetByIdAsync(command.Id, ct);
         if (existing is null)
@@ -30,6 +31,6 @@ public sealed class UpdateAuthorCommandHandler : IHandler<UpdateAuthorCommand, C
 
         await _repository.UpsertAsync(updated, ct);
         await _eventDispatcher.PublishAsync(new AuthorUpdatedEvent(updated.Id, updated.Name, updated.UpdatedAt), ct);
-        return updated;
+        return AuthorMapper.ToResponse(updated);
     }
 }

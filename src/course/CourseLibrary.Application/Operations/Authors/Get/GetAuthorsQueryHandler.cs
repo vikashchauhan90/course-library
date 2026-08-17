@@ -1,9 +1,10 @@
 using CourseLibrary.Application.Abstractions.Repositories;
 using MediatorForge.Abstractions;
+using CourseLibrary.Application.Operations.Authors;
 
 namespace CourseLibrary.Application.Operations.Authors.Get;
 
-public sealed class GetAuthorsQueryHandler : IHandler<GetAuthorsQuery, IReadOnlyList<Domain.Entities.Author>>
+public sealed class GetAuthorsQueryHandler : IHandler<GetAuthorsQuery, IReadOnlyList<AuthorResponse>>
 {
     private readonly IAuthorRepository _repository;
 
@@ -12,8 +13,9 @@ public sealed class GetAuthorsQueryHandler : IHandler<GetAuthorsQuery, IReadOnly
         _repository = repository;
     }
 
-    public Task<IReadOnlyList<Domain.Entities.Author>> HandleAsync(GetAuthorsQuery query, CancellationToken ct)
+    public async Task<IReadOnlyList<AuthorResponse>> HandleAsync(GetAuthorsQuery query, CancellationToken ct)
     {
-        return _repository.GetAllAsync(ct);
+        var authors = await _repository.GetAllAsync(ct);
+        return AuthorMapper.ToResponses(authors);
     }
 }
