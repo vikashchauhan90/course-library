@@ -1,23 +1,16 @@
 using MediatorForge.Abstractions;
 using CourseLibrary.Application.Abstractions.Repositories;
 using CourseLibrary.Application.Operations.Discussions;
+using Microsoft.Extensions.Logging;
 
 namespace CourseLibrary.Application.Operations.Discussions.Update;
 
-public sealed class UpdateDiscussionCommandHandler : IHandler<UpdateDiscussionCommand, DiscussionResponse>
+public sealed class UpdateDiscussionCommandHandler(IDiscussionRepository repository, ILogger<UpdateDiscussionCommandHandler> logger, IEventDispatcher eventDispatcher) : IHandler<UpdateDiscussionCommand, DiscussionResponse>
 {
-    private readonly IDiscussionRepository _repository;
-    private readonly IEventDispatcher _eventDispatcher;
-
-    public UpdateDiscussionCommandHandler(IDiscussionRepository repository, IEventDispatcher eventDispatcher)
-    {
-        _repository = repository;
-        _eventDispatcher = eventDispatcher;
-    }
-
     public async Task<DiscussionResponse> HandleAsync(UpdateDiscussionCommand command, CancellationToken ct)
     {
-        var existing = await _repository.GetByIdAsync(command.Id, command.CourseId, ct);
+        logger.UpdatingDiscussion(command.Id);
+        var existing = await repository.GetByIdAsync(command.Id, command.CourseId, ct);
         if (existing is null)
             throw new KeyNotFoundException($"Discussion '{command.Id}' not found");
 
@@ -28,8 +21,8 @@ public sealed class UpdateDiscussionCommandHandler : IHandler<UpdateDiscussionCo
             UpdatedAt = DateTime.UtcNow
         };
 
-        await _repository.UpsertAsync(updated, ct);
-        await _eventDispatcher.PublishAsync(new DiscussionUpdatedEvent(updated.Id, updated.CourseId, updated.Title, updated.UpdatedAt), ct);
+        await repository.UpsertAsync(updated, ct);
+        await eventDispatcher.PublishAsync(new DiscussionUpdatedEvent(updated.Id, updated.CourseId, updated.Title, updated.UpdatedAt), ct);
         return DiscussionMapper.ToResponse(updated);
     }
 }

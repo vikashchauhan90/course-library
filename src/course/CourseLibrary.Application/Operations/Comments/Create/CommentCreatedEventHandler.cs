@@ -1,5 +1,6 @@
 using MediatorForge.Abstractions;
 using Microsoft.Extensions.Logging;
+using CourseLibrary.Application.Operations.Comments;
 
 namespace CourseLibrary.Application.Operations.Comments.Create;
 
@@ -15,7 +16,7 @@ public sealed class CommentCreatedEventHandler : IEventNotificationHandler<Comme
     public Task HandleAsync(IEventNotification<CommentCreatedEvent> notification, CancellationToken ct)
     {
         var ev = notification.Event;
-        _logger.LogInformation("New comment {CommentId} on course {CourseId} by {AuthorId}", ev.CommentId, ev.CourseId, ev.AuthorId);
+        _logger.CommentCreatedEvent(ev.CommentId);
         return Task.CompletedTask;
     }
 }

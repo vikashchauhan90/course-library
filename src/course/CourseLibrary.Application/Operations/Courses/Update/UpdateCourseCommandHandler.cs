@@ -1,23 +1,18 @@
 using MediatorForge.Abstractions;
 using CourseLibrary.Application.Abstractions.Repositories;
+using CourseLibrary.Application.Abstractions.RequestContext;
 using CourseLibrary.Application.Operations.Courses;
+using CourseLibrary.Domain.Entities;
+using Microsoft.Extensions.Logging;
 
 namespace CourseLibrary.Application.Operations.Courses.Update;
 
-public sealed class UpdateCourseCommandHandler : IHandler<UpdateCourseCommand, CourseResponse>
+public sealed class UpdateCourseCommandHandler(ICourseRepository repository, ICourseAuditRepository auditRepository, IRequestContext requestContext, ILogger<UpdateCourseCommandHandler> logger, IEventDispatcher eventDispatcher) : IHandler<UpdateCourseCommand, CourseResponse>
 {
-    private readonly ICourseRepository _repository;
-    private readonly IEventDispatcher _eventDispatcher;
-
-    public UpdateCourseCommandHandler(ICourseRepository repository, IEventDispatcher eventDispatcher)
-    {
-        _repository = repository;
-        _eventDispatcher = eventDispatcher;
-    }
-
     public async Task<CourseResponse> HandleAsync(UpdateCourseCommand command, CancellationToken ct)
     {
-        var existing = await _repository.GetByIdAsync(command.Id, command.AuthorId, ct);
+        logger.UpdatingCourse(command.Id);
+        var existing = await repository.GetByIdAsync(command.Id, command.AuthorId, ct);
         if (existing is null)
         {
             throw new KeyNotFoundException($"Course '{command.Id}' not found");
@@ -30,8 +25,9 @@ public sealed class UpdateCourseCommandHandler : IHandler<UpdateCourseCommand, C
             UpdatedAt = DateTime.UtcNow
         };
 
-        await _repository.UpsertAsync(updated, ct);
-        await _eventDispatcher.PublishAsync(new CourseUpdatedEvent(updated.Id, updated.AuthorId, updated.Title, updated.UpdatedAt), ct);
+        await repository.UpsertAsync(updated, ct);
+        await auditRepository.AddAsync(new CourseAuditEntry { Id = Guid.NewGuid().ToString(), CourseId = updated.Id, Action = AuditAction.Updated, AuthorId = updated.AuthorId, Title = updated.Title, Description = updated.Description, OccurredAt = updated.UpdatedAt, ActorId = requestContext.UserId, CorrelationId = requestContext.CorrelationId }, ct);
+        await eventDispatcher.PublishAsync(new CourseUpdatedEvent(updated.Id, updated.AuthorId, updated.Title, updated.UpdatedAt), ct);
         return CourseMapper.ToResponse(updated);
     }
 }

@@ -1,5 +1,6 @@
 using MediatorForge.Abstractions;
 using Microsoft.Extensions.Logging;
+using CourseLibrary.Application.Operations.Courses;
 
 namespace CourseLibrary.Application.Operations.Courses.Update;
 
@@ -15,7 +16,7 @@ public sealed class CourseUpdatedEventHandler : IEventNotificationHandler<Course
     public Task HandleAsync(IEventNotification<CourseUpdatedEvent> notification, CancellationToken ct)
     {
         var ev = notification.Event;
-        _logger.LogInformation("Course updated: {CourseId} by {AuthorId} at {UpdatedAt}", ev.CourseId, ev.AuthorId, ev.UpdatedAt);
+        _logger.CourseUpdatedEvent(ev.CourseId);
         return Task.CompletedTask;
     }
 }

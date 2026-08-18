@@ -1,23 +1,18 @@
 using MediatorForge.Abstractions;
 using CourseLibrary.Application.Abstractions.Repositories;
+using CourseLibrary.Application.Abstractions.RequestContext;
 using CourseLibrary.Application.Operations.Authors;
+using CourseLibrary.Domain.Entities;
+using Microsoft.Extensions.Logging;
 
 namespace CourseLibrary.Application.Operations.Authors.Update;
 
-public sealed class UpdateAuthorCommandHandler : IHandler<UpdateAuthorCommand, AuthorResponse>
+public sealed class UpdateAuthorCommandHandler(IAuthorRepository repository, IAuthorAuditRepository auditRepository, IRequestContext requestContext, ILogger<UpdateAuthorCommandHandler> logger, IEventDispatcher eventDispatcher) : IHandler<UpdateAuthorCommand, AuthorResponse>
 {
-    private readonly IAuthorRepository _repository;
-    private readonly IEventDispatcher _eventDispatcher;
-
-    public UpdateAuthorCommandHandler(IAuthorRepository repository, IEventDispatcher eventDispatcher)
-    {
-        _repository = repository;
-        _eventDispatcher = eventDispatcher;
-    }
-
     public async Task<AuthorResponse> HandleAsync(UpdateAuthorCommand command, CancellationToken ct)
     {
-        var existing = await _repository.GetByIdAsync(command.Id, ct);
+        logger.UpdatingAuthor(command.Id);
+        var existing = await repository.GetByIdAsync(command.Id, ct);
         if (existing is null)
             throw new KeyNotFoundException($"Author '{command.Id}' not found");
 
@@ -29,8 +24,9 @@ public sealed class UpdateAuthorCommandHandler : IHandler<UpdateAuthorCommand, A
             UpdatedAt = DateTime.UtcNow
         };
 
-        await _repository.UpsertAsync(updated, ct);
-        await _eventDispatcher.PublishAsync(new AuthorUpdatedEvent(updated.Id, updated.Name, updated.UpdatedAt), ct);
+        await repository.UpsertAsync(updated, ct);
+        await auditRepository.AddAsync(new AuthorAuditEntry { Id = Guid.NewGuid().ToString(), AuthorId = updated.Id, Action = AuditAction.Updated, Name = updated.Name, Bio = updated.Bio, Website = updated.Website, OccurredAt = updated.UpdatedAt, ActorId = requestContext.UserId, CorrelationId = requestContext.CorrelationId }, ct);
+        await eventDispatcher.PublishAsync(new AuthorUpdatedEvent(updated.Id, updated.Name, updated.UpdatedAt), ct);
         return AuthorMapper.ToResponse(updated);
     }
 }

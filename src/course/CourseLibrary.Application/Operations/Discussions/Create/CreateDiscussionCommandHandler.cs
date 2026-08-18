@@ -31,7 +31,7 @@ public sealed class CreateDiscussionCommandHandler : IHandler<CreateDiscussionCo
             UpdatedAt = now
         };
 
-        _logger.LogInformation("Creating discussion {DiscussionId} for course {CourseId}", discussion.Id, discussion.CourseId);
+        _logger.PersistingDiscussion(discussion.Id, discussion.CourseId);
 
         await _repository.UpsertAsync(discussion, ct);
 

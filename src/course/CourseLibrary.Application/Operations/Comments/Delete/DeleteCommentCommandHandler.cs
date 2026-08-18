@@ -1,23 +1,21 @@
 using MediatorForge.Abstractions;
 using CourseLibrary.Application.Abstractions.Repositories;
+using CourseLibrary.Application.Operations.Comments;
+using Microsoft.Extensions.Logging;
 
 namespace CourseLibrary.Application.Operations.Comments.Delete;
 
-public sealed class DeleteCommentCommandHandler : IHandler<DeleteCommentCommand, bool>
+public sealed class DeleteCommentCommandHandler(ICommentRepository repository, ILogger<DeleteCommentCommandHandler> logger, IEventDispatcher eventDispatcher) : IHandler<DeleteCommentCommand, bool>
 {
-    private readonly ICommentRepository _repository;
-    private readonly IEventDispatcher _eventDispatcher;
-
-    public DeleteCommentCommandHandler(ICommentRepository repository, IEventDispatcher eventDispatcher)
-    {
-        _repository = repository;
-        _eventDispatcher = eventDispatcher;
-    }
-
     public async Task<bool> HandleAsync(DeleteCommentCommand command, CancellationToken ct)
     {
-        await _repository.DeleteAsync(command.CommentId, command.CourseId, ct);
-        await _eventDispatcher.PublishAsync(new CommentDeletedEvent(command.CommentId, command.CourseId), ct);
+        logger.DeletingComment(command.CommentId);
+        if (!await repository.DeleteAsync(command.CommentId, command.CourseId, ct))
+        {
+            logger.CommentNotFoundForDeletion(command.CommentId);
+            return false;
+        }
+        await eventDispatcher.PublishAsync(new CommentDeletedEvent(command.CommentId, command.CourseId), ct);
         return true;
     }
 }

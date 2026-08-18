@@ -1,5 +1,6 @@
 using MediatorForge.Abstractions;
 using Microsoft.Extensions.Logging;
+using CourseLibrary.Application.Operations.Comments;
 
 namespace CourseLibrary.Application.Operations.Comments.Delete;
 
@@ -15,7 +16,7 @@ public sealed class CommentDeletedEventHandler : IEventNotificationHandler<Comme
     public Task HandleAsync(IEventNotification<CommentDeletedEvent> notification, CancellationToken ct)
     {
         var ev = notification.Event;
-        _logger.LogInformation("Comment deleted: {CommentId} from course {CourseId}", ev.CommentId, ev.CourseId);
+        _logger.CommentDeletedEvent(ev.CommentId);
         return Task.CompletedTask;
     }
 }

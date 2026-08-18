@@ -52,8 +52,11 @@ public static class CosmosRepositoryExtensions
     {
         services.AddSingleton(typeof(ICosmosRepository<>), typeof(CosmosRepository<>));
         services.AddSingleton<IAuthorRepository, CosmosAuthorRepository>();
+        services.AddSingleton<IAuthorAuditRepository, CosmosAuthorAuditRepository>();
         services.AddSingleton<ICommentRepository, CosmosCommentRepository>();
         services.AddSingleton<ICourseRepository, CosmosCourseRepository>();
+        services.AddSingleton<ICourseAuditRepository, CosmosCourseAuditRepository>();
         services.AddSingleton<IDiscussionRepository, CosmosDiscussionRepository>();
+        services.AddHostedService<AuditContainerInitializer>();
     }
 }

@@ -16,6 +16,6 @@ public sealed class GetAuthorQueryHandler : IHandler<GetAuthorQuery, AuthorRespo
     public async Task<AuthorResponse?> HandleAsync(GetAuthorQuery query, CancellationToken ct)
     {
         var author = await _repository.GetByIdAsync(query.AuthorId, ct);
-        return AuthorMapper.ToResponse(author);
+        return author is null ? null : AuthorMapper.ToResponse(author);
     }
 }

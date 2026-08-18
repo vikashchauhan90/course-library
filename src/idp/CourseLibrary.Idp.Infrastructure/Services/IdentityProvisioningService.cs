@@ -41,8 +41,6 @@ public sealed class IdentityProvisioningService : IIdentityProvisioningService
 
         await _dbContext.MigrateAsync(cancellationToken).ConfigureAwait(false);
 
-        await EnsureRolesAsync(cancellationToken).ConfigureAwait(false);
-        await EnsureUsersAsync(cancellationToken).ConfigureAwait(false);
         await EnsureApplicationsAsync(cancellationToken).ConfigureAwait(false);
     }
 
@@ -107,14 +105,20 @@ public sealed class IdentityProvisioningService : IIdentityProvisioningService
 
     private async Task EnsureApplicationsAsync(CancellationToken cancellationToken)
     {
-        const string gatewayClientId = "course-library-gateway";
+        var gatewayClientId = _configuration["OpenId:Clients:Gateway:ClientId"]
+            ?? throw new InvalidOperationException("OpenId:Clients:Gateway:ClientId is required.");
 
         if (await _applicationManager.FindByClientIdAsync(gatewayClientId).ConfigureAwait(false) is not null)
         {
             return;
         }
 
-        var secret = _configuration["OpenId:Clients:Gateway:ClientSecret"] ?? "gateway-secret";
+        var secret = _configuration["OpenId:Clients:Gateway:ClientSecret"];
+        if (string.IsNullOrWhiteSpace(secret))
+        {
+            throw new InvalidOperationException(
+                "OpenId:Clients:Gateway:ClientSecret must be supplied through a secret store.");
+        }
 
         var descriptor = new OpenIddictApplicationDescriptor
         {
@@ -125,12 +129,7 @@ public sealed class IdentityProvisioningService : IIdentityProvisioningService
 
         descriptor.Permissions.Add(Permissions.Endpoints.Token);
         descriptor.Permissions.Add(Permissions.GrantTypes.ClientCredentials);
-        descriptor.Permissions.Add(Permissions.GrantTypes.Password);
-        descriptor.Permissions.Add(Permissions.GrantTypes.RefreshToken);
-        descriptor.Permissions.Add(Permissions.Prefixes.Scope + "api");
-        descriptor.Permissions.Add(Permissions.Prefixes.Scope + Scopes.Email);
-        descriptor.Permissions.Add(Permissions.Prefixes.Scope + Scopes.Profile);
-        descriptor.Permissions.Add(Permissions.Prefixes.Scope + Scopes.OfflineAccess);
+        descriptor.Permissions.Add(Permissions.Prefixes.Scope + "course-library-api");
 
         await _applicationManager.CreateAsync(descriptor).ConfigureAwait(false);
     }

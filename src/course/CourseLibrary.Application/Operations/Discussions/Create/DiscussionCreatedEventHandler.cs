@@ -1,5 +1,6 @@
 using MediatorForge.Abstractions;
 using Microsoft.Extensions.Logging;
+using CourseLibrary.Application.Operations.Discussions;
 
 namespace CourseLibrary.Application.Operations.Discussions.Create;
 
@@ -15,7 +16,7 @@ public sealed class DiscussionCreatedEventHandler : IEventNotificationHandler<Di
     public Task HandleAsync(IEventNotification<DiscussionCreatedEvent> notification, CancellationToken ct)
     {
         var ev = notification.Event;
-        _logger.LogInformation("Discussion created: {DiscussionId} on course {CourseId} (title {Title})", ev.DiscussionId, ev.CourseId, ev.Title);
+        _logger.DiscussionCreatedEvent(ev.DiscussionId);
         return Task.CompletedTask;
     }
 }

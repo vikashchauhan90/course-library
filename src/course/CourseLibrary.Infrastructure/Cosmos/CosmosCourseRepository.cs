@@ -36,6 +36,6 @@ public sealed class CosmosCourseRepository : ICourseRepository
     public Task UpsertAsync(Course course, CancellationToken cancellationToken = default)
         => _repository.UpsertAsync(course, cancellationToken);
 
-    public Task DeleteAsync(string courseId, string partitionKey, CancellationToken cancellationToken = default)
+    public Task<bool> DeleteAsync(string courseId, string partitionKey, CancellationToken cancellationToken = default)
         => _repository.DeleteAsync(courseId, partitionKey, cancellationToken);
 }

@@ -8,7 +8,6 @@ namespace CourseLibrary.Idp.Infrastructure.Persistence;
 
 public class ApplicationDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, string>, IApplicationDbContext
 {
-    protected ApplicationDbContext() : base() { }
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options) { }
 
     protected override void OnModelCreating(ModelBuilder builder)
@@ -22,6 +21,6 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
 
     public Task MigrateAsync(CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        return Database.MigrateAsync(cancellationToken);
     }
 }

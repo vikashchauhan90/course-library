@@ -27,6 +27,6 @@ public sealed class CosmosCommentRepository : ICommentRepository
     public Task UpsertAsync(Comment comment, CancellationToken cancellationToken = default)
         => _repository.UpsertAsync(comment, cancellationToken);
 
-    public Task DeleteAsync(string commentId, string courseId, CancellationToken cancellationToken = default)
+    public Task<bool> DeleteAsync(string commentId, string courseId, CancellationToken cancellationToken = default)
         => _repository.DeleteAsync(commentId, courseId, cancellationToken);
 }

@@ -1,23 +1,14 @@
 using MediatorForge.Abstractions;
 using Microsoft.Extensions.Logging;
 using CourseLibrary.Application.Abstractions.Repositories;
+using CourseLibrary.Application.Abstractions.RequestContext;
 using CourseLibrary.Application.Operations.Courses;
+using CourseLibrary.Domain.Entities;
 
 namespace CourseLibrary.Application.Operations.Courses.Create;
 
-public sealed class CreateCourseCommandHandler : IHandler<CreateCourseCommand, CourseResponse>
+public sealed class CreateCourseCommandHandler(ICourseRepository repository, ICourseAuditRepository auditRepository, IRequestContext requestContext, ILogger<CreateCourseCommandHandler> logger, IEventDispatcher eventDispatcher) : IHandler<CreateCourseCommand, CourseResponse>
 {
-    private readonly ICourseRepository _repository;
-    private readonly ILogger<CreateCourseCommandHandler> _logger;
-    private readonly IEventDispatcher _eventDispatcher;
-
-    public CreateCourseCommandHandler(ICourseRepository repository, ILogger<CreateCourseCommandHandler> logger, IEventDispatcher eventDispatcher)
-    {
-        _repository = repository;
-        _logger = logger;
-        _eventDispatcher = eventDispatcher;
-    }
-
     public async Task<CourseResponse> HandleAsync(CreateCourseCommand command, CancellationToken ct)
     {
         var now = DateTime.UtcNow;
@@ -31,12 +22,13 @@ public sealed class CreateCourseCommandHandler : IHandler<CreateCourseCommand, C
             UpdatedAt = now
         };
 
-        _logger.LogInformation("Creating course {CourseId} for author {AuthorId}", course.Id, course.AuthorId);
+        logger.PersistingCourse(course.Id, course.AuthorId);
 
-        await _repository.UpsertAsync(course, ct);
+        await repository.UpsertAsync(course, ct);
+        await auditRepository.AddAsync(new CourseAuditEntry { Id = Guid.NewGuid().ToString(), CourseId = course.Id, Action = AuditAction.Created, AuthorId = course.AuthorId, Title = course.Title, Description = course.Description, OccurredAt = course.CreatedAt, ActorId = requestContext.UserId, CorrelationId = requestContext.CorrelationId }, ct);
 
         // Publish course created event for downstream consumers
-        await _eventDispatcher.PublishAsync(new CourseCreatedEvent(course.Id, course.AuthorId, course.Title, course.CreatedAt), ct);
+        await eventDispatcher.PublishAsync(new CourseCreatedEvent(course.Id, course.AuthorId, course.Title, course.CreatedAt), ct);
 
         return CourseMapper.ToResponse(course);
     }

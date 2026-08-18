@@ -1,6 +1,7 @@
 using MediatorForge.Abstractions;
 using Microsoft.Extensions.Logging;
 using CourseLibrary.Application.Abstractions.Repositories;
+using CourseLibrary.Application.Operations.Comments;
 
 namespace CourseLibrary.Application.Operations.Comments.Create;
 
@@ -31,7 +32,7 @@ public sealed class CreateCommentCommandHandler : IHandler<CreateCommentCommand,
             UpdatedAt = now
         };
 
-        _logger.LogInformation("Creating comment {CommentId} on course {CourseId}", comment.Id, comment.CourseId);
+        _logger.PersistingComment(comment.Id, comment.CourseId);
 
         await _repository.UpsertAsync(comment, ct);
 

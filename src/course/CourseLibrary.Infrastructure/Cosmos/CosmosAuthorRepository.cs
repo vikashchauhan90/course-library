@@ -28,7 +28,7 @@ public sealed class CosmosAuthorRepository : IAuthorRepository
     public Task UpsertAsync(Author author, CancellationToken cancellationToken = default)
         => _repository.UpsertAsync(author, cancellationToken);
 
-    public Task DeleteAsync(string authorId, CancellationToken cancellationToken = default)
+    public Task<bool> DeleteAsync(string authorId, CancellationToken cancellationToken = default)
         => _repository.DeleteAsync(authorId, authorId, cancellationToken);
     public Task<PageResult<Author>> QueryPageAsync(int pageSize, string? pageToken, CancellationToken cancellationToken = default)
     {

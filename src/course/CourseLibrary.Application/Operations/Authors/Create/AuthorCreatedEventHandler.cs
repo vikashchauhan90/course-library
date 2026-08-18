@@ -1,5 +1,6 @@
 using MediatorForge.Abstractions;
 using Microsoft.Extensions.Logging;
+using CourseLibrary.Application.Operations.Authors;
 
 namespace CourseLibrary.Application.Operations.Authors.Create;
 
@@ -9,7 +10,7 @@ public sealed class AuthorCreatedEventHandler(ILogger<AuthorCreatedEventHandler>
     public Task HandleAsync(IEventNotification<AuthorCreatedEvent> notification, CancellationToken ct)
     {
         var ev = notification.Event;
-        logger.AuthorCreated(ev.AuthorId, ev.Name);
+        logger.AuthorCreatedEvent(ev.AuthorId);
         return Task.CompletedTask;
     }
 }

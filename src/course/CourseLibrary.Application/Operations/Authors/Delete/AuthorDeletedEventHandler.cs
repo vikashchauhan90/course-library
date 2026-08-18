@@ -1,5 +1,6 @@
 using MediatorForge.Abstractions;
 using Microsoft.Extensions.Logging;
+using CourseLibrary.Application.Operations.Authors;
 
 namespace CourseLibrary.Application.Operations.Authors.Delete;
 
@@ -15,7 +16,7 @@ public sealed class AuthorDeletedEventHandler : IEventNotificationHandler<Author
     public Task HandleAsync(IEventNotification<AuthorDeletedEvent> notification, CancellationToken ct)
     {
         var ev = notification.Event;
-        _logger.LogInformation("Author deleted: {AuthorId}", ev.AuthorId);
+        _logger.AuthorDeletedEvent(ev.AuthorId);
         return Task.CompletedTask;
     }
 }

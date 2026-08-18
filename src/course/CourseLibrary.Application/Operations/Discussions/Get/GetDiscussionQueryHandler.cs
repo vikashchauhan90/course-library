@@ -16,6 +16,6 @@ public sealed class GetDiscussionQueryHandler : IHandler<GetDiscussionQuery, Dis
     public async Task<DiscussionResponse?> HandleAsync(GetDiscussionQuery query, CancellationToken ct)
     {
         var discussion = await _repository.GetByIdAsync(query.DiscussionId, query.CourseId, ct);
-        return DiscussionMapper.ToResponse(discussion);
+        return discussion is null ? null : DiscussionMapper.ToResponse(discussion);
     }
 }

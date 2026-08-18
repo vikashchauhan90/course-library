@@ -1,5 +1,6 @@
 using MediatorForge.Abstractions;
 using Microsoft.Extensions.Logging;
+using CourseLibrary.Application.Operations.Courses;
 
 namespace CourseLibrary.Application.Operations.Courses.Create;
 
@@ -15,8 +16,7 @@ public sealed class CourseCreatedEventHandler : IEventNotificationHandler<Course
     public Task HandleAsync(IEventNotification<CourseCreatedEvent> notification, CancellationToken ct)
     {
         var ev = notification.Event;
-        // Example: log and perform lightweight async post-processing (e.g., cache warm-up)
-        _logger.LogInformation("Course created: {CourseId} by {AuthorId} (title: {Title})", ev.CourseId, ev.AuthorId, ev.Title);
+        _logger.CourseCreatedEvent(ev.CourseId);
         return Task.CompletedTask;
     }
 }
