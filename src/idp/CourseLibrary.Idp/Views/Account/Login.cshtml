@@ -8,3 +8,15 @@
     <label><input asp-for="RememberMe" /> Remember me</label>
     <button type="submit">Sign in</button>
 </form>
+@inject Microsoft.AspNetCore.Authentication.IAuthenticationSchemeProvider SchemeProvider
+@{
+    var externalProviders = (await SchemeProvider.GetAllSchemesAsync()).Where(x => x.DisplayName is not null).ToList();
+}
+@if (externalProviders.Count > 0)
+{
+    <h2>Or sign in with</h2>
+    @foreach (var provider in externalProviders)
+    {
+        <form asp-action="ExternalLogin" method="post"><input name="provider" type="hidden" value="@provider.Name" /><input name="returnUrl" type="hidden" value="@Model.ReturnUrl" /><button type="submit">@provider.DisplayName</button></form>
+    }
+}

@@ -1,12 +1,14 @@
 using CourseLibrary.Idp.Domain.Entities;
 using CourseLibrary.Idp.Models.Admin;
 using CourseLibrary.Idp.Models;
+using CourseLibrary.Idp.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OpenIddict.Abstractions;
 using System.Security.Cryptography;
+using Microsoft.AspNetCore.WebUtilities;
 using static OpenIddict.Abstractions.OpenIddictConstants;
 
 namespace CourseLibrary.Idp.Controllers;
@@ -17,6 +19,7 @@ public sealed class AdminController(
     UserManager<ApplicationUser> userManager,
     IOpenIddictApplicationManager applicationManager,
     IOpenIddictScopeManager scopeManager,
+    ApplicationDbContext dbContext,
     ILogger<AdminController> logger) : Controller
 {
     [HttpGet("")]
@@ -66,12 +69,25 @@ public sealed class AdminController(
             result = await userManager.AddToRoleAsync(user, "Administrator");
             if (!result.Succeeded) { AddErrors(result); return View(model); }
         }
-        var token = await userManager.GeneratePasswordResetTokenAsync(user);
+        var token = WebEncoders.Base64UrlEncode(RandomNumberGenerator.GetBytes(32));
+        var activeInvitations = await dbContext.UserInvitations
+            .Where(x => x.UserId == user.Id && x.AcceptedAt == null && x.RevokedAt == null)
+            .ToListAsync();
+        foreach (var invitation in activeInvitations) invitation.RevokedAt = DateTimeOffset.UtcNow;
+        dbContext.UserInvitations.Add(new()
+        {
+            Id = Guid.NewGuid(),
+            UserId = user.Id,
+            TokenHash = HashToken(token),
+            CreatedAt = DateTimeOffset.UtcNow,
+            ExpiresAt = DateTimeOffset.UtcNow.AddHours(Math.Clamp(HttpContext.RequestServices.GetRequiredService<IConfiguration>().GetValue("Security:InvitationLifetimeHours", 72), 1, 720))
+        });
+        await dbContext.SaveChangesAsync();
         var link = Url.Action("AcceptInvitation", "Invitation", new { email = user.Email, token }, Request.Scheme)
             ?? throw new InvalidOperationException("Could not create invitation link.");
         logger.LogInformation("Administrator {AdministratorId} invited user {UserId}.", userManager.GetUserId(User), user.Id);
         TempData["InvitationLink"] = link;
-        TempData["Success"] = "Invitation created. Deliver the link through an approved channel; it expires according to the configured data-protection token lifetime.";
+        TempData["Success"] = "Invitation created. It is an opaque, single-use token and expires at the configured time.";
         return RedirectToAction(nameof(Index));
     }
 
@@ -179,4 +195,5 @@ public sealed class AdminController(
 
     private void AddErrors(IdentityResult result) { foreach (var error in result.Errors) ModelState.AddModelError(string.Empty, error.Description); }
     private static string CreateSecret() => Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
+    private static string HashToken(string token) => Convert.ToHexString(SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(token)));
 }

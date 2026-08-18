@@ -404,3 +404,4 @@ namespace CourseLibrary.Idp.Infrastructure.Persistence.Migrations
         }
     }
 }
+

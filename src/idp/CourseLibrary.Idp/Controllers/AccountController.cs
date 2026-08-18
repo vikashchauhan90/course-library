@@ -3,10 +3,12 @@ using CourseLibrary.Idp.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authentication;
+using System.Security.Claims;
 
 namespace CourseLibrary.Idp.Controllers;
 
-public sealed class AccountController(SignInManager<ApplicationUser> signInManager, UserManager<ApplicationUser> userManager) : Controller
+public sealed class AccountController(SignInManager<ApplicationUser> signInManager, UserManager<ApplicationUser> userManager, IAuthenticationSchemeProvider schemes) : Controller
 {
     [HttpGet("account/login")]
     [AllowAnonymous]
@@ -26,6 +28,38 @@ public sealed class AccountController(SignInManager<ApplicationUser> signInManag
             ? "This account is temporarily locked."
             : "The username or password is invalid.");
         return View(model);
+    }
+
+    [HttpPost("account/external-login")]
+    [AllowAnonymous]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ExternalLogin(string provider, string? returnUrl = null)
+    {
+        var scheme = await schemes.GetSchemeAsync(provider);
+        if (scheme is null || !await IsExternalSchemeAsync(provider)) return NotFound();
+        return Challenge(signInManager.ConfigureExternalAuthenticationProperties(provider, Url.Action(nameof(ExternalLoginCallback), new { returnUrl })!));
+    }
+
+    [HttpGet("account/external-login-callback")]
+    [AllowAnonymous]
+    public async Task<IActionResult> ExternalLoginCallback(string? returnUrl = null, string? remoteError = null)
+    {
+        if (!string.IsNullOrWhiteSpace(remoteError)) { TempData["Error"] = "External sign-in was cancelled or failed."; return RedirectToAction(nameof(Login), new { returnUrl }); }
+        var info = await signInManager.GetExternalLoginInfoAsync();
+        if (info is null) { TempData["Error"] = "Could not read the external sign-in result."; return RedirectToAction(nameof(Login), new { returnUrl }); }
+        var result = await signInManager.ExternalLoginSignInAsync(info.LoginProvider, info.ProviderKey, isPersistent: false, bypassTwoFactor: false);
+        if (result.Succeeded) return LocalRedirectOrHome(returnUrl);
+        if (result.RequiresTwoFactor) return RedirectToAction(nameof(LoginWithAuthenticator), new { returnUrl });
+        var email = info.Principal.FindFirstValue(ClaimTypes.Email) ?? info.Principal.FindFirstValue("email");
+        if (string.IsNullOrWhiteSpace(email)) { TempData["Error"] = "This provider did not provide a verified email address."; return RedirectToAction(nameof(Login), new { returnUrl }); }
+        if (await userManager.FindByEmailAsync(email) is not null) { TempData["Error"] = "An account with this email already exists. Sign in with its existing method first."; return RedirectToAction(nameof(Login), new { returnUrl }); }
+        var user = new ApplicationUser { UserName = email, Email = email, EmailConfirmed = true, FullName = info.Principal.FindFirstValue(ClaimTypes.Name) ?? email, CreatedAt = DateTimeOffset.UtcNow, LockoutEnabled = true };
+        var created = await userManager.CreateAsync(user);
+        if (!created.Succeeded) { TempData["Error"] = "Could not create your account."; return RedirectToAction(nameof(Login), new { returnUrl }); }
+        var linked = await userManager.AddLoginAsync(user, info);
+        if (!linked.Succeeded) { await userManager.DeleteAsync(user); TempData["Error"] = "Could not link the external account."; return RedirectToAction(nameof(Login), new { returnUrl }); }
+        await signInManager.SignInAsync(user, isPersistent: false);
+        return LocalRedirectOrHome(returnUrl);
     }
 
     [HttpPost("account/logout")]
@@ -114,4 +148,7 @@ public sealed class AccountController(SignInManager<ApplicationUser> signInManag
 
     private static string FormatKey(string key) => string.Join(' ', Enumerable.Range(0, (key.Length + 3) / 4).Select(i => key.Substring(i * 4, Math.Min(4, key.Length - (i * 4))))).ToLowerInvariant();
     private static string CreateUri(string account, string key) => $"otpauth://totp/CourseLibrary:{Uri.EscapeDataString(account)}?secret={key}&issuer=CourseLibrary&digits=6";
+
+    private async Task<bool> IsExternalSchemeAsync(string provider) =>
+        (await schemes.GetAllSchemesAsync()).Any(x => x.Name == provider && x.DisplayName is not null);
 }
