@@ -1,0 +1,2 @@
+@model CreateUserViewModel
+<h1>Create user</h1><form method="post"><div asp-validation-summary="ModelOnly"></div><label asp-for="UserName"></label><input asp-for="UserName" /><label asp-for="Email"></label><input asp-for="Email" /><label asp-for="FullName"></label><input asp-for="FullName" /><label asp-for="Password"></label><input asp-for="Password" /><label><input asp-for="IsAdministrator" /> Administrator</label><button type="submit">Create</button></form>
