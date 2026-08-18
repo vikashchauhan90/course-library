@@ -3,8 +3,9 @@
 @if (TempData["Success"] is string success) { <p role="status">@success</p> }
 @if (TempData["Error"] is string error) { <p role="alert">@error</p> }
 @if (TempData["ClientSecret"] is string secret) { <section><h2>Copy the client secret now</h2><code>@secret</code><p>It will not be shown again.</p></section> }
+@if (TempData["InvitationLink"] is string invitationLink) { <section><h2>Copy the invitation link now</h2><code>@invitationLink</code><p>It will not be shown again.</p></section> }
 
-<h2>Users</h2><a asp-action="CreateUser">Create user</a>
+<h2>Users</h2><a asp-action="CreateUser">Create user</a> <a asp-action="InviteUser">Invite user</a>
 <table><thead><tr><th>Username</th><th>Email</th><th>Administrator</th><th>Status</th><th></th></tr></thead><tbody>
 @foreach (var user in Model.Users) { <tr><td>@user.UserName</td><td>@user.Email</td><td>@user.IsAdministrator</td><td>@(user.IsLockedOut ? "Locked" : "Active")</td><td><form asp-action="ToggleUserLock" asp-route-id="@user.Id" method="post"><button type="submit">@(user.IsLockedOut ? "Unlock" : "Lock")</button></form></td></tr> }
 </tbody></table>

@@ -1,5 +1,6 @@
 using CourseLibrary.Idp.Domain.Entities;
 using CourseLibrary.Idp.Models.Admin;
+using CourseLibrary.Idp.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -45,6 +46,34 @@ public sealed class AdminController(
 
     [HttpGet("users/create")]
     public IActionResult CreateUser() => View(new CreateUserViewModel());
+
+    [HttpGet("users/invite")]
+    public IActionResult InviteUser() => View(new InviteUserViewModel());
+
+    [HttpPost("users/invite")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> InviteUser(InviteUserViewModel model)
+    {
+        if (!ModelState.IsValid) return View(model);
+        if (await userManager.FindByEmailAsync(model.Email) is not null)
+        { ModelState.AddModelError(nameof(model.Email), "A user with this email already exists."); return View(model); }
+
+        var user = new ApplicationUser { UserName = model.Email, Email = model.Email, FullName = model.FullName, CreatedAt = DateTimeOffset.UtcNow, LockoutEnabled = true };
+        var result = await userManager.CreateAsync(user);
+        if (!result.Succeeded) { AddErrors(result); return View(model); }
+        if (model.IsAdministrator)
+        {
+            result = await userManager.AddToRoleAsync(user, "Administrator");
+            if (!result.Succeeded) { AddErrors(result); return View(model); }
+        }
+        var token = await userManager.GeneratePasswordResetTokenAsync(user);
+        var link = Url.Action("AcceptInvitation", "Invitation", new { email = user.Email, token }, Request.Scheme)
+            ?? throw new InvalidOperationException("Could not create invitation link.");
+        logger.LogInformation("Administrator {AdministratorId} invited user {UserId}.", userManager.GetUserId(User), user.Id);
+        TempData["InvitationLink"] = link;
+        TempData["Success"] = "Invitation created. Deliver the link through an approved channel; it expires according to the configured data-protection token lifetime.";
+        return RedirectToAction(nameof(Index));
+    }
 
     [HttpPost("users/create")]
     [ValidateAntiForgeryToken]

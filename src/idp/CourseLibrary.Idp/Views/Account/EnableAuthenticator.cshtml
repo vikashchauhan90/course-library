@@ -1,0 +1,5 @@
+@model EnableAuthenticatorViewModel
+<h1>Authenticator app</h1>
+@if (TempData["RecoveryCodes"] is string recoveryCodes) { <section><h2>Recovery codes</h2><code>@recoveryCodes</code><p>Store these offline. They are shown only once.</p></section> }
+<p>Add this account to an RFC 6238-compatible authenticator app by scanning/entering the following setup URI or key.</p><p>Key: <code>@Model.SharedKey</code></p><p>URI: <code>@Model.AuthenticatorUri</code></p>
+<form method="post"><div asp-validation-summary="ModelOnly"></div><input asp-for="SharedKey" type="hidden" /><input asp-for="AuthenticatorUri" type="hidden" /><label asp-for="Code">Authenticator code</label><input asp-for="Code" autocomplete="one-time-code" /><button type="submit">Enable authenticator</button></form>

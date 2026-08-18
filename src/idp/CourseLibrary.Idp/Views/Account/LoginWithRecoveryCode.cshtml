@@ -1,0 +1,2 @@
+@model RecoveryCodeViewModel
+<h1>Recovery code</h1><form method="post"><input name="returnUrl" value="@ViewData["ReturnUrl"]" type="hidden" /><div asp-validation-summary="ModelOnly"></div><label asp-for="Code"></label><input asp-for="Code" autocomplete="one-time-code" /><button type="submit">Sign in</button></form>

@@ -1,0 +1,2 @@
+@model InviteUserViewModel
+<h1>Invite user</h1><p>The invitation link is displayed once after you create it. Send it only through an approved secure channel.</p><form method="post"><div asp-validation-summary="ModelOnly"></div><label asp-for="Email"></label><input asp-for="Email" /><label asp-for="FullName"></label><input asp-for="FullName" /><label><input asp-for="IsAdministrator" /> Administrator</label><button type="submit">Create invitation</button></form>

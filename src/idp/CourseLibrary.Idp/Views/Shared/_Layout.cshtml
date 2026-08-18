@@ -4,6 +4,7 @@
 <header><a asp-controller="Home" asp-action="Index">Course Library Identity</a>
 @if (User.Identity?.IsAuthenticated == true) { <span>Signed in as @User.Identity.Name</span> <form asp-controller="Account" asp-action="Logout" method="post"><button type="submit">Sign out</button></form> }
 @if (User.IsInRole("Administrator")) { <a asp-controller="Admin" asp-action="Index">Administration</a> }
+@if (User.Identity?.IsAuthenticated == true) { <a asp-controller="Account" asp-action="EnableAuthenticator">Authenticator app</a> }
 </header>
 <main>@RenderBody()</main>
 </body></html>
