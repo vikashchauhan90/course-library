@@ -1,250 +1,137 @@
+using CourseLibrary.Idp.Application.Services;
+using CourseLibrary.Idp.Domain.Abstractions;
 using CourseLibrary.Idp.Domain.Entities;
 using CourseLibrary.Idp.Infrastructure.Persistence;
+using CourseLibrary.Idp.Infrastructure.Services;
+using CourseLibrary.Idp;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using OpenIddict.Abstractions;
-using System.Globalization;
-using System.Security.Cryptography;
-
-using static OpenIddict.Abstractions.OpenIddictConstants;
+using System.Security.Cryptography.X509Certificates;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllersWithViews();
 builder.Services.AddRazorPages();
+builder.Services.Configure<OpenIdOptions>(builder.Configuration.GetSection(OpenIdOptions.SectionName));
+
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+if (string.IsNullOrWhiteSpace(connectionString))
+    throw new InvalidOperationException("ConnectionStrings:DefaultConnection must be configured.");
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
 {
-    // Configure the context to use sqlite.
-   // options.UseSqlite($"Filename={Path.Combine(Path.GetTempPath(), "openiddict-dantooine-server.sqlite3")}");
-
-    // Register the entity sets needed by OpenIddict.
-    // Note: use the generic overload if you need
-    // to replace the default OpenIddict entities.
+    options.UseNpgsql(connectionString, npgsql =>
+        npgsql.MigrationsAssembly(typeof(ApplicationDbContext).Assembly.FullName));
     options.UseOpenIddict();
 });
+builder.Services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<ApplicationDbContext>());
+builder.Services.AddScoped<IIdentityProvisioningService, IdentityProvisioningService>();
 
-// Register the Identity services.
-builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
+builder.Services.AddIdentity<ApplicationUser, ApplicationRole>(options =>
+    {
+        options.User.RequireUniqueEmail = true;
+        options.Password.RequiredLength = 12;
+        options.Password.RequireDigit = true;
+        options.Password.RequireLowercase = true;
+        options.Password.RequireUppercase = true;
+        options.Password.RequireNonAlphanumeric = true;
+        options.SignIn.RequireConfirmedAccount = true;
+    })
     .AddEntityFrameworkStores<ApplicationDbContext>()
-    .AddDefaultTokenProviders()
-    .AddDefaultUI();
+    .AddDefaultTokenProviders();
+
+builder.Services.ConfigureApplicationCookie(options =>
+{
+    options.LoginPath = "/account/login";
+    options.LogoutPath = "/account/logout";
+    options.Cookie.Name = "__Host-CourseLibrary.Idp";
+    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+    options.Cookie.HttpOnly = true;
+    options.Cookie.SameSite = SameSiteMode.Lax;
+    options.SlidingExpiration = true;
+});
+
+var openId = builder.Configuration.GetSection(OpenIdOptions.SectionName).Get<OpenIdOptions>()
+    ?? throw new InvalidOperationException("OpenId configuration is missing.");
+if (!Uri.TryCreate(openId.Issuer, UriKind.Absolute, out var issuer) || issuer.Scheme != Uri.UriSchemeHttps)
+    throw new InvalidOperationException("OpenId:Issuer must be an absolute HTTPS URI.");
 
 builder.Services.AddOpenIddict()
-
-    // Register the OpenIddict core components.
-    .AddCore(options =>
-    {
-        // Configure OpenIddict to use the Entity Framework Core stores and models.
-        // Note: call ReplaceDefaultEntities() to replace the default OpenIddict entities.
-        options.UseEntityFrameworkCore()
-               .UseDbContext<ApplicationDbContext>();
-    })
-
-    // Register the OpenIddict server components.
+    .AddCore(options => options.UseEntityFrameworkCore().UseDbContext<ApplicationDbContext>())
     .AddServer(options =>
     {
-        // Enable the authorization, logout, token and userinfo endpoints.
+        options.SetIssuer(issuer);
         options.SetAuthorizationEndpointUris("connect/authorize")
-               .SetEndSessionEndpointUris("connect/logout")
-               .SetIntrospectionEndpointUris("connect/introspect")
-               .SetTokenEndpointUris("connect/token")
-               .SetUserInfoEndpointUris("connect/userinfo")
-               .SetEndUserVerificationEndpointUris("connect/verify");
-
-        // Mark the "email", "profile" and "roles" scopes as supported scopes.
-        options.RegisterScopes(Scopes.Email, Scopes.Profile, Scopes.Roles);
-
-        // Note: this sample only uses the authorization code and refresh token
-        // flows but you can enable the other flows if you need to support
-        // implicit, password or client credentials.
-        options.AllowAuthorizationCodeFlow()
-               .AllowRefreshTokenFlow();
-
-        // Register the signing and encryption credentials.
-        options.AddDevelopmentEncryptionCertificate()
-               .AddDevelopmentSigningCertificate();
-
-        // Register the ASP.NET Core host and configure the ASP.NET Core-specific options.
+            .SetEndSessionEndpointUris("connect/logout")
+            .SetTokenEndpointUris("connect/token")
+            .SetUserInfoEndpointUris("connect/userinfo");
+        options.RegisterScopes(OpenIddictConstants.Scopes.OpenId, OpenIddictConstants.Scopes.Email,
+            OpenIddictConstants.Scopes.Profile, OpenIddictConstants.Scopes.Roles, openId.ApiScope);
+        options.AllowAuthorizationCodeFlow().AllowRefreshTokenFlow().AllowClientCredentialsFlow();
+        options.RequireProofKeyForCodeExchange();
+        options.DisableAccessTokenEncryption();
+        options.SetAccessTokenLifetime(TimeSpan.FromMinutes(openId.AccessTokenLifetimeMinutes));
+        options.SetRefreshTokenLifetime(TimeSpan.FromDays(openId.RefreshTokenLifetimeDays));
+        if (!string.IsNullOrWhiteSpace(openId.SigningCertificatePath) &&
+            !string.IsNullOrWhiteSpace(openId.EncryptionCertificatePath))
+        {
+            var signingCertificate = X509CertificateLoader.LoadPkcs12FromFile(openId.SigningCertificatePath,
+                openId.SigningCertificatePassword,
+                X509KeyStorageFlags.MachineKeySet | X509KeyStorageFlags.EphemeralKeySet);
+            var encryptionCertificate = X509CertificateLoader.LoadPkcs12FromFile(openId.EncryptionCertificatePath,
+                openId.EncryptionCertificatePassword,
+                X509KeyStorageFlags.MachineKeySet | X509KeyStorageFlags.EphemeralKeySet);
+            if (!signingCertificate.HasPrivateKey || !encryptionCertificate.HasPrivateKey)
+                throw new InvalidOperationException("OpenId signing and encryption certificates must contain private keys.");
+            options.AddSigningCertificate(signingCertificate);
+            options.AddEncryptionCertificate(encryptionCertificate);
+        }
+        else if (builder.Environment.IsDevelopment())
+        {
+            options.AddDevelopmentSigningCertificate();
+            options.AddDevelopmentEncryptionCertificate();
+        }
+        else
+        {
+            throw new InvalidOperationException("OpenId signing and encryption certificates must be configured outside Development.");
+        }
         options.UseAspNetCore()
-               .EnableAuthorizationEndpointPassthrough()
-               .EnableEndSessionEndpointPassthrough()
-               .EnableTokenEndpointPassthrough()
-               .EnableUserInfoEndpointPassthrough()
-               .EnableStatusCodePagesIntegration();
+            .EnableAuthorizationEndpointPassthrough()
+            .EnableEndSessionEndpointPassthrough()
+            .EnableTokenEndpointPassthrough()
+            .EnableUserInfoEndpointPassthrough()
+            .EnableStatusCodePagesIntegration();
     })
-
-    // Register the OpenIddict validation components.
     .AddValidation(options =>
     {
-        // Import the configuration from the local OpenIddict server instance.
         options.UseLocalServer();
-
-        // Register the ASP.NET Core host.
         options.UseAspNetCore();
     });
 
 var app = builder.Build();
 
-if (builder.Environment.IsDevelopment())
+if (!app.Environment.IsDevelopment())
 {
-    app.UseDeveloperExceptionPage();
-    //app.UseMigrationsEndPoint();
+    app.UseExceptionHandler("/home/error");
+    app.UseHsts();
 }
-else
-{
-    app.UseStatusCodePagesWithReExecute("~/error");
-    //app.UseExceptionHandler("~/error");
 
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
-    //app.UseHsts();
-}
 app.UseHttpsRedirection();
 app.UseStaticFiles();
-
 app.UseRouting();
-
 app.UseAuthentication();
 app.UseAuthorization();
-
 app.MapControllers();
-app.MapDefaultControllerRoute();
+app.MapControllerRoute("default", "{controller=Home}/{action=Index}/{id?}");
 app.MapRazorPages();
 
-// Before starting the host, create the database used to store the application data.
-//
-// Note: in a real world application, this step should be part of a setup script.
-await using (var scope = app.Services.CreateAsyncScope())
+if (builder.Configuration.GetValue<bool>("Database:ApplyMigrationsOnStartup"))
 {
-    var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-    await context.Database.EnsureCreatedAsync();
-
-    await RegisterApplicationsAsync(scope.ServiceProvider);
-    await RegisterScopesAsync(scope.ServiceProvider);
-
-    static async Task RegisterApplicationsAsync(IServiceProvider provider)
-    {
-        var manager = provider.GetRequiredService<IOpenIddictApplicationManager>();
-
-        // API
-        if (await manager.FindByClientIdAsync("resource_server_1") == null)
-        {
-            var descriptor = new OpenIddictApplicationDescriptor
-            {
-                ClientId = "resource_server_1",
-                JsonWebKeySet = new JsonWebKeySet
-                {
-                    Keys =
-                    {
-                        // Note: instead of sending a client secret, this application authenticates by
-                        // generating client assertions that are signed using an ECDSA signing key.
-                        //
-                        // Note: while the client needs access to the private key, the server only needs
-                        // to know the public key to be able to validate the client assertions it receives.
-                        JsonWebKeyConverter.ConvertFromECDsaSecurityKey(GetECDsaSigningKey($"""
-                            -----BEGIN PUBLIC KEY-----
-                            MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAElrZTesJa18s6LuknPtM/Kg5veUCE
-                            p6YBF03eLBkapNe+P6u5zFafjm3mL5yFV7dGaxlDEe0TtXdjSUkQATtq1g==
-                            -----END PUBLIC KEY-----
-                            """))
-                    }
-                },
-                Permissions =
-                {
-                    Permissions.Endpoints.Introspection
-                }
-            };
-
-            await manager.CreateAsync(descriptor);
-        }
-
-        // Blazor Hosted
-        if (await manager.FindByClientIdAsync("blazorcodeflowpkceclient") is null)
-        {
-            var descriptor = new OpenIddictApplicationDescriptor
-            {
-                ClientId = "blazorcodeflowpkceclient",
-                ConsentType = ConsentTypes.Explicit,
-                DisplayName = "Blazor code PKCE",
-                JsonWebKeySet = new JsonWebKeySet
-                {
-                    Keys =
-                    {
-                        // Note: instead of sending a client secret, this application authenticates by
-                        // generating client assertions that are signed using an ECDSA signing key.
-                        //
-                        // Note: while the client needs access to the private key, the server only needs
-                        // to know the public key to be able to validate the client assertions it receives.
-                        JsonWebKeyConverter.ConvertFromECDsaSecurityKey(GetECDsaSigningKey($"""
-                            -----BEGIN PUBLIC KEY-----
-                            MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEuXiljSpKKFtkfE+PniYWGCtPczBH
-                            bnLkag0aLFN5IJss/lKz0TIKdX09suFW+/fqdT/RF5/2PI72xZ4Q5Ty+uw==
-                            -----END PUBLIC KEY-----
-                            """))
-                    }
-                },
-                PostLogoutRedirectUris =
-                {
-                    new Uri("https://localhost:44348/callback/logout/local")
-                },
-                RedirectUris =
-                {
-                    new Uri("https://localhost:44348/callback/login/local")
-                },
-                Permissions =
-                {
-                    Permissions.Endpoints.Authorization,
-                    Permissions.Endpoints.EndSession,
-                    Permissions.Endpoints.Token,
-                    Permissions.GrantTypes.AuthorizationCode,
-                    Permissions.GrantTypes.RefreshToken,
-                    Permissions.ResponseTypes.Code,
-                    Permissions.Scopes.Email,
-                    Permissions.Scopes.Profile,
-                    Permissions.Scopes.Roles
-                },
-                Requirements =
-                {
-                    Requirements.Features.ProofKeyForCodeExchange
-                }
-            };
-
-            descriptor.AddScopePermissions("api1");
-
-            await manager.CreateAsync(descriptor);
-        }
-    }
-
-    static async Task RegisterScopesAsync(IServiceProvider provider)
-    {
-        var manager = provider.GetRequiredService<IOpenIddictScopeManager>();
-
-        if (await manager.FindByNameAsync("api1") is null)
-        {
-            await manager.CreateAsync(new OpenIddictScopeDescriptor
-            {
-                DisplayName = "Dantooine API access",
-                DisplayNames =
-                {
-                    [CultureInfo.GetCultureInfo("fr-FR")] = "Accès à l'API de démo"
-                },
-                Name = "api1",
-                Resources =
-                {
-                    "resource_server_1"
-                }
-            });
-        }
-    }
+    await using var scope = app.Services.CreateAsyncScope();
+    await scope.ServiceProvider.GetRequiredService<IIdentityProvisioningService>().EnsureSeedDataAsync();
 }
 
-await app.RunAsync();
-
-static ECDsaSecurityKey GetECDsaSigningKey(ReadOnlySpan<char> key)
-{
-    var algorithm = ECDsa.Create();
-    algorithm.ImportFromPem(key);
-
-    return new ECDsaSecurityKey(algorithm);
-}
+app.Run();

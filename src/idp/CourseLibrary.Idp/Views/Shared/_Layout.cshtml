@@ -1,0 +1,8 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>Course Library Identity</title></head>
+<body>
+<header><a asp-controller="Home" asp-action="Index">Course Library Identity</a>
+@if (User.Identity?.IsAuthenticated == true) { <span>Signed in as @User.Identity.Name</span> <form asp-controller="Account" asp-action="Logout" method="post"><button type="submit">Sign out</button></form> }
+</header>
+<main>@RenderBody()</main>
+</body></html>

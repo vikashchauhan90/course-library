@@ -33,15 +33,17 @@ internal static class GatewayAuthenticationExtensions
                 if (!string.IsNullOrWhiteSpace(jwt.MetadataAddress)) { options.MetadataAddress = jwt.MetadataAddress; }
                 options.Audience = jwt.Audience;
 
-                options.RequireHttpsMetadata = true;
+                options.RequireHttpsMetadata = jwt.RequireHttpsMetadata;
                 options.RefreshOnIssuerKeyNotFound = true;
                 options.TokenValidationParameters =
                     new TokenValidationParameters
                     {
-                        ValidateIssuer = true,
-                        ValidateAudience = true,
-                        ValidateLifetime = true,
-                        ValidateIssuerSigningKey = true,
+                        ValidIssuer = jwt.Authority,
+                        ValidAudience = jwt.Audience,
+                        ValidateIssuer = jwt.ValidateIssuer,
+                        ValidateAudience = jwt.ValidateAudience,
+                        ValidateLifetime = jwt.ValidateLifetime,
+                        ValidateIssuerSigningKey = jwt.ValidateIssuerSigningKey,
                         ClockSkew =TimeSpan.Zero
                     };
 

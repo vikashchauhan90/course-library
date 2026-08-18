@@ -16,6 +16,7 @@ public sealed class IdentityProvisioningService : IIdentityProvisioningService
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly RoleManager<ApplicationRole> _roleManager;
     private readonly IOpenIddictApplicationManager _applicationManager;
+    private readonly IOpenIddictScopeManager _scopeManager;
     private readonly IConfiguration _configuration;
     private readonly ILogger<IdentityProvisioningService> _logger;
 
@@ -24,6 +25,7 @@ public sealed class IdentityProvisioningService : IIdentityProvisioningService
         UserManager<ApplicationUser> userManager,
         RoleManager<ApplicationRole> roleManager,
         IOpenIddictApplicationManager applicationManager,
+        IOpenIddictScopeManager scopeManager,
         IConfiguration configuration,
         ILogger<IdentityProvisioningService> logger)
     {
@@ -31,6 +33,7 @@ public sealed class IdentityProvisioningService : IIdentityProvisioningService
         _userManager = userManager;
         _roleManager = roleManager;
         _applicationManager = applicationManager;
+        _scopeManager = scopeManager;
         _configuration = configuration;
         _logger = logger;
     }
@@ -40,7 +43,10 @@ public sealed class IdentityProvisioningService : IIdentityProvisioningService
         _logger.LogInformation("Ensuring IdP schema and seed data...");
 
         await _dbContext.MigrateAsync(cancellationToken).ConfigureAwait(false);
-
+        await EnsureRolesAsync(cancellationToken).ConfigureAwait(false);
+        if (_configuration.GetValue<bool>("Database:SeedDevelopmentUser"))
+            await EnsureUsersAsync(cancellationToken).ConfigureAwait(false);
+        await EnsureScopesAsync(cancellationToken).ConfigureAwait(false);
         await EnsureApplicationsAsync(cancellationToken).ConfigureAwait(false);
     }
 
@@ -71,7 +77,7 @@ public sealed class IdentityProvisioningService : IIdentityProvisioningService
     {
         const string userName = "alice";
         const string userEmail = "alice@courselibrary.local";
-        const string password = "Pass123$";
+        const string password = "DevelopmentOnly1$";
 
         if (await _userManager.FindByNameAsync(userName).ConfigureAwait(false) is not null)
         {
@@ -101,6 +107,21 @@ public sealed class IdentityProvisioningService : IIdentityProvisioningService
             new Claim(Claims.Email, user.Email ?? string.Empty),
             new Claim("role", "Administrator")
         }).ConfigureAwait(false);
+        await _userManager.AddToRoleAsync(user, "Administrator").ConfigureAwait(false);
+    }
+
+    private async Task EnsureScopesAsync(CancellationToken cancellationToken)
+    {
+        var scope = _configuration["OpenId:ApiScope"] ?? "course-library-api";
+        if (await _scopeManager.FindByNameAsync(scope, cancellationToken).ConfigureAwait(false) is not null)
+            return;
+
+        await _scopeManager.CreateAsync(new OpenIddictScopeDescriptor
+        {
+            Name = scope,
+            DisplayName = "Course Library API",
+            Resources = { scope }
+        }, cancellationToken).ConfigureAwait(false);
     }
 
     private async Task EnsureApplicationsAsync(CancellationToken cancellationToken)
@@ -129,7 +150,7 @@ public sealed class IdentityProvisioningService : IIdentityProvisioningService
 
         descriptor.Permissions.Add(Permissions.Endpoints.Token);
         descriptor.Permissions.Add(Permissions.GrantTypes.ClientCredentials);
-        descriptor.Permissions.Add(Permissions.Prefixes.Scope + "course-library-api");
+        descriptor.Permissions.Add(Permissions.Prefixes.Scope + (_configuration["OpenId:ApiScope"] ?? "course-library-api"));
 
         await _applicationManager.CreateAsync(descriptor).ConfigureAwait(false);
     }

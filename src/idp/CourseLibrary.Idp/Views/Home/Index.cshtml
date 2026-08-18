@@ -1,0 +1,3 @@
+<h1>Course Library Identity</h1>
+<p>This service securely authenticates Course Library users and issues OpenID Connect tokens.</p>
+@if (User.Identity?.IsAuthenticated != true) { <a asp-controller="Account" asp-action="Login">Sign in</a> }
