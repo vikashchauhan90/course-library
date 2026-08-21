@@ -66,24 +66,36 @@ internal static class CourseLibraryHostExtensions
     }
 
     public static WebApplication UseCourseLibraryPipeline(
-        this WebApplication app)
+    this WebApplication app)
     {
-        app.UseRequestMetrics();
-        app.UseSecurityHeaders();
         app.UseGlobalExceptionHandler();
+
         app.UseHttpsRedirection();
+
         app.UseRequestContext();
-        app.UseHttpLogging();
+
         app.UseUserContext();
+
+        app.UseRequestMetrics();
+
+        app.UseHttpLogging();
+
+        app.UseSecurityHeaders();
+
+        app.UseResponseHeaders();
+
         if (app.Environment.IsDevelopment())
         {
             app.MapOpenApi();
         }
-        
 
         app.MapCarter();
-        app.MapHealthChecks("/health/live").AllowAnonymous();
-        app.MapHealthChecks("/health/ready").AllowAnonymous();
+
+        app.MapHealthChecks("/health/live")
+            .AllowAnonymous();
+
+        app.MapHealthChecks("/health/ready")
+            .AllowAnonymous();
 
         return app;
     }

@@ -1,5 +1,5 @@
-using CourseLibrary.Infrastructure.Idempotency;
 using CourseLibrary.Application.Abstractions.Idempotency;
+using CourseLibrary.Infrastructure.Configuration.Idempotency;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using System.Net.Mime;
@@ -11,12 +11,12 @@ namespace CourseLibrary.Api.Configuration.Idempotency.Filters;
 [AttributeUsage(AttributeTargets.Method | AttributeTargets.Class)]
 public sealed class IdempotencyAttribute : Attribute, IAsyncActionFilter
 {
-    private readonly string _headerName;
+    private readonly string _headerName = IdempotencyHeader.HeaderName;
     private readonly TimeSpan _ttl;
 
-    public IdempotencyAttribute(string headerName = "Idempotency-Key", int ttlSeconds = 300)
+    public IdempotencyAttribute(
+        int ttlSeconds = 300)
     {
-        _headerName = headerName;
         _ttl = TimeSpan.FromSeconds(ttlSeconds);
     }
 

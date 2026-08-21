@@ -1,4 +1,6 @@
 ﻿using CourseLibrary.Application.Abstractions.RequestContext;
+using CourseLibrary.Infrastructure.Configuration.Idempotency;
+using CourseLibrary.Infrastructure.Observability.Traces;
 using Microsoft.AspNetCore.Http;
 using System.Diagnostics;
 
@@ -15,9 +17,9 @@ internal sealed class HttpRequestContext(
         Activity.Current?.TraceId.ToString();
 
     public string? TraceParent =>
-    HttpContext?.Request.Headers["traceparent"].FirstOrDefault();
+    HttpContext?.Request.Headers[TraceHeaders.TraceParent].FirstOrDefault();
     public string? CorrelationId =>
-        HttpContext?.Request.Headers["X-Correlation-Id"]
+        HttpContext?.Request.Headers[TraceHeaders.CorrelationId]
             .FirstOrDefault();
 
     public string? UserId =>
@@ -29,7 +31,7 @@ internal sealed class HttpRequestContext(
         ?? HttpContext?.Request.Headers["X-Client-Id"].FirstOrDefault();
 
     public string? IdempotencyKey =>
-        HttpContext?.Request.Headers["Idempotency-Key"]
+        HttpContext?.Request.Headers[IdempotencyHeader.HeaderName]
             .FirstOrDefault();
 
     public bool IsAuthenticated =>

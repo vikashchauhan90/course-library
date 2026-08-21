@@ -112,4 +112,9 @@ internal static class OpenTelemetryExtensions
     {
         return app.UseMiddleware<UserContextMiddleware>();
     }
+
+    public static IApplicationBuilder UseResponseHeaders(this IApplicationBuilder app)
+    {
+        return app.UseMiddleware<ResponseHeadersMiddleware>();
+    }
 }

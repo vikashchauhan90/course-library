@@ -2,6 +2,7 @@
 using InfrastructureObservability = CourseLibrary.Infrastructure.Observability;
 using Microsoft.Extensions.Primitives;
 using System.Diagnostics;
+using InfraTrace = CourseLibrary.Infrastructure.Observability.Traces;
 
 namespace CourseLibrary.Api.Configuration.Observability.Traces.Middlewares;
 
@@ -59,17 +60,6 @@ internal sealed class RequestContextMiddleware(
             requestId,
             route);
 
-        // Correlation ID is application-specific and independent
-        // from traceparent/tracestate.
-        if (!context.Response.Headers.ContainsKey("X-Correlation-ID"))
-        {
-            logger.LogDebug(
-                "Adding X-Correlation-ID header to response: {CorrelationId}",
-                correlationId);
-
-            context.Response.Headers["X-Correlation-ID"] = correlationId;
-        }
-
         try
         {
             await next(context);
@@ -85,7 +75,7 @@ internal sealed class RequestContextMiddleware(
         Activity? activity)
     {
         if (context.Request.Headers.TryGetValue(
-                "X-Correlation-ID",
+                TraceHeaders.CorrelationId,
                 out var correlationId)
             && !StringValues.IsNullOrEmpty(correlationId))
         {
@@ -103,7 +93,7 @@ internal sealed class RequestContextMiddleware(
         Activity? activity)
     {
         if (context.Request.Headers.TryGetValue(
-                "traceparent",
+                TraceHeaders.TraceParent,
                 out var traceParent)
             && !StringValues.IsNullOrEmpty(traceParent))
         {
@@ -112,15 +102,17 @@ internal sealed class RequestContextMiddleware(
 
         logger.LogWarning("Traceparent not found in request headers. Generating a new traceparent.");
 
-        return InfrastructureObservability.Traces.TracingHelper.GenerateTraceParent(activity);
+        var traceparent = InfrastructureObservability.Traces.TracingHelper.GenerateTraceParent(activity);
+        context.Request.Headers[InfraTrace.TraceHeaders.TraceParent] = traceparent;
+        return traceparent;
     }
 
-    private  string ResolveTraceState(
+    private string ResolveTraceState(
         HttpContext context,
         Activity? activity)
     {
         if (context.Request.Headers.TryGetValue(
-                "tracestate",
+                TraceHeaders.TraceState,
                 out var traceState)
             && !StringValues.IsNullOrEmpty(traceState))
         {
@@ -129,7 +121,9 @@ internal sealed class RequestContextMiddleware(
 
         logger.LogWarning("Tracestate not found in request headers. Generating a new tracestate.");
 
-        return InfrastructureObservability.Traces.TracingHelper.GenerateTraceState(activity);
+        var tracestate = InfrastructureObservability.Traces.TracingHelper.GenerateTraceState(activity);
+        context.Request.Headers[InfraTrace.TraceHeaders.TraceState] = tracestate;
+        return tracestate;
     }
 
     private static string GetSafeRequestPath(HttpRequest request)
