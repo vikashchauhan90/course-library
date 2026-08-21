@@ -80,13 +80,13 @@ internal sealed class ServiceBusEventPublisher(
     {
         return typeof(TEvent).Name switch
         {
-            nameof(AuthorCreatedIntegrationEvent)
+            nameof(AuthorCreatedDomainEvent)
                 => options.Value.Topics.AuthorEvents,
 
-            nameof(AuthorAuditIntegrationEvent)
+            nameof(AuthorAuditDomainEvent)
                 => options.Value.Topics.AuditEvents,
 
-            nameof(AuthorNotificationIntegrationEvent)
+            nameof(AuthorNotificationDomainEvent)
                 => options.Value.Topics.NotificationEvents,
 
             _ => throw new InvalidOperationException(
