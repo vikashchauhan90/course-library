@@ -28,4 +28,9 @@ public static class TraceHeaders
     /// W3C Trace Context baggage for distributed context propagation.
     /// </summary>
     public const string Baggage = "baggage";
+
+    /// <summary>
+    /// Unique trace identifier (custom header).
+    /// </summary>
+    public const string TraceId = "X-Trace-ID";
 }
