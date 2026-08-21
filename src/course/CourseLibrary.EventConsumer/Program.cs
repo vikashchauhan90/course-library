@@ -3,6 +3,7 @@ using Microsoft.Azure.Functions.Worker.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using System.Diagnostics;
 using CourseLibrary.Infrastructure.Configuration;
+using CourseLibrary.Application.Configuration;
 
 var builder = FunctionsApplication.CreateBuilder(args);
 
@@ -13,8 +14,12 @@ Activity.ForceDefaultIdFormat = true;
 builder.Services.AddOptions();
 builder.Services.AddHttpClient();
 
+// Observability.
+builder.AddObservability();
+
 // Infrastructure services.
 builder.Services.AddCourseLibraryInfrastructure(builder.Configuration);
 
-builder.AddObservability();
+// Application services
+builder.Services.AddCourseLibraryApplication();
 var host = builder.Build();
