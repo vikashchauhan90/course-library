@@ -1,9 +1,11 @@
+using CourseLibrary.Application.Configuration;
 using CourseLibrary.EventConsumer.Configuration.Observability;
+using CourseLibrary.EventConsumer.Configuration.Observability.Metrics.Middlewares;
+using CourseLibrary.Infrastructure.Configuration;
 using Microsoft.Azure.Functions.Worker.Builder;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using System.Diagnostics;
-using CourseLibrary.Infrastructure.Configuration;
-using CourseLibrary.Application.Configuration;
 
 var builder = FunctionsApplication.CreateBuilder(args);
 
@@ -16,10 +18,14 @@ builder.Services.AddHttpClient();
 
 // Observability.
 builder.AddObservability();
+builder.UseMiddleware<FunctionMetricsMiddleware>();
 
 // Infrastructure services.
 builder.Services.AddCourseLibraryInfrastructure(builder.Configuration);
 
 // Application services
 builder.Services.AddCourseLibraryApplication();
+
 var host = builder.Build();
+
+host.Run();
