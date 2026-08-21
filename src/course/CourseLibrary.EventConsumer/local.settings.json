@@ -1,0 +1,23 @@
+{
+  "IsEncrypted": false,
+  "Values": {
+    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+    "FUNCTIONS_WORKER_RUNTIME": "dotnet-isolated",
+
+    "ServiceBusConnection": "<service-bus-connection-string>",
+    "Cosmos": {
+      "AccountEndpoint": "https://localhost:8081",
+      "AccountKey": "YOUR_COSMOS_KEY",
+      "DatabaseName": "CourseLibrary"
+    },
+    "Resilience": {
+      "Http": {
+        "Retry": {
+          "BackoffType": "Exponential",
+          "UseJitter": true,
+          "MaxRetryAttempts": 7
+        }
+      }
+    }
+  }
+}

@@ -1,9 +1,10 @@
-using MediatorForge.Abstractions;
-using Microsoft.Extensions.Logging;
 using CourseLibrary.Application.Abstractions.Repositories;
 using CourseLibrary.Application.Abstractions.RequestContext;
 using CourseLibrary.Application.Operations.Courses;
 using CourseLibrary.Domain.Entities;
+using CourseLibrary.Domain.Events;
+using MediatorForge.Abstractions;
+using Microsoft.Extensions.Logging;
 
 namespace CourseLibrary.Application.Operations.Courses.Create;
 

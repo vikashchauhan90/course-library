@@ -21,7 +21,6 @@ public sealed class UpdateCommentCommandHandler(ICommentRepository repository, I
         };
 
         await repository.UpsertAsync(updated, ct);
-        await eventDispatcher.PublishAsync(new CommentUpdatedEvent(updated.Id, updated.CourseId, updated.AuthorId, updated.UpdatedAt), ct);
         return updated;
     }
 }

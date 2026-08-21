@@ -1,6 +1,6 @@
 using MediatorForge.Abstractions;
 using Microsoft.Extensions.Logging;
-using CourseLibrary.Application.Operations.Authors;
+using CourseLibrary.Domain.Events;
 
 namespace CourseLibrary.Application.Operations.Authors.Delete;
 

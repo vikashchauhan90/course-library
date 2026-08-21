@@ -15,7 +15,6 @@ public sealed class DeleteCommentCommandHandler(ICommentRepository repository, I
             logger.CommentNotFoundForDeletion(command.CommentId);
             return false;
         }
-        await eventDispatcher.PublishAsync(new CommentDeletedEvent(command.CommentId, command.CourseId), ct);
         return true;
     }
 }

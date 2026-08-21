@@ -4,6 +4,7 @@
     <Project Path="src/course/CourseLibrary.Api/CourseLibrary.Api.csproj" />
     <Project Path="src/course/CourseLibrary.Application/CourseLibrary.Application.csproj" Id="e3762092-40c5-498a-8603-2925bb385484" />
     <Project Path="src/course/CourseLibrary.Domain/CourseLibrary.Domain.csproj" Id="b9aa2d1b-3001-4770-822a-5fe387ba3941" />
+    <Project Path="src/course/CourseLibrary.EventConsumer/CourseLibrary.EventConsumer.csproj" Id="2eec5e3c-03b3-4849-8ec5-52e898cdc842" />
     <Project Path="src/course/CourseLibrary.Infrastructure/CourseLibrary.Infrastructure.csproj" Id="c3b48a74-0a80-4ebe-b9c8-292a135ddf93" />
   </Folder>
   <Folder Name="/src/gateway/">

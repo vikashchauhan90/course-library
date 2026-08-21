@@ -36,8 +36,6 @@ public sealed class CreateCommentCommandHandler : IHandler<CreateCommentCommand,
 
         await _repository.UpsertAsync(comment, ct);
 
-        await _eventDispatcher.PublishAsync(new CommentCreatedEvent(comment.Id, comment.CourseId, comment.AuthorId, comment.CreatedAt), ct);
-
         return comment;
     }
 }

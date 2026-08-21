@@ -35,8 +35,6 @@ public sealed class CreateDiscussionCommandHandler : IHandler<CreateDiscussionCo
 
         await _repository.UpsertAsync(discussion, ct);
 
-        await _eventDispatcher.PublishAsync(new DiscussionCreatedEvent(discussion.Id, discussion.CourseId, discussion.Title, discussion.CreatedAt), ct);
-
         return DiscussionMapper.ToResponse(discussion);
     }
 }

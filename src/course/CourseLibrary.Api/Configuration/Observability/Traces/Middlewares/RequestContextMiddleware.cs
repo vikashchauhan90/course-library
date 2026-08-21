@@ -75,7 +75,7 @@ internal sealed class RequestContextMiddleware(
         Activity? activity)
     {
         if (context.Request.Headers.TryGetValue(
-                TraceHeaders.CorrelationId,
+                InfrastructureObservability.Traces.TraceHeaders.CorrelationId,
                 out var correlationId)
             && !StringValues.IsNullOrEmpty(correlationId))
         {
@@ -93,7 +93,7 @@ internal sealed class RequestContextMiddleware(
         Activity? activity)
     {
         if (context.Request.Headers.TryGetValue(
-                TraceHeaders.TraceParent,
+                InfrastructureObservability.Traces.TraceHeaders.TraceParent,
                 out var traceParent)
             && !StringValues.IsNullOrEmpty(traceParent))
         {
@@ -112,7 +112,7 @@ internal sealed class RequestContextMiddleware(
         Activity? activity)
     {
         if (context.Request.Headers.TryGetValue(
-                TraceHeaders.TraceState,
+                InfrastructureObservability.Traces.TraceHeaders.TraceState,
                 out var traceState)
             && !StringValues.IsNullOrEmpty(traceState))
         {

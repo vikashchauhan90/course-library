@@ -22,7 +22,6 @@ public sealed class UpdateDiscussionCommandHandler(IDiscussionRepository reposit
         };
 
         await repository.UpsertAsync(updated, ct);
-        await eventDispatcher.PublishAsync(new DiscussionUpdatedEvent(updated.Id, updated.CourseId, updated.Title, updated.UpdatedAt), ct);
         return DiscussionMapper.ToResponse(updated);
     }
 }

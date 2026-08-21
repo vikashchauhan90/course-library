@@ -15,7 +15,6 @@ public sealed class DeleteDiscussionCommandHandler(IDiscussionRepository reposit
             logger.DiscussionNotFoundForDeletion(command.DiscussionId);
             return false;
         }
-        await eventDispatcher.PublishAsync(new DiscussionDeletedEvent(command.DiscussionId, command.CourseId), ct);
         return true;
     }
 }
