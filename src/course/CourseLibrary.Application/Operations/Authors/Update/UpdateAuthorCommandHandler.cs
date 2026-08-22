@@ -8,7 +8,12 @@ using Microsoft.Extensions.Logging;
 
 namespace CourseLibrary.Application.Operations.Authors.Update;
 
-public sealed class UpdateAuthorCommandHandler(IAuthorRepository repository, IAuthorAuditRepository auditRepository, IRequestContext requestContext, ILogger<UpdateAuthorCommandHandler> logger, IEventDispatcher eventDispatcher) : IHandler<UpdateAuthorCommand, AuthorResponse>
+public sealed class UpdateAuthorCommandHandler(
+    IAuthorRepository repository,
+    IRequestContext requestContext,
+    ILogger<UpdateAuthorCommandHandler> logger,
+    IEventDispatcher eventDispatcher) 
+    : IHandler<UpdateAuthorCommand, AuthorResponse>
 {
     public async Task<AuthorResponse> HandleAsync(UpdateAuthorCommand command, CancellationToken ct)
     {
@@ -26,12 +31,14 @@ public sealed class UpdateAuthorCommandHandler(IAuthorRepository repository, IAu
         };
 
         await repository.UpsertAsync(updated, ct);
-        await auditRepository.AddAsync(new AuthorAuditEntry { Id = Guid.NewGuid().ToString(), AuthorId = updated.Id, Action = AuditAction.Updated, Name = updated.Name, Bio = updated.Bio, Website = updated.Website, OccurredAt = updated.UpdatedAt, ActorId = requestContext.UserId, CorrelationId = requestContext.CorrelationId }, ct);
         await eventDispatcher.PublishAsync(
             new AuthorUpdatedEvent(
                 updated.Id,
                 updated.Name,
+                updated.Bio,
+                updated.Website,
                 Guid.NewGuid().ToString(),
+                requestContext.UserId ?? "unknown",
                 updated.UpdatedAt),
             ct);
         return AuthorMapper.ToResponse(updated);

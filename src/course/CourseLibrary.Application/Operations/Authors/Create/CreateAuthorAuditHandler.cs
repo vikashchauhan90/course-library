@@ -25,6 +25,9 @@ internal class CreateAuthorAuditHandler(
                 AuthorId = command.AuthorId,
                 Action = AuditAction.Created,
                 Name = command.Name,
+                Bio = command.Bio,
+                Website = command.Website,
+                ActorId = command.ActorId,
                 OccurredAt = command.OccurredAt
             },
             ct);

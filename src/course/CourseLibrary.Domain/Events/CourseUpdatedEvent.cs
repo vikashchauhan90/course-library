@@ -5,6 +5,8 @@ public sealed record CourseUpdatedEvent(
     string CourseId,
     string AuthorId,
     string Title,
+    string? Description,
     string EventId,
+    string ActorId,
     DateTimeOffset OccurredAt) :
     IDomainEvent;

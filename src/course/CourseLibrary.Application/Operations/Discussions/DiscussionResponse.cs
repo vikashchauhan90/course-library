@@ -8,5 +8,5 @@ public sealed record DiscussionResponse(
     string CourseId,
     string Title,
     string Description,
-    DateTime CreatedAt,
-    DateTime UpdatedAt);
+    DateTimeOffset CreatedAt,
+    DateTimeOffset UpdatedAt);

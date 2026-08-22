@@ -7,6 +7,6 @@ public sealed record AuthorCreatedEvent(
     string? Bio,
     string? Website,
     string EventId,
-    string ActorName,
+    string ActorId,
     DateTimeOffset OccurredAt) :
     IDomainEvent;

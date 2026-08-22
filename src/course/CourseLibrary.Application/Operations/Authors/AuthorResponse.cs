@@ -8,5 +8,5 @@ public sealed record AuthorResponse(
     string Name,
     string? Bio,
     string? Website,
-    DateTime CreatedAt,
-    DateTime UpdatedAt);
+    DateTimeOffset CreatedAt,
+    DateTimeOffset UpdatedAt);

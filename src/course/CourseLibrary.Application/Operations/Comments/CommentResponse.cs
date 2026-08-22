@@ -9,5 +9,5 @@ public sealed record CommentResponse(
     string AuthorId,
     string Content,
     string? ParentCommentId,
-    DateTime CreatedAt,
-    DateTime UpdatedAt);
+    DateTimeOffset CreatedAt,
+    DateTimeOffset UpdatedAt);

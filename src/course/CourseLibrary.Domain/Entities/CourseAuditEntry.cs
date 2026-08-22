@@ -11,8 +11,7 @@ public sealed record CourseAuditEntry : ICosmosPartitioned
     public required string AuthorId { get; init; }
     public required string Title { get; init; }
     public required string Description { get; init; }
-    public required DateTime OccurredAt { get; init; }
+    public required DateTimeOffset OccurredAt { get; init; }
     public string? ActorId { get; init; }
-    public string? CorrelationId { get; init; }
     public string PartitionKeyValue => CourseId;
 }

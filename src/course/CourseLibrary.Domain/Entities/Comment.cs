@@ -10,8 +10,8 @@ public sealed record Comment : ICosmosPartitioned
     public required string AuthorId { get; init; }
     public required string Content { get; init; }
     public string? ParentCommentId { get; init; }
-    public required DateTime CreatedAt { get; init; }
-    public required DateTime UpdatedAt { get; init; }
+    public required DateTimeOffset CreatedAt { get; init; }
+    public required DateTimeOffset UpdatedAt { get; init; }
 
     public string PartitionKeyValue => CourseId;
 }

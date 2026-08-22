@@ -35,6 +35,9 @@ internal sealed class CreateAuthorAuditActivity(
             var command = new CreateAuthorAuditCommand(
                 authorEvent.AuthorId,
                 authorEvent.Name,
+                authorEvent.Bio,
+                authorEvent.Website,
+                authorEvent.ActorId,
                 authorEvent.OccurredAt);
 
             await dispatcher.SendAsync<

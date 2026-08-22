@@ -3,7 +3,7 @@
 [EventRouting("CourseDeleted", MessageChannelType.Topic)]
 public sealed record CourseDeletedEvent(
     string CourseId,
-    string PartitionKey,
     string EventId,
+    string ActorId,
     DateTimeOffset OccurredAt) :
     IDomainEvent;

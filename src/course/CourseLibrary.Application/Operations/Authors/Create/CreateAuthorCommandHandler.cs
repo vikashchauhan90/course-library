@@ -17,7 +17,7 @@ public sealed class CreateAuthorCommandHandler(
     public async Task<AuthorResponse> HandleAsync(CreateAuthorCommand command, CancellationToken ct)
     {
         var now = DateTime.UtcNow;
-        var author = new Domain.Entities.Author
+        var author = new Author
         {
             Id = Guid.NewGuid().ToString(),
             Name = command.Name,

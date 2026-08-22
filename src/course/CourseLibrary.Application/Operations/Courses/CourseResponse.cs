@@ -8,5 +8,5 @@ public sealed record CourseResponse(
     string Title,
     string Description,
     string AuthorId,
-    DateTime CreatedAt,
-    DateTime UpdatedAt);
+    DateTimeOffset CreatedAt,
+    DateTimeOffset UpdatedAt);
