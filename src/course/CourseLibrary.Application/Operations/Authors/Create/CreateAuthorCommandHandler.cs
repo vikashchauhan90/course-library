@@ -9,7 +9,6 @@ namespace CourseLibrary.Application.Operations.Authors.Create;
 
 public sealed class CreateAuthorCommandHandler(
     IAuthorRepository repository,
-    IAuthorAuditRepository auditRepository,
     IRequestContext requestContext,
     ILogger<CreateAuthorCommandHandler> logger,
     IEventDispatcher eventDispatcher) : IHandler<CreateAuthorCommand, AuthorResponse>
@@ -30,18 +29,15 @@ public sealed class CreateAuthorCommandHandler(
 
         logger.CreatingAuthor(author.Id, author.Name);
         await repository.UpsertAsync(author, ct);
-        await auditRepository.AddAsync(new AuthorAuditEntry
-        {
-            Id = Guid.NewGuid().ToString(), AuthorId = author.Id, Action = AuditAction.Created,
-            Name = author.Name, Bio = author.Bio, Website = author.Website, OccurredAt = author.CreatedAt,
-            ActorId = requestContext.UserId, CorrelationId = requestContext.CorrelationId
-        }, ct);
 
         await eventDispatcher.PublishAsync(
             new AuthorCreatedEvent(
                 author.Id,
                 author.Name,
+                author.Bio,
+                author.Website,
                 Guid.NewGuid().ToString(),
+                requestContext.UserId ?? "unknown",
                 author.CreatedAt),
             ct);
 

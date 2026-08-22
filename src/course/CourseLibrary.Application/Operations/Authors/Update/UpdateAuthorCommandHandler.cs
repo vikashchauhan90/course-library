@@ -27,7 +27,13 @@ public sealed class UpdateAuthorCommandHandler(IAuthorRepository repository, IAu
 
         await repository.UpsertAsync(updated, ct);
         await auditRepository.AddAsync(new AuthorAuditEntry { Id = Guid.NewGuid().ToString(), AuthorId = updated.Id, Action = AuditAction.Updated, Name = updated.Name, Bio = updated.Bio, Website = updated.Website, OccurredAt = updated.UpdatedAt, ActorId = requestContext.UserId, CorrelationId = requestContext.CorrelationId }, ct);
-        await eventDispatcher.PublishAsync(new AuthorUpdatedEvent(updated.Id, updated.Name, updated.UpdatedAt), ct);
+        await eventDispatcher.PublishAsync(
+            new AuthorUpdatedEvent(
+                updated.Id,
+                updated.Name,
+                Guid.NewGuid().ToString(),
+                updated.UpdatedAt),
+            ct);
         return AuthorMapper.ToResponse(updated);
     }
 }

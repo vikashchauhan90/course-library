@@ -4,7 +4,6 @@ using CourseLibrary.Application.Abstractions.RequestContext;
 using CourseLibrary.Application.Abstractions.Serialization;
 using CourseLibrary.Application.Abstractions.Serializers;
 using CourseLibrary.Domain.Events;
-using CourseLibrary.Infrastructure.Observability.Traces;
 using Microsoft.Extensions.Logging;
 
 namespace CourseLibrary.Infrastructure.Messaging.ServiceBus;
@@ -37,31 +36,22 @@ internal sealed class ServiceBusEventPublisher(
         {
             MessageId = @event.EventId.ToString(),
             Subject = eventType,
+            ContentType = SerializerType.MessagePack.ToString(),
+            CorrelationId = requestContext.CorrelationId,
             ApplicationProperties =
             {
                 ["EventId"] = @event.EventId.ToString(),
-                ["OccurredAt"] = @event.OccurredAt.ToUnixTimeMilliseconds()
+                ["OccurredAt"] = @event.OccurredAt.ToUnixTimeMilliseconds(),
+                ["EventType"] = eventType,
+                ["MessageChannelType"] = messageChannelType.ToString(),
+                ["Destination"] = destination,
+                ["UserId"] = requestContext.UserId,
+                ["TraceParent"] = requestContext.TraceParent,
+                ["TraceId"] = requestContext.TraceId,
+                ["TraceState"] = requestContext.TraceState
             }
 
         };
-
-        if (!string.IsNullOrWhiteSpace(requestContext.TraceId))
-        {
-            message.ApplicationProperties[TraceHeaders.TraceId] =
-                requestContext.TraceId;
-        }
-
-        if (!string.IsNullOrWhiteSpace(requestContext.CorrelationId))
-        {
-            message.ApplicationProperties[TraceHeaders.CorrelationId] =
-                requestContext.CorrelationId;
-        }
-
-        if (!string.IsNullOrWhiteSpace(requestContext.TraceParent))
-        {
-            message.ApplicationProperties[TraceHeaders.TraceParent] =
-                requestContext.TraceParent;
-        }
 
         logger.LogInformation(
             "Publishing integration event {EventType} with EventId {EventId} to {MessageChannelType} {TopicName}.",

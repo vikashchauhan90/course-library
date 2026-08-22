@@ -29,8 +29,4 @@
 		<PackageReference Include="Microsoft.Azure.Cosmos" Version="3.62.0" />
 		<PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
 	</ItemGroup>
-
-	<ItemGroup>
-	  <Folder Include="Messaging\ServiceBus\" />
-	</ItemGroup>
 </Project>

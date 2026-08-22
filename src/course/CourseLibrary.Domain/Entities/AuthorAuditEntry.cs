@@ -11,7 +11,7 @@ public sealed record AuthorAuditEntry : ICosmosPartitioned
     public required string Name { get; init; }
     public string? Bio { get; init; }
     public string? Website { get; init; }
-    public required DateTime OccurredAt { get; init; }
+    public required DateTimeOffset OccurredAt { get; init; }
     public string? ActorId { get; init; }
     public string? CorrelationId { get; init; }
     public string PartitionKeyValue => AuthorId;

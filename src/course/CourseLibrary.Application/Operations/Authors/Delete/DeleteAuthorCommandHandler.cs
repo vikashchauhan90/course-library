@@ -15,8 +15,25 @@ public sealed class DeleteAuthorCommandHandler(IAuthorRepository repository, IAu
         var author = await repository.GetByIdAsync(command.AuthorId, ct);
         if (author is null) { logger.AuthorNotFoundForDeletion(command.AuthorId); return false; }
         if (!await repository.DeleteAsync(command.AuthorId, ct)) return false;
-        await auditRepository.AddAsync(new AuthorAuditEntry { Id = Guid.NewGuid().ToString(), AuthorId = author.Id, Action = AuditAction.Deleted, Name = author.Name, Bio = author.Bio, Website = author.Website, OccurredAt = DateTime.UtcNow, ActorId = requestContext.UserId, CorrelationId = requestContext.CorrelationId }, ct);
-        await eventDispatcher.PublishAsync(new AuthorDeletedEvent(command.AuthorId), ct);
+        await auditRepository.AddAsync(
+            new AuthorAuditEntry
+            {
+                Id = Guid.NewGuid().ToString(),
+                AuthorId = author.Id,
+                Action = AuditAction.Deleted,
+                Name = author.Name,
+                Bio = author.Bio,
+                Website = author.Website,
+                OccurredAt = DateTime.UtcNow,
+                ActorId = requestContext.UserId,
+                CorrelationId = requestContext.CorrelationId
+            }, ct);
+        await eventDispatcher.PublishAsync(
+            new AuthorDeletedEvent(
+                command.AuthorId,
+                Guid.NewGuid().ToString(),
+                DateTime.UtcNow),
+            ct);
         return true;
     }
 }

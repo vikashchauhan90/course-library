@@ -28,18 +28,18 @@ internal static class ServiceBusTraceContext
     {
         var traceParent = GetProperty(
             message,
-            TraceHeaders.TraceParent);
+            "TraceParent");
 
         var traceState = GetProperty(
             message,
-            TraceHeaders.TraceState);
+            "TraceState");
 
         return Extract(
             traceParent,
             traceState);
     }
 
-    private static string? GetProperty(
+    public static string? GetProperty(
        ServiceBusReceivedMessage message,
        string name)
     {

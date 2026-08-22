@@ -29,7 +29,14 @@ public sealed class CreateCourseCommandHandler(ICourseRepository repository, ICo
         await auditRepository.AddAsync(new CourseAuditEntry { Id = Guid.NewGuid().ToString(), CourseId = course.Id, Action = AuditAction.Created, AuthorId = course.AuthorId, Title = course.Title, Description = course.Description, OccurredAt = course.CreatedAt, ActorId = requestContext.UserId, CorrelationId = requestContext.CorrelationId }, ct);
 
         // Publish course created event for downstream consumers
-        await eventDispatcher.PublishAsync(new CourseCreatedEvent(course.Id, course.AuthorId, course.Title, course.CreatedAt), ct);
+        await eventDispatcher.PublishAsync(
+            new CourseCreatedEvent(
+                course.Id,
+                course.AuthorId,
+                course.Title,
+                Guid.NewGuid().ToString(),
+                course.CreatedAt),
+            ct);
 
         return CourseMapper.ToResponse(course);
     }

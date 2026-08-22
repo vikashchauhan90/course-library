@@ -18,6 +18,9 @@ internal sealed class HttpRequestContext(
 
     public string? TraceParent =>
     HttpContext?.Request.Headers[TraceHeaders.TraceParent].FirstOrDefault();
+
+    public string? TraceState =>
+        HttpContext?.Request.Headers[TraceHeaders.TraceState].FirstOrDefault();
     public string? CorrelationId =>
         HttpContext?.Request.Headers[TraceHeaders.CorrelationId]
             .FirstOrDefault();
