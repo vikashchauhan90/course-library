@@ -37,7 +37,13 @@ public sealed class CreateAuthorCommandHandler(
             ActorId = requestContext.UserId, CorrelationId = requestContext.CorrelationId
         }, ct);
 
-        await eventDispatcher.PublishAsync(new AuthorCreatedEvent(author.Id, author.Name, author.CreatedAt), ct);
+        await eventDispatcher.PublishAsync(
+            new AuthorCreatedEvent(
+                author.Id,
+                author.Name,
+                Guid.NewGuid().ToString(),
+                author.CreatedAt),
+            ct);
 
         return AuthorMapper.ToResponse(author);
     }

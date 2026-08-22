@@ -1,22 +1,22 @@
+using CourseLibrary.Application.Abstractions.Messaging;
+using CourseLibrary.Domain.Events;
 using MediatorForge.Abstractions;
 using Microsoft.Extensions.Logging;
-using CourseLibrary.Domain.Events;
 
 namespace CourseLibrary.Application.Operations.Courses.Update;
 
-public sealed class CourseUpdatedEventHandler : IEventNotificationHandler<CourseUpdatedEvent>
+public sealed class CourseUpdatedEventHandler(
+    IEventPublisher eventPublisher,
+    ILogger<CourseUpdatedEventHandler> logger) 
+    : IEventNotificationHandler<CourseUpdatedEvent>
 {
-    private readonly ILogger<CourseUpdatedEventHandler> _logger;
 
-    public CourseUpdatedEventHandler(ILogger<CourseUpdatedEventHandler> logger)
-    {
-        _logger = logger;
-    }
-
-    public Task HandleAsync(IEventNotification<CourseUpdatedEvent> notification, CancellationToken ct)
+    public async Task HandleAsync(
+        IEventNotification<CourseUpdatedEvent> notification,
+        CancellationToken ct)
     {
         var ev = notification.Event;
-        _logger.CourseUpdatedEvent(ev.CourseId);
-        return Task.CompletedTask;
+        logger.CourseUpdatedEvent(ev.CourseId);
+        await eventPublisher.PublishAsync(ev, ct);
     }
 }

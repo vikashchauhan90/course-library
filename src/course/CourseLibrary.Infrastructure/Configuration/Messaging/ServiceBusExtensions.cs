@@ -1,5 +1,8 @@
 ﻿using Azure.Identity;
 using Azure.Messaging.ServiceBus;
+using CourseLibrary.Application.Abstractions.Messaging;
+using CourseLibrary.Infrastructure.Messaging;
+using CourseLibrary.Infrastructure.Messaging.ServiceBus;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -28,6 +31,9 @@ public static class ServiceBusExtensions
                 options.FullyQualifiedNamespace,
                 new DefaultAzureCredential());
         });
+
+        services.AddSingleton<IEventRouter, EventRouter>();
+        services.AddSingleton<IEventPublisher, ServiceBusEventPublisher>();
 
         return services;
     }

@@ -1,16 +1,22 @@
+using CourseLibrary.Application.Abstractions.Messaging;
+using CourseLibrary.Domain.Events;
 using MediatorForge.Abstractions;
 using Microsoft.Extensions.Logging;
-using CourseLibrary.Domain.Events;
 
 namespace CourseLibrary.Application.Operations.Authors.Create;
 
-public sealed class AuthorCreatedEventHandler(ILogger<AuthorCreatedEventHandler> logger) : IEventNotificationHandler<AuthorCreatedEvent>
+public sealed class AuthorCreatedEventHandler(
+    IEventPublisher eventPublisher,
+    ILogger<AuthorCreatedEventHandler> logger)
+    : IEventNotificationHandler<AuthorCreatedEvent>
 {
 
-    public Task HandleAsync(IEventNotification<AuthorCreatedEvent> notification, CancellationToken ct)
+    public async Task HandleAsync(
+        IEventNotification<AuthorCreatedEvent> notification,
+        CancellationToken ct)
     {
         var ev = notification.Event;
         logger.AuthorCreatedEvent(ev.AuthorId);
-        return Task.CompletedTask;
+        await eventPublisher.PublishAsync(ev, ct);
     }
 }

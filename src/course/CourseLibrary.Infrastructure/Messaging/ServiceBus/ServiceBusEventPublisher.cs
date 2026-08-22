@@ -1,42 +1,49 @@
 ﻿using Azure.Messaging.ServiceBus;
 using CourseLibrary.Application.Abstractions.Messaging;
 using CourseLibrary.Application.Abstractions.RequestContext;
+using CourseLibrary.Application.Abstractions.Serialization;
+using CourseLibrary.Application.Abstractions.Serializers;
 using CourseLibrary.Domain.Events;
-using CourseLibrary.Infrastructure.Configuration.Messaging;
 using CourseLibrary.Infrastructure.Observability.Traces;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 
-namespace CourseLibrary.Infrastructure.Messaging;
+namespace CourseLibrary.Infrastructure.Messaging.ServiceBus;
 
 internal sealed class ServiceBusEventPublisher(
     ServiceBusClient client,
-    IOptions<ServiceBusOptions> options,
     IRequestContext requestContext,
+    IEventRouter router,
+    ISerializerFactory serializerFactory,
     ILogger<ServiceBusEventPublisher> logger)
     : IEventPublisher
 {
+    private readonly ISerializer<IDomainEvent> _serializer =
+        serializerFactory.Create<IDomainEvent>(
+            SerializerType.MessagePack);
+
+
     public async Task PublishAsync<TEvent>(
         TEvent @event,
         CancellationToken cancellationToken = default)
         where TEvent : IDomainEvent
     {
         var eventType = typeof(TEvent).Name;
-        var topicName = GetTopicName<TEvent>();
+        var destination = router.GetDestination<TEvent>();
+        var messageChannelType = router.GetChannelType<TEvent>();
+        var serialized = _serializer.Serialize(@event);
 
         var message = new ServiceBusMessage(
-            BinaryData.FromObjectAsJson(@event));
+            BinaryData.FromBytes(serialized))
+        {
+            MessageId = @event.EventId.ToString(),
+            Subject = eventType,
+            ApplicationProperties =
+            {
+                ["EventId"] = @event.EventId.ToString(),
+                ["OccurredAt"] = @event.OccurredAt.ToUnixTimeMilliseconds()
+            }
 
-        message.MessageId =
-            @event.EventId.ToString();
-
-        message.Subject = eventType;
-
-        message.ApplicationProperties["EventId"] =
-            @event.EventId.ToString();
-
-        message.ApplicationProperties["OccurredAt"] =
-            @event.OccurredAt.ToUnixTimeMilliseconds();
+        };
 
         if (!string.IsNullOrWhiteSpace(requestContext.TraceId))
         {
@@ -57,13 +64,14 @@ internal sealed class ServiceBusEventPublisher(
         }
 
         logger.LogInformation(
-            "Publishing integration event {EventType} with EventId {EventId} to topic {TopicName}.",
+            "Publishing integration event {EventType} with EventId {EventId} to {MessageChannelType} {TopicName}.",
             eventType,
             @event.EventId,
-            topicName);
+            messageChannelType.ToString(),
+            destination);
 
         await using var sender =
-            client.CreateSender(topicName);
+            client.CreateSender(destination);
 
         await sender.SendMessageAsync(
             message,
@@ -73,24 +81,5 @@ internal sealed class ServiceBusEventPublisher(
             "Published integration event {EventType} with EventId {EventId}.",
             eventType,
             @event.EventId);
-    }
-
-    private string GetTopicName<TEvent>()
-        where TEvent : IDomainEvent
-    {
-        return typeof(TEvent).Name switch
-        {
-            nameof(AuthorCreatedDomainEvent)
-                => options.Value.Topics.AuthorEvents,
-
-            nameof(AuthorAuditDomainEvent)
-                => options.Value.Topics.AuditEvents,
-
-            nameof(AuthorNotificationDomainEvent)
-                => options.Value.Topics.NotificationEvents,
-
-            _ => throw new InvalidOperationException(
-                $"No Service Bus topic configured for event '{typeof(TEvent).Name}'.")
-        };
     }
 }

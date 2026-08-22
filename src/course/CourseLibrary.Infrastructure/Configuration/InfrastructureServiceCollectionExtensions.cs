@@ -2,6 +2,7 @@
 using CourseLibrary.Infrastructure.Configuration.Caching;
 using CourseLibrary.Infrastructure.Configuration.Cosmos;
 using CourseLibrary.Infrastructure.Configuration.Idempotency;
+using CourseLibrary.Infrastructure.Configuration.Messaging;
 using CourseLibrary.Infrastructure.Configuration.Resilience;
 using CourseLibrary.Infrastructure.Configuration.Serializers;
 using CourseLibrary.Infrastructure.RequestContext;
@@ -27,6 +28,7 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddCourseLibraryResilience();
         services.AddSingleton<PolicyFactory>();
         services.AddScoped<IRequestContext, HttpRequestContext>();
+        services.AddCourseLibraryServiceBus(configuration);
 
         return services;
     }
