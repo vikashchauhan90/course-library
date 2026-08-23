@@ -1,5 +1,7 @@
-﻿using Polly;
+﻿using CourseLibrary.Infrastructure.Observability.Traces;
+using Polly;
 using Polly.Registry;
+using System.Diagnostics;
 
 namespace CourseLibrary.Infrastructure.Resilience;
 
@@ -16,6 +18,11 @@ public sealed class PolicyFactory(
         Func<CancellationToken, ValueTask> operation,
         CancellationToken cancellationToken = default)
     {
+        using var activity = ActivitySources.Infrastructure.StartActivity(
+           "PolicyFactory.ExecuteAsync",
+           ActivityKind.Internal);
+        activity?.SetTag("policyName", policyName);
+        activity?.SetTag("operationType", "void");
         var pipeline = provider.GetPipeline(policyName);
 
         return pipeline.ExecuteAsync(
@@ -28,6 +35,12 @@ public sealed class PolicyFactory(
         Func<CancellationToken, ValueTask<T>> operation,
         CancellationToken cancellationToken = default)
     {
+        using var activity = ActivitySources.Infrastructure.StartActivity(
+            "PolicyFactory.ExecuteAsync<T>",
+            ActivityKind.Internal);
+        activity?.SetTag("policyName", policyName);
+        activity?.SetTag("operationType", typeof(T).Name);
+
         var pipeline = provider.GetPipeline(policyName);
 
         return pipeline.ExecuteAsync(

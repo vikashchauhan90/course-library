@@ -1,6 +1,8 @@
 ﻿using CourseLibrary.Application.Abstractions.Caching;
+using CourseLibrary.Infrastructure.Observability.Traces;
 using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Logging;
+using System.Diagnostics;
 
 namespace CourseLibrary.Infrastructure.Caching;
 
@@ -16,6 +18,13 @@ public sealed class HybridCacheProvider(
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(key);
         ArgumentNullException.ThrowIfNull(factory);
+
+        using var activity = ActivitySources.Infrastructure.StartActivity(
+            "HybridCacheProvider.GetOrCreateAsync",
+            ActivityKind.Internal);
+        activity?.SetTag("cache.key", key);
+        activity?.SetTag("cache.ttl", ttl.ToString());
+        activity?.SetTag("cache.operation", "get-or-create");
 
         try
         {
@@ -45,6 +54,8 @@ public sealed class HybridCacheProvider(
         }
         catch (OperationCanceledException)
         {
+            activity?.SetTag("error", true)
+                .SetTag("error.message", "Cache get-or-create operation was cancelled.");
             logger.LogDebug(
                 "Cache get-or-create operation was cancelled for key {CacheKey}",
                 key);
@@ -53,6 +64,9 @@ public sealed class HybridCacheProvider(
         }
         catch (Exception ex)
         {
+            activity?.SetTag("error", true)
+                  .SetTag("error.message", ex.Message)
+                  .SetTag("error.stacktrace", ex.StackTrace);
             logger.LogError(
                 ex,
                 "Error getting or creating cache entry for key {CacheKey}",
@@ -71,8 +85,16 @@ public sealed class HybridCacheProvider(
         ArgumentException.ThrowIfNullOrWhiteSpace(key);
         ArgumentNullException.ThrowIfNull(value);
 
+        using var activity = ActivitySources.Infrastructure.StartActivity(
+            "HybridCacheProvider.SetAsync",
+            ActivityKind.Internal);
+        activity?.SetTag("cache.key", key);
+        activity?.SetTag("cache.ttl", ttl.ToString());
+        activity?.SetTag("cache.operation", "set"); 
         if (ttl <= TimeSpan.Zero)
         {
+            activity?.SetTag("error", true)
+                .SetTag("error.message", "Cache expiration must be greater than zero.");
             throw new ArgumentOutOfRangeException(
                 nameof(ttl),
                 ttl,
@@ -99,6 +121,8 @@ public sealed class HybridCacheProvider(
         }
         catch (OperationCanceledException)
         {
+            activity?.SetTag("error", true)
+                .SetTag("error.message", "Cache set operation was cancelled.");
             logger.LogDebug(
                 "Cache set operation was cancelled for key {CacheKey}",
                 key);
@@ -107,6 +131,9 @@ public sealed class HybridCacheProvider(
         }
         catch (Exception ex)
         {
+            activity?.SetTag("error", true)
+                .SetTag("error.message", ex.Message)
+                .SetTag("error.stacktrace", ex.StackTrace);
             logger.LogError(
                 ex,
                 "Error setting cache entry for key {CacheKey}",
@@ -122,6 +149,12 @@ public sealed class HybridCacheProvider(
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(key);
 
+        using var activity = ActivitySources.Infrastructure.StartActivity(
+            "HybridCacheProvider.RemoveAsync",
+            ActivityKind.Internal);
+
+        activity?.SetTag("cache.key", key);
+        activity?.SetTag("cache.operation", "remove");
         try
         {
             await cache.RemoveAsync(
@@ -134,6 +167,9 @@ public sealed class HybridCacheProvider(
         }
         catch (OperationCanceledException)
         {
+            activity?.SetTag("error", true)
+              .SetTag("error.message", "Cache set operation was cancelled.");
+
             logger.LogDebug(
                 "Cache remove operation was cancelled for key {CacheKey}",
                 key);
@@ -142,6 +178,9 @@ public sealed class HybridCacheProvider(
         }
         catch (Exception ex)
         {
+            activity?.SetTag("error", true)
+                .SetTag("error.message", ex.Message)
+                .SetTag("error.stacktrace", ex.StackTrace);
             logger.LogError(
                 ex,
                 "Error removing cache entry for key {CacheKey}",

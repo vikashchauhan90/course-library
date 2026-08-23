@@ -1,5 +1,7 @@
 ﻿
 using CourseLibrary.Idp.Application.Abstractions.Serializers;
+using CourseLibrary.Idp.Infrastructure.Observability.Traces;
+using System.Diagnostics;
 using System.Text.Json;
 
 namespace CourseLibrary.Idp.Infrastructure.Serializers;
@@ -10,7 +12,8 @@ public sealed class SystemTextJsonSerializer<T>(
     public byte[] Serialize(T value)
     {
         ArgumentNullException.ThrowIfNull(value);
-
+        using var activity = ActivitySources.Infrastructure.StartActivity("SystemTextJsonSerializer.Serialize", ActivityKind.Internal);
+        activity?.SetTag("type", typeof(T).FullName);
         return JsonSerializer.SerializeToUtf8Bytes(
             value,
             options);
@@ -20,6 +23,8 @@ public sealed class SystemTextJsonSerializer<T>(
     {
         ArgumentNullException.ThrowIfNull(data);
 
+        using var activity = ActivitySources.Infrastructure.StartActivity("SystemTextJsonSerializer.Deserialize", ActivityKind.Internal);
+        activity?.SetTag("type", typeof(T).FullName);
         return JsonSerializer.Deserialize<T>(
                    data,
                    options)

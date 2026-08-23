@@ -1,6 +1,8 @@
 ﻿using CourseLibrary.Application.Abstractions.Caching;
+using CourseLibrary.Infrastructure.Observability.Traces;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
+using System.Diagnostics;
 
 namespace CourseLibrary.Infrastructure.Caching;
 
@@ -17,6 +19,11 @@ public sealed class RedisCacheProvider(
         ArgumentException.ThrowIfNullOrWhiteSpace(key);
         ArgumentNullException.ThrowIfNull(factory);
 
+        using var activity = ActivitySources.Infrastructure.StartActivity("RedisCacheProvider.GetOrCreateAsync", ActivityKind.Internal);
+        activity?.SetTag("cache.key", key);
+        activity?.SetTag("cache.ttl", ttl.ToString());
+        activity?.SetTag("cache.operation", "get-or-create");
+
         try
         {
             var cachedValue = await cache.GetAsync(
@@ -25,6 +32,7 @@ public sealed class RedisCacheProvider(
 
             if (cachedValue is not null)
             {
+                activity?.SetTag("cache.hit", true);
                 logger.LogDebug(
                     "Redis cache hit for key {CacheKey}",
                     key);
@@ -40,6 +48,7 @@ public sealed class RedisCacheProvider(
 
             ArgumentNullException.ThrowIfNull(value);
 
+            activity?.SetTag("cache.hit", false);
             await cache.SetAsync(
                 key,
                 value,
@@ -58,6 +67,8 @@ public sealed class RedisCacheProvider(
         }
         catch (OperationCanceledException)
         {
+            activity?.SetTag("cache.operation.cancelled", true);
+            activity?.SetStatus(ActivityStatusCode.Error, "Operation was cancelled.");
             logger.LogDebug(
                 "Redis cache operation was cancelled for key {CacheKey}",
                 key);
@@ -66,6 +77,9 @@ public sealed class RedisCacheProvider(
         }
         catch (Exception ex)
         {
+            activity?.SetTag("cache.operation.error", true);
+            activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
+            activity?.SetTag("cache.operation.exception", ex.ToString());
             logger.LogError(
                 ex,
                 "Error getting or creating Redis cache entry for key {CacheKey}",
@@ -84,8 +98,15 @@ public sealed class RedisCacheProvider(
         ArgumentException.ThrowIfNullOrWhiteSpace(key);
         ArgumentNullException.ThrowIfNull(value);
 
+        using var activity = ActivitySources.Infrastructure.StartActivity("RedisCacheProvider.SetAsync", ActivityKind.Internal);
+        activity?.SetTag("cache.key", key);
+        activity?.SetTag("cache.ttl", ttl.ToString());
+        activity?.SetTag("cache.operation", "set");
+
         if (ttl <= TimeSpan.Zero)
         {
+            activity?.SetTag("cache.operation.error", true);
+            activity?.SetStatus(ActivityStatusCode.Error, "Cache expiration must be greater than zero.");
             throw new ArgumentOutOfRangeException(
                 nameof(ttl),
                 ttl,
@@ -103,6 +124,8 @@ public sealed class RedisCacheProvider(
                 },
                 cancellationToken);
 
+            activity?.SetTag("cache.operation.success", true);
+
             logger.LogDebug(
                 "Redis cache entry set for key {CacheKey} with TTL {CacheTtl}",
                 key,
@@ -110,6 +133,8 @@ public sealed class RedisCacheProvider(
         }
         catch (OperationCanceledException)
         {
+            activity?.SetTag("cache.operation.cancelled", true);
+            activity?.SetStatus(ActivityStatusCode.Error, "Operation was cancelled.");
             logger.LogDebug(
                 "Redis cache set operation was cancelled for key {CacheKey}",
                 key);
@@ -118,6 +143,9 @@ public sealed class RedisCacheProvider(
         }
         catch (Exception ex)
         {
+            activity?.SetTag("cache.operation.error", true);
+            activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
+            activity?.SetTag("cache.operation.exception", ex.ToString());
             logger.LogError(
                 ex,
                 "Error setting Redis cache entry for key {CacheKey}",
@@ -133,18 +161,25 @@ public sealed class RedisCacheProvider(
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(key);
 
+        using var activity = ActivitySources.Infrastructure.StartActivity("RedisCacheProvider.RemoveAsync", ActivityKind.Internal);
+        activity?.SetTag("cache.key", key);
+        activity?.SetTag("cache.operation", "remove");
+        activity?.SetTag("cache.operation.success", false);
         try
         {
             await cache.RemoveAsync(
                 key,
                 cancellationToken);
 
+            activity?.SetTag("cache.operation.success", true);
             logger.LogDebug(
                 "Redis cache entry removed for key {CacheKey}",
                 key);
         }
         catch (OperationCanceledException)
         {
+            activity?.SetTag("cache.operation.cancelled", true);
+            activity?.SetStatus(ActivityStatusCode.Error, "Operation was cancelled.");
             logger.LogDebug(
                 "Redis cache remove operation was cancelled for key {CacheKey}",
                 key);
@@ -153,6 +188,9 @@ public sealed class RedisCacheProvider(
         }
         catch (Exception ex)
         {
+            activity?.SetTag("cache.operation.error", true);
+            activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
+            activity?.SetTag("cache.operation.exception", ex.ToString());
             logger.LogError(
                 ex,
                 "Error removing Redis cache entry for key {CacheKey}",

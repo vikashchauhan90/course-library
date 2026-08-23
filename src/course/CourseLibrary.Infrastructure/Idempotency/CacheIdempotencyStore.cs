@@ -2,7 +2,9 @@
 using CourseLibrary.Application.Abstractions.Idempotency;
 using CourseLibrary.Application.Abstractions.Serialization;
 using CourseLibrary.Application.Abstractions.Serializers;
+using CourseLibrary.Infrastructure.Observability.Traces;
 using Microsoft.Extensions.Logging;
+using System.Diagnostics;
 
 namespace CourseLibrary.Infrastructure.Idempotency;
 
@@ -25,14 +27,24 @@ public sealed class CacheIdempotencyStore(
         ArgumentException.ThrowIfNullOrWhiteSpace(key);
         ArgumentNullException.ThrowIfNull(factory);
 
+        using var activity = ActivitySources.Infrastructure.StartActivity(
+            "CacheIdempotencyStore.GetOrCreateAsync",
+            ActivityKind.Internal
+            );
         if (ttl <= TimeSpan.Zero)
         {
+            activity?.AddTag("error", true)
+                .AddTag("error.message", "Idempotency TTL must be greater than zero.");
+
             throw new ArgumentOutOfRangeException(
                 nameof(ttl),
                 ttl,
                 "Idempotency TTL must be greater than zero.");
         }
 
+        activity?.AddTag("idempotency.key", key)
+            .AddTag("idempotency.ttl", ttl.ToString());
+        activity?.AddTag("idempotency.factory", factory.Method.Name);
         var data = await cacheProvider.GetOrCreateAsync(
             key,
             async ct =>
@@ -64,8 +76,12 @@ public sealed class CacheIdempotencyStore(
         ArgumentException.ThrowIfNullOrWhiteSpace(key);
         ArgumentNullException.ThrowIfNull(entry);
 
+        using var activity = ActivitySources.Infrastructure.StartActivity("CacheIdempotencyStore.StoreAsync", ActivityKind.Internal);
+
         if (ttl <= TimeSpan.Zero)
         {
+            activity?.AddTag("error", true)
+                .AddTag("error.message", "Idempotency TTL must be greater than zero.");
             throw new ArgumentOutOfRangeException(
                 nameof(ttl),
                 ttl,
@@ -73,6 +89,10 @@ public sealed class CacheIdempotencyStore(
         }
 
         var data = _serializer.Serialize(entry);
+
+        activity?.AddTag("idempotency.key", key)
+            .AddTag("idempotency.ttl", ttl.ToString())
+            .AddTag("idempotency.entry", entry.ToString());
 
         await cacheProvider.SetAsync(
             key,
@@ -91,6 +111,9 @@ public sealed class CacheIdempotencyStore(
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(key);
 
+        using var activity = ActivitySources.Infrastructure.StartActivity("CacheIdempotencyStore.RemoveAsync", ActivityKind.Internal);
+        activity?.AddTag("idempotency.key", key);
+        activity?.AddTag("idempotency.operation", "remove");
         await cacheProvider.RemoveAsync(
             key,
             cancellationToken);
