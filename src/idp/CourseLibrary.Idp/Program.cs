@@ -41,19 +41,19 @@ builder.Services.AddDbContext<ApplicationDbContext>((sp, options) =>
     options.AddInterceptors(sp.GetServices<IInterceptor>());
 });
 
-//builder.Services.AddDbContextFactory<ApplicationDbContext>((sp, options) =>
-//{
-//    options.UseNpgsql(
-//        connectionString,
-//        npgsql =>
-//        npgsql.MigrationsAssembly(typeof(ApplicationDbContext).Assembly.FullName));
-//    options.UseOpenIddict();
-//    options.EnableSensitiveDataLogging(builder.Environment.IsDevelopment());
-//    options.EnableDetailedErrors(builder.Environment.IsDevelopment());
-//    options.UseSnakeCaseNamingConvention();
-//    options.AddInterceptors(sp.GetServices<IInterceptor>());
+builder.Services.AddDbContextFactory<ApplicationDbContext>((sp, options) =>
+{
+    options.UseNpgsql(
+        connectionString,
+        npgsql =>
+        npgsql.MigrationsAssembly(typeof(ApplicationDbContext).Assembly.FullName));
+    options.UseOpenIddict();
+    options.EnableSensitiveDataLogging(builder.Environment.IsDevelopment());
+    options.EnableDetailedErrors(builder.Environment.IsDevelopment());
+    options.UseSnakeCaseNamingConvention();
+    options.AddInterceptors(sp.GetServices<IInterceptor>());
 
-//});
+});
 
 builder.Services.AddIdentity<ApplicationUser, ApplicationRole>(options =>
     {
