@@ -14,6 +14,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\course\CourseLibrary.Api\CourseLibrary.Api.csproj" />
+    <ProjectReference Include="..\..\course\CourseLibrary.EventConsumer\CourseLibrary.EventConsumer.csproj" />
     <ProjectReference Include="..\..\gateway\CourseLibrary.Gateway\CourseLibrary.Gateway.csproj" />
     <ProjectReference Include="..\..\idp\CourseLibrary.Idp\CourseLibrary.Idp.csproj" />
   </ItemGroup>

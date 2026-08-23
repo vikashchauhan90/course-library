@@ -25,8 +25,6 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddCosmosDatabase(configuration);
         services.AddRepositories();
         services.AddCourseLibraryHttpResilience(configuration);
-        services.AddCourseLibraryResilience();
-        services.AddSingleton<PolicyFactory>();
         services.AddScoped<IRequestContext, HttpRequestContext>();
         services.AddCourseLibraryServiceBus(configuration);
 

@@ -60,6 +60,7 @@ public static class ResiliencePipelineExtensions
                 builder.AddTimeout(TimeSpan.FromSeconds(5));
             });
 
+        services.AddSingleton<PolicyFactory>();
         return services;
     }
 }

@@ -32,8 +32,8 @@ public static class ServiceBusExtensions
                 new DefaultAzureCredential());
         });
 
-        services.AddSingleton<IEventRouter, EventRouter>();
-        services.AddSingleton<IEventPublisher, ServiceBusEventPublisher>();
+        services.AddScoped<IEventRouter, EventRouter>();
+        services.AddScoped<IEventPublisher, ServiceBusEventPublisher>();
 
         return services;
     }

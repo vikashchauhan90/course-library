@@ -1,43 +1,32 @@
 ﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Http.Resilience;
+using Microsoft.Extensions.ServiceDiscovery;
 
 namespace CourseLibrary.Infrastructure.Configuration.Resilience;
 
 public static class HttpClientResilienceExtensions
 {
-    private const string ConfigurationSection = "Resilience:Http";
-
     public static IServiceCollection AddCourseLibraryHttpResilience(
         this IServiceCollection services,
         IConfiguration configuration)
     {
-        var section = configuration.GetSection(ConfigurationSection);
+        services.Configure<ServiceDiscoveryOptions>(
+           static options =>
+           {
+               options.AllowAllSchemes = false;
+               options.AllowedSchemes = ["https"];
+           });
 
-        services
-            .AddOptions<HttpStandardResilienceOptions>()
-            .Bind(section)
-            .Validate(
-                options =>
-                    options.Retry.MaxRetryAttempts >= 0,
-                "Retry.MaxRetryAttempts must be greater than or equal to 0.")
-            .Validate(
-                options =>
-                    options.Retry.MaxRetryAttempts <= 10,
-                "Retry.MaxRetryAttempts must not exceed 10.")
-            .Configure(options =>
-            {
-                // Application-wide safety rule.
-                options.Retry.DisableForUnsafeHttpMethods();
-            })
-            .ValidateOnStart();
-
+        services.AddServiceDiscovery();
         services.ConfigureHttpClientDefaults(
-            builder =>
+              builder =>
             {
                 builder.AddStandardResilienceHandler();
+                builder.AddServiceDiscovery();
             });
 
+        services.AddCourseLibraryResilience();
         return services;
     }
 }
