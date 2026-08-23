@@ -8,7 +8,7 @@ public sealed class UserInvitationConfiguration : IEntityTypeConfiguration<UserI
 {
     public void Configure(EntityTypeBuilder<UserInvitation> builder)
     {
-        builder.ToTable("UserInvitations");
+        builder.ToTable("user_invitations");
         builder.HasKey(x => x.Id);
         builder.Property(x => x.UserId).HasMaxLength(450).IsRequired();
         builder.Property(x => x.TokenHash).HasMaxLength(64).IsRequired();

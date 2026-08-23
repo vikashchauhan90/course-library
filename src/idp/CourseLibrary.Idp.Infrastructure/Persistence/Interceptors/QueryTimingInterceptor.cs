@@ -7,7 +7,7 @@ using System.Diagnostics;
 namespace CourseLibrary.Idp.Infrastructure.Persistence.Interceptors;
 
 
-public sealed class QueryTimingInterceptor(ILogger<QueryTimingInterceptor> logger) : DbCommandInterceptor
+public sealed class QueryTimingInterceptor(ILogger<QueryTimingInterceptor> logger) : DbCommandInterceptor, IInterceptor
 {
     private readonly int warningThresholdMs = 500;
     private readonly ConcurrentDictionary<Guid, Stopwatch> timers = new();

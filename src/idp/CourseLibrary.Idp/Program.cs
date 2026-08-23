@@ -1,19 +1,16 @@
-using CourseLibrary.Idp.Application.Services;
-using CourseLibrary.Idp.Domain.Abstractions;
+using CourseLibrary.Idp;
 using CourseLibrary.Idp.Domain.Entities;
 using CourseLibrary.Idp.Infrastructure.Persistence;
-using CourseLibrary.Idp.Infrastructure.Services;
-using CourseLibrary.Idp;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
-using Microsoft.IdentityModel.Tokens;
-using OpenIddict.Abstractions;
-using System.Security.Cryptography.X509Certificates;
-using Microsoft.AspNetCore.Authentication.Facebook;
+using CourseLibrary.Idp.Infrastructure.Persistence.Interceptors;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Facebook;
 using Microsoft.AspNetCore.Authentication.MicrosoftAccount;
 using Microsoft.AspNetCore.Authentication.Twitter;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
+using OpenIddict.Abstractions;
+using System.Security.Cryptography.X509Certificates;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -25,14 +22,38 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 if (string.IsNullOrWhiteSpace(connectionString))
     throw new InvalidOperationException("ConnectionStrings:DefaultConnection must be configured.");
 
-builder.Services.AddDbContext<ApplicationDbContext>(options =>
+builder.Services.AddScoped<IInterceptor, AuditEntityInterceptor>();
+builder.Services.AddScoped<IInterceptor,ConnectionLoggingInterceptor>();
+builder.Services.AddScoped<IInterceptor,QueryTimingInterceptor>();
+builder.Services.AddScoped<IInterceptor,SecurityEntityInterceptor>();
+builder.Services.AddScoped<IInterceptor,TransactionLoggingInterceptor>();
+
+builder.Services.AddDbContext<ApplicationDbContext>((sp, options) =>
 {
-    options.UseNpgsql(connectionString, npgsql =>
+    options.UseNpgsql(
+        connectionString,
+        npgsql =>
         npgsql.MigrationsAssembly(typeof(ApplicationDbContext).Assembly.FullName));
     options.UseOpenIddict();
-});
-builder.Services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<ApplicationDbContext>());
-builder.Services.AddScoped<IIdentityProvisioningService, IdentityProvisioningService>();
+    options.EnableSensitiveDataLogging(builder.Environment.IsDevelopment());
+    options.EnableDetailedErrors(builder.Environment.IsDevelopment());
+    options.UseSnakeCaseNamingConvention();
+    options.AddInterceptors(sp.GetServices<IInterceptor>());
+}).AddEntityFrameworkNamingConventions();
+
+builder.Services.AddDbContextFactory<ApplicationDbContext>((sp, options) =>
+{
+    options.UseNpgsql(
+        connectionString,
+        npgsql =>
+        npgsql.MigrationsAssembly(typeof(ApplicationDbContext).Assembly.FullName));
+    options.UseOpenIddict();
+    options.EnableSensitiveDataLogging(builder.Environment.IsDevelopment());
+    options.EnableDetailedErrors(builder.Environment.IsDevelopment());
+    options.UseSnakeCaseNamingConvention();
+    options.AddInterceptors(sp.GetServices<IInterceptor>());
+
+}).AddEntityFrameworkNamingConventions();
 
 builder.Services.AddIdentity<ApplicationUser, ApplicationRole>(options =>
     {
@@ -139,12 +160,6 @@ app.UseAuthorization();
 app.MapControllers();
 app.MapControllerRoute("default", "{controller=Home}/{action=Index}/{id?}");
 app.MapRazorPages();
-
-if (builder.Configuration.GetValue<bool>("Database:ApplyMigrationsOnStartup"))
-{
-    await using var scope = app.Services.CreateAsyncScope();
-    await scope.ServiceProvider.GetRequiredService<IIdentityProvisioningService>().EnsureSeedDataAsync();
-}
 
 app.Run();
 

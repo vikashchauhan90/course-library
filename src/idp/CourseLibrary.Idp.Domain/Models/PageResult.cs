@@ -3,4 +3,9 @@
 public sealed record PageResult<T>(
     IReadOnlyList<T> Items,
     string? ContinuationToken,
-    bool HasMore);
+    bool HasMore)
+{
+
+    public static PageResult<T> Empty => new(Array.Empty<T>(), null, false);
+
+}

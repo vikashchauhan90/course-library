@@ -76,7 +76,7 @@ public sealed class AdminController(
         foreach (var invitation in activeInvitations) invitation.RevokedAt = DateTimeOffset.UtcNow;
         dbContext.UserInvitations.Add(new()
         {
-            Id = Guid.NewGuid(),
+            Id = Guid.NewGuid().ToString(),
             UserId = user.Id,
             TokenHash = HashToken(token),
             CreatedAt = DateTimeOffset.UtcNow,

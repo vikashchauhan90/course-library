@@ -1,12 +1,10 @@
-using System.Threading;
-using CourseLibrary.Idp.Domain.Abstractions;
 using CourseLibrary.Idp.Domain.Entities;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
 namespace CourseLibrary.Idp.Infrastructure.Persistence;
 
-public class ApplicationDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, string>, IApplicationDbContext
+public class ApplicationDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, string>
 {
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options) { }
 
@@ -18,7 +16,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
         builder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
 
         // Seeding via dedicated seeder class
-        //InitialDataSeeder.Seed(builder);
+        InitialDataSeeder.SeedData(builder);
     }
 
     public Task MigrateAsync(CancellationToken cancellationToken = default)

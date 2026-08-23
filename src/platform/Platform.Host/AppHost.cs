@@ -34,8 +34,8 @@ var serviceBus = builder
 var api = builder
     .AddProject<Projects.CourseLibrary_Api>("api");
 
-//var idp = builder
-//    .AddProject<Projects.CourseLibrary_Idp>("idp");
+var idp = builder
+   .AddProject<Projects.CourseLibrary_Idp>("idp");
 
 var consumer = builder
     .AddProject<Projects.CourseLibrary_EventConsumer>("consumer");
