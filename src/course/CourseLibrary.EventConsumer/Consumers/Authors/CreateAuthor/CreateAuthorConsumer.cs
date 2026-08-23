@@ -16,8 +16,9 @@ internal class CreateAuthorConsumer(
     [Function("CreateAuthorConsumer")]
     public async Task RunAsync(
        [ServiceBusTrigger(
-            "%CreateAuthorEventsQueue%",
-            Connection = "ServiceBusConnection")]
+            "AuthorCreated",
+        "CreateAuthorConsumer",
+        Connection = "ServiceBusConnection")]
         ServiceBusReceivedMessage message,
        CancellationToken cancellationToken)
     {

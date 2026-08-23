@@ -18,8 +18,8 @@ internal sealed class ServiceBusEventPublisher(
     ILogger<ServiceBusEventPublisher> logger)
     : IEventPublisher
 {
-    private readonly ISerializer<IDomainEvent> _serializer =
-        serializerFactory.Create<IDomainEvent>(
+    private readonly ISerializer<object> _serializer =
+        serializerFactory.Create<object>(
             SerializerType.MessagePack);
 
 

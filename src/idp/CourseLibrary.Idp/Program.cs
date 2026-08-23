@@ -23,10 +23,10 @@ if (string.IsNullOrWhiteSpace(connectionString))
     throw new InvalidOperationException("ConnectionStrings:DefaultConnection must be configured.");
 
 builder.Services.AddScoped<IInterceptor, AuditEntityInterceptor>();
-builder.Services.AddScoped<IInterceptor,ConnectionLoggingInterceptor>();
-builder.Services.AddScoped<IInterceptor,QueryTimingInterceptor>();
-builder.Services.AddScoped<IInterceptor,SecurityEntityInterceptor>();
-builder.Services.AddScoped<IInterceptor,TransactionLoggingInterceptor>();
+builder.Services.AddScoped<IInterceptor, ConnectionLoggingInterceptor>();
+builder.Services.AddScoped<IInterceptor, QueryTimingInterceptor>();
+builder.Services.AddScoped<IInterceptor, SecurityEntityInterceptor>();
+builder.Services.AddScoped<IInterceptor, TransactionLoggingInterceptor>();
 
 builder.Services.AddDbContext<ApplicationDbContext>((sp, options) =>
 {
@@ -39,7 +39,7 @@ builder.Services.AddDbContext<ApplicationDbContext>((sp, options) =>
     options.EnableDetailedErrors(builder.Environment.IsDevelopment());
     options.UseSnakeCaseNamingConvention();
     options.AddInterceptors(sp.GetServices<IInterceptor>());
-});
+}, optionsLifetime: ServiceLifetime.Scoped);
 
 builder.Services.AddDbContextFactory<ApplicationDbContext>((sp, options) =>
 {
@@ -53,7 +53,7 @@ builder.Services.AddDbContextFactory<ApplicationDbContext>((sp, options) =>
     options.UseSnakeCaseNamingConvention();
     options.AddInterceptors(sp.GetServices<IInterceptor>());
 
-});
+},lifetime: ServiceLifetime.Scoped);
 
 builder.Services.AddIdentity<ApplicationUser, ApplicationRole>(options =>
     {

@@ -1,0 +1,59 @@
+{
+  "UserConfig": {
+    "Namespaces": [
+      {
+        "Name": "sbemulatorns",
+        "Topics": [
+          {
+            "Name": "AuthorCreated",
+            "Subscriptions": [
+              {
+                "Name": "CreateAuthorConsumer"
+              }
+            ]
+          },
+          {
+            "Name": "AuthorDeleted",
+            "Subscriptions": [
+              {
+                "Name": "DeleteAuthorConsumer"
+              }
+            ]
+          },
+          {
+            "Name": "AuthorUpdated",
+            "Subscriptions": [
+              {
+                "Name": "UpdateAuthorConsumer"
+              }
+            ]
+          },
+          {
+            "Name": "CourseCreated",
+            "Subscriptions": [
+              {
+                "Name": "CreateCourseConsumer"
+              }
+            ]
+          },
+          {
+            "Name": "CourseDeleted",
+            "Subscriptions": [
+              {
+                "Name": "DeleteCourseConsumer"
+              }
+            ]
+          },
+          {
+            "Name": "CourseUpdated",
+            "Subscriptions": [
+              {
+                "Name": "UpdateCourseConsumer"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}
