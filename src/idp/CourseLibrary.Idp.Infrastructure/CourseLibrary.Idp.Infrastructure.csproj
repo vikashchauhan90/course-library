@@ -35,4 +35,8 @@
     <PackageReference Include="OpenTelemetry.Api" Version="1.17.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Persistence\Migrations\" />
+  </ItemGroup>
+
 </Project>
