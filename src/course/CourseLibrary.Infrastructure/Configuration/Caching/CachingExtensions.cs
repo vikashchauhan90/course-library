@@ -5,7 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace CourseLibrary.Infrastructure.Configuration.Caching;
 
-internal static class CachingExtensions
+public static class CachingExtensions
 {
     public static IServiceCollection AddCourseLibraryMemoryCache(
         this IServiceCollection services)

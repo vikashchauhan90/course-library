@@ -6,7 +6,7 @@ using System.Text.Json;
 
 namespace CourseLibrary.Infrastructure.Configuration.Serializers;
 
-internal static class SerializerExtensions
+public static class SerializerExtensions
 {
     public static IServiceCollection AddCourseLibrarySerializers(
     this IServiceCollection services)

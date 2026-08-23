@@ -7,5 +7,5 @@ public sealed class ServiceBusOptions
     public const string SectionName = "ServiceBus";
 
     [Required(AllowEmptyStrings = false)]
-    public required string FullyQualifiedNamespace { get; init; }
+    public required string Endpoint { get; init; }
 }

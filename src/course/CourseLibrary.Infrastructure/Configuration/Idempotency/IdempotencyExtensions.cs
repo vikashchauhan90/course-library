@@ -4,7 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace CourseLibrary.Infrastructure.Configuration.Idempotency;
 
-internal static class IdempotencyExtensions
+public static class IdempotencyExtensions
 {
     public static IServiceCollection AddCourseLibraryIdempotency(this IServiceCollection services)
     {

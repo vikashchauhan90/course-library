@@ -1,16 +1,12 @@
-﻿using CourseLibrary.Application.Abstractions.RequestContext;
-using CourseLibrary.Infrastructure.Configuration.Caching;
+﻿using CourseLibrary.Infrastructure.Configuration.Caching;
 using CourseLibrary.Infrastructure.Configuration.Cosmos;
 using CourseLibrary.Infrastructure.Configuration.Idempotency;
 using CourseLibrary.Infrastructure.Configuration.Messaging;
 using CourseLibrary.Infrastructure.Configuration.Resilience;
 using CourseLibrary.Infrastructure.Configuration.Serializers;
-using CourseLibrary.Infrastructure.RequestContext;
-using CourseLibrary.Infrastructure.Resilience;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
+using CourseLibrary.Infrastructure.Configuration.HttpContext;
 
-namespace CourseLibrary.Infrastructure.Configuration;
+namespace CourseLibrary.Api.Configuration;
 
 public static class InfrastructureServiceCollectionExtensions
 {
@@ -25,7 +21,7 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddCosmosDatabase(configuration);
         services.AddRepositories();
         services.AddCourseLibraryHttpResilience(configuration);
-        services.AddScoped<IRequestContext, HttpRequestContext>();
+        services.AddCourseLibraryRequestContext();
         services.AddCourseLibraryServiceBus(configuration);
 
         return services;

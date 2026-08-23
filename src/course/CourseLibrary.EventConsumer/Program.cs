@@ -1,7 +1,6 @@
-using CourseLibrary.Application.Configuration;
+using CourseLibrary.EventConsumer.Configuration;
 using CourseLibrary.EventConsumer.Configuration.Observability;
 using CourseLibrary.EventConsumer.Configuration.Observability.Metrics.Middlewares;
-using CourseLibrary.Infrastructure.Configuration;
 using Microsoft.Azure.Functions.Worker.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;

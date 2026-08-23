@@ -28,7 +28,7 @@ public static class ServiceBusExtensions
                 .Value;
 
             return new ServiceBusClient(
-                options.FullyQualifiedNamespace,
+                options.Endpoint,
                 new DefaultAzureCredential());
         });
 
