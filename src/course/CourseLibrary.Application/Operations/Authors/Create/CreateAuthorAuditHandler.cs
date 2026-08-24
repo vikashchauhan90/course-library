@@ -5,7 +5,7 @@ using Microsoft.Extensions.Logging;
 
 namespace CourseLibrary.Application.Operations.Authors.Create;
 
-internal class CreateAuthorAuditHandler(
+public class CreateAuthorAuditHandler(
     IAuthorAuditRepository auditRepository,
     ILogger<CreateAuthorAuditHandler> logger)
     : IHandler<CreateAuthorAuditCommand, Unit>

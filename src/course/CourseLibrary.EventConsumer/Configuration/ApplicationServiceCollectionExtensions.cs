@@ -1,9 +1,5 @@
 ﻿using CourseLibrary.Application.Behaviors;
 using CourseLibrary.Application.Operations.Authors.Create;
-using CourseLibrary.Application.Operations.Comments.Create;
-using CourseLibrary.Application.Operations.Courses.Create;
-using CourseLibrary.Application.Operations.Discussions.Create;
-using FluentValidation;
 using MediatorForge;
 using MediatorForge.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
@@ -22,6 +18,7 @@ public static class ApplicationServiceCollectionExtensions
         services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ExceptionHandlingBehavior<,>));
         services.AddTransient(typeof(IPipelineBehavior<,>), typeof(PerformanceBehavior<,>));
 
+        services.AddTransient<IHandler<CreateAuthorAuditCommand, Unit>, CreateAuthorAuditHandler>();
 
         return services;
     }
