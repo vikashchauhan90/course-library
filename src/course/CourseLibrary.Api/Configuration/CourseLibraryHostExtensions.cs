@@ -18,6 +18,12 @@ internal static class CourseLibraryHostExtensions
         Activity.DefaultIdFormat = ActivityIdFormat.W3C;
         Activity.ForceDefaultIdFormat = true;
 
+        // Kestrel configuration.
+        builder.WebHost.ConfigureKestrel(options =>
+        {
+            options.AddServerHeader = false;
+        });
+
         // .NET framework services.
         builder.Services.AddOptions();
         builder.Services.AddHttpClient();
