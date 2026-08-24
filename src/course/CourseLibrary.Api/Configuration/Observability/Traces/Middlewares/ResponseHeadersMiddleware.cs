@@ -41,6 +41,24 @@ internal sealed class ResponseHeadersMiddleware(
                     context.Response.Headers[InfraTrace.TraceHeaders.RequestId] = requestId;
                 }
 
+                if (!context.Response.Headers.ContainsKey(InfraTrace.TraceHeaders.TraceParent))
+                {
+                    logger.LogDebug(
+                        "Adding traceparent header to response: {TraceParent}",
+                        traceParent);
+                    context.Response.Headers[InfraTrace.TraceHeaders.TraceParent] = traceParent;
+
+                }
+
+                if (!context.Response.Headers.ContainsKey(InfraTrace.TraceHeaders.TraceId))
+                {
+                    logger.LogDebug(
+                        "Adding traceId header to response: {TraceId}",
+                        activity?.TraceId.ToString());
+
+                    context.Response.Headers[InfraTrace.TraceHeaders.TraceId] = activity?.TraceId.ToString();
+
+                }
 
                 foreach (var bag in activity?.Baggage ?? Array.Empty<KeyValuePair<string, string?>>())
                 {

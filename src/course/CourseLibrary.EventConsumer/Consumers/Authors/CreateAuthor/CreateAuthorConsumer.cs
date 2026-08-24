@@ -1,4 +1,5 @@
-﻿using Azure.Messaging.ServiceBus;
+﻿using Azure;
+using Azure.Messaging.ServiceBus;
 using CourseLibrary.Application.Abstractions.Idempotency;
 using CourseLibrary.Application.Abstractions.Serialization;
 using CourseLibrary.Application.Abstractions.Serializers;
@@ -44,6 +45,7 @@ internal class CreateAuthorConsumer(
         activity?.SetTag("messaging.message_id", message.MessageId);
         activity?.SetTag("messaging.correlation_id", message.CorrelationId);
         activity?.SetTag("messaging.delivery_count", message.DeliveryCount);
+        activity?.SetTag("request.traceId", ServiceBusTraceContext.GetProperty(message, "TraceId"));
 
         logger.LogInformation(
             "Processing Service Bus message {MessageId}.",
