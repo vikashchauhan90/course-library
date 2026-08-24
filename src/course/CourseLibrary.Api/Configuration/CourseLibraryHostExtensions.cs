@@ -3,7 +3,6 @@ using Carter;
 using CourseLibrary.Api.Configuration.Exceptions;
 using CourseLibrary.Api.Configuration.Observability;
 using CourseLibrary.Api.Configuration.Observability.Metrics;
-using CourseLibrary.Api.Configuration.Security;
 using System.Diagnostics;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -77,8 +76,6 @@ internal static class CourseLibraryHostExtensions
         app.UseRequestMetrics();
 
         app.UseHttpLogging();
-
-        app.UseSecurityHeaders();
 
         app.UseResponseHeaders();
 

@@ -1,5 +1,4 @@
-﻿using Azure.Identity;
-using Azure.Messaging.ServiceBus;
+﻿using Azure.Messaging.ServiceBus;
 using CourseLibrary.Application.Abstractions.Messaging;
 using CourseLibrary.Infrastructure.Messaging;
 using CourseLibrary.Infrastructure.Messaging.ServiceBus;
@@ -28,8 +27,7 @@ public static class ServiceBusExtensions
                 .Value;
 
             return new ServiceBusClient(
-                options.Endpoint,
-                new DefaultAzureCredential());
+                options.ConnectionString);
         });
 
         services.AddScoped<IEventRouter, EventRouter>();

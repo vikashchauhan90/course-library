@@ -6,6 +6,7 @@ using CourseLibrary.Gateway.Configuration.Observability;
 using CourseLibrary.Gateway.Configuration.Observability.Logs;
 using CourseLibrary.Gateway.Configuration.Proxy;
 using CourseLibrary.Gateway.Configuration.RateLimiting;
+using CourseLibrary.Gateway.Configuration.Security;
 using System.Diagnostics;
 
 namespace CourseLibrary.Gateway.Configuration;
@@ -19,6 +20,12 @@ internal static class CourseLibraryHostExtensions
         // W3C distributed tracing format.
         Activity.DefaultIdFormat = ActivityIdFormat.W3C;
         Activity.ForceDefaultIdFormat = true;
+
+        // Kestrel configuration.
+        builder.WebHost.ConfigureKestrel(options =>
+        {
+            options.AddServerHeader = false;
+        });
 
         // .NET framework services.
         builder.Services.AddOptions();
@@ -53,6 +60,9 @@ internal static class CourseLibraryHostExtensions
     {
         app.UseGlobalExceptionHandler();
         app.UseForwardedHeaders();
+        app.UseResponseHeaderCleanup();
+        app.UseSecurityHeaders(
+            SecurityHeadersPolicies.AddCourseLibraryDefaultSecurityHeaders());
         app.UseRequestContext();
         app.UseHttpsRedirection();
         app.UseHttpLogging();

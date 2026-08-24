@@ -7,5 +7,5 @@ public sealed class ServiceBusOptions
     public const string SectionName = "ServiceBus";
 
     [Required(AllowEmptyStrings = false)]
-    public required string Endpoint { get; init; }
+    public required string ConnectionString { get; init; }
 }
