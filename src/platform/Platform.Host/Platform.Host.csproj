@@ -23,7 +23,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Update="ServiceBus\Config.json">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
   </ItemGroup>
 </Project>

@@ -3,7 +3,10 @@ var builder = DistributedApplication.CreateBuilder(args);
 var sql = builder.AddContainer("servicebus-sql", "mcr.microsoft.com/mssql/server:2022-latest")
     .WithEnvironment("ACCEPT_EULA", "Y")
     .WithEnvironment("MSSQL_SA_PASSWORD", "Welcome@123")
-    .WithEndpoint(targetPort: 1433, name: "sql");
+    .WithEndpoint(
+    port: 1433,
+    targetPort: 1433,
+    name: "servicebus-sql");
 
 var serviceBus = builder
     .AddContainer(
@@ -11,13 +14,14 @@ var serviceBus = builder
         "mcr.microsoft.com/azure-messaging/servicebus-emulator")
     .WithEnvironment("ACCEPT_EULA", "Y")
     .WithEnvironment("MSSQL_SA_PASSWORD", "Welcome@123")
+    .WithEnvironment("SQL_SERVER", "servicebus-sql")
     .WithBindMount(
-        "./servicebus-config.json",
-        "/ServiceBus_Emulator/Config/Config.json")
+    "./ServiceBus/Config.json",
+    "/ServiceBus_Emulator/ConfigFiles/Config.json")
     .WithEndpoint(
     port: 5672,
     targetPort: 5672,
-    name: "amqp")
+    name: "servicebus")
     .WaitFor(sql);
 
 var api = builder

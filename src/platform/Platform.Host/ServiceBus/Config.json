@@ -3,6 +3,7 @@
     "Namespaces": [
       {
         "Name": "sbemulatorns",
+        "Queues": [],
         "Topics": [
           {
             "Name": "AuthorCreated",
@@ -54,6 +55,9 @@
           }
         ]
       }
-    ]
+    ],
+    "Logging": {
+      "Type": "Console"
+    }
   }
 }

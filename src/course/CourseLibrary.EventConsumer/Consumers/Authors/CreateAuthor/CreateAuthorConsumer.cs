@@ -1,4 +1,7 @@
 ﻿using Azure.Messaging.ServiceBus;
+using CourseLibrary.Application.Abstractions.Idempotency;
+using CourseLibrary.Application.Abstractions.Serialization;
+using CourseLibrary.Application.Abstractions.Serializers;
 using CourseLibrary.Domain.Events;
 using CourseLibrary.EventConsumer.Configuration.Observability.Traces;
 using Microsoft.Azure.Functions.Worker;
@@ -10,9 +13,12 @@ using System.Diagnostics;
 namespace CourseLibrary.EventConsumer.Consumers.Authors.CreateAuthor;
 
 internal class CreateAuthorConsumer(
-    DurableTaskClient durableTaskClient,
+    ISerializerFactory serializerFactory,
     ILogger<CreateAuthorConsumer> logger)
 {
+    private readonly ISerializer<AuthorCreatedEvent> _serializer =
+       serializerFactory.Create<AuthorCreatedEvent>(
+           SerializerType.MessagePack);
     [Function("CreateAuthorConsumer")]
     public async Task RunAsync(
        [ServiceBusTrigger(
@@ -20,6 +26,7 @@ internal class CreateAuthorConsumer(
         "CreateAuthorConsumer",
         Connection = "ServiceBusConnection")]
         ServiceBusReceivedMessage message,
+        [DurableClient] DurableTaskClient durableTaskClient,
        CancellationToken cancellationToken)
     {
         var parentContext =
@@ -42,9 +49,8 @@ internal class CreateAuthorConsumer(
             "Processing Service Bus message {MessageId}.",
             message.MessageId);
 
+        AuthorCreatedEvent? authorEvent = _serializer.Deserialize(message.Body.ToArray());
 
-        var authorEvent =
-            message.Body.ToObjectFromJson<AuthorCreatedEvent>();
 
         if (authorEvent is null)
         {

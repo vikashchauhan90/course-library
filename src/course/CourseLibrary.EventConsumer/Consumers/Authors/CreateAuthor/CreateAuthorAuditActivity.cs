@@ -10,12 +10,12 @@ using System.Diagnostics;
 namespace CourseLibrary.EventConsumer.Consumers.Authors.CreateAuthor;
 
 internal sealed class CreateAuthorAuditActivity(
+     IDispatcher dispatcher,
     ILogger<CreateAuthorAuditActivity> logger)
 {
     [Function(nameof(CreateAuthorAuditActivity))]
     public async Task RunAsync(
         [ActivityTrigger] AuthorCreatedEvent authorEvent,
-        ICommandDispatcher dispatcher,
         FunctionContext context,
         CancellationToken cancellationToken)
     {
