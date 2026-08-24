@@ -1,5 +1,6 @@
 ﻿using CourseLibrary.Application.Behaviors;
 using CourseLibrary.Application.Operations.Authors.Create;
+using CourseLibrary.Application.Operations.Authors.Update;
 using MediatorForge;
 using MediatorForge.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
@@ -19,6 +20,7 @@ public static class ApplicationServiceCollectionExtensions
         services.AddTransient(typeof(IPipelineBehavior<,>), typeof(PerformanceBehavior<,>));
 
         services.AddTransient<IHandler<CreateAuthorAuditCommand, Unit>, CreateAuthorAuditHandler>();
+        services.AddTransient<IHandler<UpdateAuthorAuditCommand, Unit>, UpdateAuthorAuditHandler>();
 
         return services;
     }
