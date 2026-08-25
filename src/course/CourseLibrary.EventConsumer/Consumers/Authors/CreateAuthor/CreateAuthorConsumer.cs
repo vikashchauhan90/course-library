@@ -4,6 +4,7 @@ using CourseLibrary.Application.Abstractions.Idempotency;
 using CourseLibrary.Application.Abstractions.Serialization;
 using CourseLibrary.Application.Abstractions.Serializers;
 using CourseLibrary.Domain.Events;
+using CourseLibrary.EventConsumer.Configuration;
 using CourseLibrary.EventConsumer.Configuration.Observability.Traces;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.DurableTask;
@@ -91,10 +92,13 @@ internal class CreateAuthorConsumer(
         activity?.SetTag("orchestration.exists", false);
         activity?.SetStatus(ActivityStatusCode.Ok);
 
+        var parentTraceContext = RequestTraceContextFactory.FromActivity(activity);
+
         // CHILD ACTIVITY: Schedule orchestration
         using (var scheduleActivity = ActivitySources.EventConsumer.StartActivity(
             "consumer.schedule.orchestration",
-            ActivityKind.Client))
+            ActivityKind.Client,
+            RequestTraceContextFactory.ToActivityContext(parentTraceContext)))
         {
             scheduleActivity?.SetTag("orchestration.name", nameof(CreateAuthorOrchestrator));
             scheduleActivity?.SetTag("orchestration.instance_id", instanceId);
@@ -104,15 +108,18 @@ internal class CreateAuthorConsumer(
                 // Link to the new orchestration (this will be the parent for the orchestration)
                 var links = new List<ActivityLink>();
 
-                if (Activity.Current != null)
+                if (activity != null)
                 {
                     // Create link to the consumer activity
-                    links.Add(new ActivityLink(Activity.Current.Context));
+                    links.Add(new ActivityLink(activity.Context));
                 }
 
                 await durableTaskClient.ScheduleNewOrchestrationInstanceAsync(
                 nameof(CreateAuthorOrchestrator),
-                authorEvent,
+                new DurableTraceInput<AuthorCreatedEvent>(
+                    Data: authorEvent,
+                    TraceContext: parentTraceContext
+                ),
                 new StartOrchestrationOptions
                 {
                     InstanceId = instanceId

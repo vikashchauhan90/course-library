@@ -1,4 +1,5 @@
 ﻿using CourseLibrary.Domain.Events;
+using CourseLibrary.EventConsumer.Configuration;
 using CourseLibrary.EventConsumer.Configuration.Observability.Traces;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.DurableTask;
@@ -14,7 +15,8 @@ internal sealed class CreateAuthorOrchestrator
         [OrchestrationTrigger] TaskOrchestrationContext context)
     {
         // Get parent activity from the consumer
-        var parentContext = Activity.Current?.Context ?? default;
+        var input = context.GetInput<DurableTraceInput<AuthorCreatedEvent>>();
+        var parentContext = RequestTraceContextFactory.ToActivityContext(input?.TraceContext);
 
         // MAIN ACTIVITY: Orchestration
         using var orchestrationActivity = ActivitySources.EventConsumer.StartActivity(
@@ -51,8 +53,7 @@ internal sealed class CreateAuthorOrchestrator
             "Starting CreateAuthor orchestration. InstanceId: {InstanceId}.",
             context.InstanceId);
 
-        var courseEvent =
-            context.GetInput<AuthorCreatedEvent>();
+        var courseEvent = input?.Data;
 
         if (courseEvent is null)
         {
@@ -79,7 +80,7 @@ internal sealed class CreateAuthorOrchestrator
 
         await context.CallActivityAsync(
             nameof(CreateAuthorAuditActivity),
-            courseEvent);
+            input);
 
         // Set final status
         orchestrationActivity?.SetStatus(ActivityStatusCode.Ok);

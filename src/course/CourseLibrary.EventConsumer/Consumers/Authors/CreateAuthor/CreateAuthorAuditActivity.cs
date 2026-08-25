@@ -1,6 +1,7 @@
 ﻿using Castle.Core.Logging;
 using CourseLibrary.Application.Operations.Authors.Create;
 using CourseLibrary.Domain.Events;
+using CourseLibrary.EventConsumer.Configuration;
 using CourseLibrary.EventConsumer.Configuration.Observability.Traces;
 using MediatorForge.Abstractions;
 using Microsoft.Azure.Functions.Worker;
@@ -15,14 +16,18 @@ internal sealed class CreateAuthorAuditActivity(
 {
     [Function(nameof(CreateAuthorAuditActivity))]
     public async Task RunAsync(
-        [ActivityTrigger] AuthorCreatedEvent authorEvent,
+        [ActivityTrigger] DurableTraceInput<AuthorCreatedEvent> input,
         FunctionContext context,
         CancellationToken cancellationToken)
     {
+        var parentContext = RequestTraceContextFactory.ToActivityContext(input?.TraceContext);
+        var authorEvent = input?.Data ?? throw new ArgumentNullException(nameof(input.Data));
+
         // Activity span for the entire activity
         using var activity = ActivitySources.EventConsumer.StartActivity(
             "activity.create-author-audit",
-            ActivityKind.Internal);
+            ActivityKind.Internal,
+            parentContext);
 
         activity?.SetTag("audit.author_id", authorEvent.AuthorId);
         activity?.SetTag("audit.action", "CreateAuthor");
