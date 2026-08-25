@@ -2,7 +2,10 @@
 using CourseLibrary.Application.Abstractions.Serialization;
 using CourseLibrary.Application.Abstractions.Serializers;
 using CourseLibrary.Domain.Events;
+using CourseLibrary.EventConsumer.Configuration.Observability.Metrics;
 using CourseLibrary.EventConsumer.Configuration.Observability.Traces;
+using DurableTask.Core.History;
+using Google.Protobuf.WellKnownTypes;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.DurableTask;
 using Microsoft.DurableTask.Client;
@@ -59,10 +62,16 @@ internal class CreateAuthorConsumer(
 
             logger.LogInformation("Processing Service Bus message {MessageId}.", message.MessageId);
 
+            Meters.RecordMessageConsumed(
+           "AuthorCreated",
+           message.MessageId,
+           "AuthorCreated");
+
             var authorEvent = _serializer.Deserialize(message.Body.ToArray());
 
             if (authorEvent is null)
             {
+
                 logger.LogWarning("Received message {MessageId} with invalid author event.", message.MessageId);
                 activity?.SetStatus(ActivityStatusCode.Error, "Invalid author event.");
                 return;
