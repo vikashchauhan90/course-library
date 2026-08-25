@@ -3,6 +3,8 @@ using Carter;
 using CourseLibrary.Api.Configuration.Exceptions;
 using CourseLibrary.Api.Configuration.Observability;
 using CourseLibrary.Api.Configuration.Observability.Metrics;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using System.Diagnostics;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -28,7 +30,16 @@ internal static class CourseLibraryHostExtensions
         builder.Services.AddOptions();
         builder.Services.AddHttpClient();
         builder.Services.AddHttpContextAccessor();
-        builder.Services.AddHealthChecks();
+        builder.Services
+    .AddHealthChecks()
+     .AddCheck(
+        "self",
+        () => HealthCheckResult.Healthy(),
+        tags: ["live"])
+    .AddAzureCosmosDB(
+        name: "cosmos",
+        tags: ["ready"]);
+
         builder.Services.AddOpenApi();
         builder.Services.AddApiVersioning(options =>
         {
@@ -92,10 +103,21 @@ internal static class CourseLibraryHostExtensions
 
         app.MapCarter();
 
-        app.MapHealthChecks("/health/live")
+        // Health endpoints
+        app.MapHealthChecks(
+            "/health/live",
+            new HealthCheckOptions
+            {
+                Predicate = check => check.Tags.Contains("live")
+            })
             .AllowAnonymous();
 
-        app.MapHealthChecks("/health/ready")
+        app.MapHealthChecks(
+            "/health/ready",
+            new HealthCheckOptions
+            {
+                Predicate = check => check.Tags.Contains("ready")
+            })
             .AllowAnonymous();
 
         return app;

@@ -20,7 +20,7 @@ public static class ServiceBusExtensions
            .ValidateDataAnnotations()
            .ValidateOnStart();
 
-        services.AddSingleton(sp =>
+        services.AddSingleton<ServiceBusClient>(sp =>
         {
             var options = sp
                 .GetRequiredService<IOptions<ServiceBusOptions>>()
