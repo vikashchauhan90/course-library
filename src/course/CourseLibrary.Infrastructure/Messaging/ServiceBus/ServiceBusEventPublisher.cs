@@ -32,6 +32,8 @@ internal sealed class ServiceBusEventPublisher(
             "ServiceBusEventPublisher.PublishAsync",
             ActivityKind.Producer);
 
+        var propagationActivity = activity ?? Activity.Current;
+
         var eventType = typeof(TEvent).Name;
         var destination = router.GetDestination<TEvent>();
         var messageChannelType = router.GetChannelType<TEvent>();
@@ -44,9 +46,7 @@ internal sealed class ServiceBusEventPublisher(
         activity?.SetTag("message.destination", destination);
         activity?.SetTag("request.correlationId", requestContext.CorrelationId);
         activity?.SetTag("request.userId", requestContext.UserId);
-        activity?.SetTag("request.traceParent", requestContext.TraceParent);
-        activity?.SetTag("request.traceId", requestContext.TraceId);
-        activity?.SetTag("request.traceState", requestContext.TraceState);
+        activity?.SetTag("request.traceId", propagationActivity?.TraceId.ToString());
         activity?.SetTag("message.contentType", SerializerType.MessagePack.ToString());
         activity?.SetTag("message.size", serialized.Length);
         activity?.SetTag("message.id", @event.EventId.ToString());
@@ -66,13 +66,15 @@ internal sealed class ServiceBusEventPublisher(
                 ["EventType"] = eventType,
                 ["MessageChannelType"] = messageChannelType.ToString(),
                 ["Destination"] = destination,
-                ["UserId"] = requestContext.UserId,
-                ["TraceParent"] = requestContext.TraceParent,
-                ["TraceId"] = requestContext.TraceId,
-                ["TraceState"] = requestContext.TraceState
+                ["UserId"] = requestContext.UserId
             }
 
         };
+
+        if (propagationActivity is not null)
+        {
+            ServiceBusTraceContext.Inject(message, propagationActivity);
+        }
 
         logger.LogInformation(
             "Publishing integration event {EventType} with EventId {EventId} to {MessageChannelType} {TopicName}.",

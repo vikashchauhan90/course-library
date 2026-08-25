@@ -22,6 +22,15 @@ public sealed class CorrelationActivityProcessor
         activity.SetTag("trace.state", activity.TraceStateString);
         activity.SetTag("trace.flags", activity.ActivityTraceFlags.ToString());
         activity.SetTag("trace.start_time", activity.StartTimeUtc.ToString("O"));
-        activity.SetTag("trace.duration", activity.Duration.ToString());
+    }
+
+    public override void OnEnd(Activity activity)
+    {
+        if (activity is null)
+        {
+            return;
+        }
+        activity.SetTag("trace.end_time", DateTime.UtcNow.ToString("O"));
+        activity.SetTag("trace.duration_ms", activity.Duration.TotalMilliseconds);
     }
 }

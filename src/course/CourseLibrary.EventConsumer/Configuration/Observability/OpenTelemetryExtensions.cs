@@ -61,6 +61,7 @@ internal static class OpenTelemetryExtensions
 
                     .AddSource(
                         ActivitySources.EventConsumer.Name)
+                    .AddSource("Microsoft.DurableTask")
 
                     .AddHttpClientInstrumentation(options =>
                     {
@@ -86,7 +87,7 @@ internal static class OpenTelemetryExtensions
 
                     .AddMeter(
                         ActivitySources.EventConsumer.Name)
-
+                      .AddMeter("Microsoft.DurableTask")
                     .AddRuntimeInstrumentation()
                     .AddProcessInstrumentation()
                     .AddHttpClientInstrumentation()

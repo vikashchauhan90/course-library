@@ -1,5 +1,4 @@
 ﻿using CourseLibrary.Domain.Events;
-using CourseLibrary.EventConsumer.Configuration;
 using CourseLibrary.EventConsumer.Configuration.Observability.Traces;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.DurableTask;
@@ -11,86 +10,58 @@ namespace CourseLibrary.EventConsumer.Consumers.Authors.CreateAuthor;
 internal sealed class CreateAuthorOrchestrator
 {
     [Function(nameof(CreateAuthorOrchestrator))]
-    public static async Task RunAsync(
-        [OrchestrationTrigger] TaskOrchestrationContext context)
+    public static async Task RunAsync([OrchestrationTrigger] TaskOrchestrationContext context)
     {
-        // Get parent activity from the consumer
-        var input = context.GetInput<DurableTraceInput<AuthorCreatedEvent>>();
-        var parentContext = RequestTraceContextFactory.ToActivityContext(input?.TraceContext);
+        var logger = context.CreateReplaySafeLogger<CreateAuthorOrchestrator>();
 
-        // MAIN ACTIVITY: Orchestration
-        using var orchestrationActivity = ActivitySources.EventConsumer.StartActivity(
-            "orchestration.create-author",
-            ActivityKind.Internal,
-            parentContext);
-
-        var logger =
-            context.CreateReplaySafeLogger<CreateAuthorOrchestrator>();
-
-        // Set orchestration tags
-        orchestrationActivity?.SetTag("orchestration.instance_id", context.InstanceId);
-        orchestrationActivity?.SetTag("orchestration.name", nameof(CreateAuthorOrchestrator));
-        orchestrationActivity?.SetTag("orchestration.is_replaying", context.IsReplaying);
-
+        // Handle replay without creating activities
         if (context.IsReplaying)
         {
-            // During replay, just log but don't create additional spans
-            logger.LogDebug(
-                "Replaying orchestration {InstanceId}",
-                context.InstanceId);
-
-            orchestrationActivity?.SetTag("orchestration.replaying", true);
-            // Note: Don't set status here as it will be overwritten
+            logger.LogDebug("Replaying orchestration {InstanceId}", context.InstanceId);
+            var replayEvent = context.GetInput<AuthorCreatedEvent>();
+            await context.CallActivityAsync(nameof(CreateAuthorAuditActivity), replayEvent);
+            return;
         }
-        else
+
+        using var orchestrationActivity = ActivitySources.EventConsumer.StartActivity(
+            "orchestration.create-author",
+            ActivityKind.Internal);
+
+        try
         {
+            orchestrationActivity?.SetTag("orchestration.instance_id", context.InstanceId);
+            orchestrationActivity?.SetTag("orchestration.name", nameof(CreateAuthorOrchestrator));
+
             logger.LogInformation(
                 "Starting CreateAuthor orchestration. InstanceId: {InstanceId}.",
                 context.InstanceId);
-        }
 
-        logger.LogInformation(
-            "Starting CreateAuthor orchestration. InstanceId: {InstanceId}.",
-            context.InstanceId);
+            var authorEvent = context.GetInput<AuthorCreatedEvent>();
 
-        var courseEvent = input?.Data;
+            if (authorEvent is null)
+            {
+                orchestrationActivity?.SetStatus(ActivityStatusCode.Error, "Null event input");
+                logger.LogError(
+                    "CreateAuthor orchestration {InstanceId} did not receive an AuthorCreatedEvent.",
+                    context.InstanceId);
+                throw new InvalidOperationException("AuthorCreatedEvent was not provided.");
+            }
 
-        if (courseEvent is null)
-        {
-            orchestrationActivity?.SetStatus(ActivityStatusCode.Error, "Null event input");
+            orchestrationActivity?.SetTag("event.author_id", authorEvent.AuthorId);
+            orchestrationActivity?.SetTag("event.type", authorEvent.GetType().Name);
 
-            logger.LogError(
-                "CreateAuthor orchestration {InstanceId} did not receive an AuthorCreatedEvent.",
-                context.InstanceId);
+            await context.CallActivityAsync(nameof(CreateAuthorAuditActivity), authorEvent);
 
-            throw new InvalidOperationException(
-                "AuthorCreatedEvent was not provided.");
-        }
-
-        // Set event details (always set these, even during replay)
-        orchestrationActivity?.SetTag("event.author_id", courseEvent.AuthorId);
-        orchestrationActivity?.SetTag("event.type", courseEvent.GetType().Name);
-
-        if (!context.IsReplaying)
-        {
-            logger.LogInformation(
-            "Processing AuthorCreatedEvent for AuthorId {AuthorId}.",
-            courseEvent.AuthorId);
-        }
-
-        await context.CallActivityAsync(
-            nameof(CreateAuthorAuditActivity),
-            input);
-
-        // Set final status
-        orchestrationActivity?.SetStatus(ActivityStatusCode.Ok);
-
-        if (!context.IsReplaying)
-        {
+            orchestrationActivity?.SetStatus(ActivityStatusCode.Ok);
             logger.LogInformation(
                 "CreateAuthor orchestration {InstanceId} completed for AuthorId {AuthorId}.",
-                context.InstanceId,
-                courseEvent.AuthorId);
+                context.InstanceId, authorEvent.AuthorId);
+        }
+        catch (Exception ex)
+        {
+            orchestrationActivity?.SetStatus(ActivityStatusCode.Error, ex.Message);
+            logger.LogError(ex, "CreateAuthor orchestration {InstanceId} failed.", context.InstanceId);
+            throw;
         }
     }
 }
