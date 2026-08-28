@@ -80,7 +80,7 @@ internal static class CourseLibraryHostExtensions
     }
 
     public static WebApplication UseCourseLibraryPipeline(
-    this WebApplication app)
+     this WebApplication app)
     {
         app.UseGlobalExceptionHandler();
 
@@ -94,14 +94,14 @@ internal static class CourseLibraryHostExtensions
 
         app.UseHttpLogging();
 
+        app.UseOutputCache();
+
         app.UseResponseHeaders();
 
         if (app.Environment.IsDevelopment())
         {
             app.MapOpenApi();
         }
-
-        app.MapCarter();
 
         // Health endpoints
         app.MapHealthChecks(
@@ -119,6 +119,8 @@ internal static class CourseLibraryHostExtensions
                 Predicate = check => check.Tags.Contains("ready")
             })
             .AllowAnonymous();
+
+        app.MapCarter();
 
         return app;
     }

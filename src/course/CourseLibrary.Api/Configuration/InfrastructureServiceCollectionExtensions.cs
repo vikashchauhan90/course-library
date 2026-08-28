@@ -5,6 +5,7 @@ using CourseLibrary.Infrastructure.Configuration.Messaging;
 using CourseLibrary.Infrastructure.Configuration.Resilience;
 using CourseLibrary.Infrastructure.Configuration.Serializers;
 using CourseLibrary.Infrastructure.Configuration.HttpContext;
+using CourseLibrary.Api.Configuration.OutputCache;
 
 namespace CourseLibrary.Api.Configuration;
 
@@ -23,7 +24,7 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddCourseLibraryHttpResilience(configuration);
         services.AddCourseLibraryRequestContext();
         services.AddCourseLibraryServiceBus(configuration);
-
+        services.AddCourseLibraryOutputCache();
         return services;
     }
 }
