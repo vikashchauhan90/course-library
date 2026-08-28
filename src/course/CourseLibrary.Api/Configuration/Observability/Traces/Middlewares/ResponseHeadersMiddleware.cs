@@ -1,7 +1,10 @@
-﻿using Microsoft.Extensions.Primitives;
+﻿using CourseLibrary.Infrastructure.OutputCache;
+using Microsoft.Azure.Cosmos.Linq;
+using Microsoft.Extensions.Primitives;
 using System.Diagnostics;
-using InfraTrace = CourseLibrary.Infrastructure.Observability.Traces;
+using System.Globalization;
 using InfrastructureObservability = CourseLibrary.Infrastructure.Observability;
+using InfraTrace = CourseLibrary.Infrastructure.Observability.Traces;
 
 namespace CourseLibrary.Api.Configuration.Observability.Traces.Middlewares;
 
@@ -9,7 +12,9 @@ internal sealed class ResponseHeadersMiddleware(
     RequestDelegate next,
     ILogger<ResponseHeadersMiddleware> logger)
 {
-    public async Task InvokeAsync(HttpContext context)
+    public async Task InvokeAsync(
+        HttpContext context,
+         IOutputCacheDiagnostics outputCache)
     {
         context.Response.OnStarting(
             () =>
@@ -63,6 +68,23 @@ internal sealed class ResponseHeadersMiddleware(
                 foreach (var bag in activity?.Baggage ?? Array.Empty<KeyValuePair<string, string?>>())
                 {
                     context.Response.Headers.Append(InfraTrace.TraceHeaders.Baggage, $"{bag.Key}={bag.Value}");
+                }
+
+                if (outputCache.Hit.HasValue)
+                {
+                    context.Response.Headers[
+                        InfraTrace.TraceHeaders.CacheHit] =
+                        outputCache.Hit.Value.ToString()
+                            .ToLowerInvariant();
+                }
+
+                if (outputCache.ExpirationDuration.HasValue)
+                {
+                    context.Response.Headers[
+                        InfraTrace.TraceHeaders.CacheTtl] =
+                        outputCache.ExpirationDuration.Value
+                            .TotalSeconds
+                            .ToString(CultureInfo.InvariantCulture);
                 }
 
                 return Task.CompletedTask;

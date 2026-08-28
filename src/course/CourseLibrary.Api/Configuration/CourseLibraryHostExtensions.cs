@@ -3,6 +3,7 @@ using Carter;
 using CourseLibrary.Api.Configuration.Exceptions;
 using CourseLibrary.Api.Configuration.Observability;
 using CourseLibrary.Api.Configuration.Observability.Metrics;
+using CourseLibrary.Api.Configuration.OutputCache;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using System.Diagnostics;
@@ -94,9 +95,9 @@ internal static class CourseLibraryHostExtensions
 
         app.UseHttpLogging();
 
-        app.UseOutputCache();
-
         app.UseResponseHeaders();
+
+        app.UseOutputCache();
 
         if (app.Environment.IsDevelopment())
         {
@@ -110,7 +111,8 @@ internal static class CourseLibraryHostExtensions
             {
                 Predicate = check => check.Tags.Contains("live")
             })
-            .AllowAnonymous();
+            .AllowAnonymous()
+            .CacheOutput(OutputCachePolicies.Default);
 
         app.MapHealthChecks(
             "/health/ready",
@@ -121,7 +123,6 @@ internal static class CourseLibraryHostExtensions
             .AllowAnonymous();
 
         app.MapCarter();
-
         return app;
     }
 }

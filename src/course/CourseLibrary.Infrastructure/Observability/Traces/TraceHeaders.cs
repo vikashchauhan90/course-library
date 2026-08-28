@@ -33,4 +33,7 @@ public static class TraceHeaders
     /// Unique trace identifier (custom header).
     /// </summary>
     public const string TraceId = "X-Trace-ID";
+
+    public const string CacheHit = "X-Cache-Hit";
+    public const string CacheTtl = "X-Cache-TTL";
 }

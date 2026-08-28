@@ -28,7 +28,7 @@ public sealed class OutputCacheStore(
         {
             var value = await cacheProvider.GetOrCreateAsync(
                 key,
-                factory: _ => Task.FromResult<byte[]?>(null)!,
+                factory: _ => Task.FromResult<byte[]>(Array.Empty<byte>()),
                 TimeSpan.FromSeconds(1), // Temporary TTL for the factory, won't be used since we return null
                 null,
                 cancellationToken);
@@ -41,7 +41,7 @@ public sealed class OutputCacheStore(
                 value is null ? "miss" : "hit",
                 key);
 
-            return value;
+            return value?.Length > 0 ? value : null;
         }
         catch (OperationCanceledException)
         {

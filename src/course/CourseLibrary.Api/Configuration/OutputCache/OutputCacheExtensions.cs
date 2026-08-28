@@ -1,5 +1,6 @@
 ﻿using CourseLibrary.Api.Configuration.OutputCache.Policies;
 using CourseLibrary.Infrastructure.Caching;
+using CourseLibrary.Infrastructure.OutputCache;
 using Microsoft.AspNetCore.OutputCaching;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
@@ -15,14 +16,15 @@ public static class OutputCacheExtensions
             options.AddBasePolicy(builder =>
             {
                 builder.Expire(TimeSpan.FromSeconds(30));
-                builder.Tag("output-cache");
+                builder.Tag("output-cache");             
             });
 
             options.AddPolicy(OutputCachePolicies.Default, policy =>
             {
                 policy
                     .Expire(TimeSpan.FromMinutes(5))
-                    .Tag("output-cache");
+                    .Tag("output-cache")
+                    .AddPolicy<DefaultOutputCachePolicy>();
             });
 
             options.AddPolicy(
@@ -36,9 +38,10 @@ public static class OutputCacheExtensions
                     .AddPolicy<IdempotencyOutputCachePolicy>();
                 });
         });
-
+        
         services.Replace(
-    ServiceDescriptor.Singleton<IOutputCacheStore, OutputCacheStore>());
+            ServiceDescriptor.Singleton<IOutputCacheStore, OutputCacheStore>());
+        services.AddScoped<IOutputCacheDiagnostics, OutputCacheDiagnostics>();
         return services;
     }
 }
