@@ -8,12 +8,14 @@ namespace CourseLibrary.Infrastructure.Caching;
 
 public sealed class HybridCacheProvider(
     HybridCache cache,
-    ILogger<HybridCacheProvider> logger) : ICacheProvider
+    ILogger<HybridCacheProvider> logger) 
+    : ICacheProvider
 {
     public async Task<byte[]> GetOrCreateAsync(
         string key,
         Func<CancellationToken, Task<byte[]>> factory,
         TimeSpan ttl,
+        IEnumerable<string>? tags = null,
         CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(key);
@@ -44,6 +46,7 @@ public sealed class HybridCacheProvider(
                     return await factory(ct);
                 },
                 options,
+                tags,
                 cancellationToken: cancellationToken);
 
             logger.LogDebug(
@@ -80,6 +83,7 @@ public sealed class HybridCacheProvider(
         string key,
         byte[] value,
         TimeSpan ttl,
+        IEnumerable<string>? tags = null,
         CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(key);
@@ -112,6 +116,7 @@ public sealed class HybridCacheProvider(
                 key,
                 value,
                 options,
+                tags,
                 cancellationToken: cancellationToken);
 
             logger.LogDebug(
@@ -185,6 +190,53 @@ public sealed class HybridCacheProvider(
                 ex,
                 "Error removing cache entry for key {CacheKey}",
                 key);
+
+            throw;
+        }
+    }
+
+    public async Task RemoveByTagAsync(
+        string tag,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(tag);
+
+        using var activity = ActivitySources.Infrastructure.StartActivity(
+            "HybridCacheProvider.RemoveByTagAsync",
+            ActivityKind.Internal);
+        activity?.SetTag("cache.tag", tag);
+        activity?.SetTag("cache.operation", "remove-by-tag");
+
+        try
+        {
+            await cache.RemoveByTagAsync(
+                tag,
+                cancellationToken);
+
+            activity?.SetTag("cache.operation.success", true);
+            logger.LogDebug(
+                "Cache entries removed by tag {CacheTag}",
+                tag);
+        }
+        catch (OperationCanceledException)
+        {
+            activity?.SetTag("error", true)
+                .SetTag("error.message", "Cache remove by tag operation was cancelled.");
+            logger.LogDebug(
+                "Cache remove by tag operation was cancelled for tag {CacheTag}",
+                tag);
+
+            throw;
+        }
+        catch (Exception ex)
+        {
+            activity?.SetTag("error", true)
+                .SetTag("error.message", ex.Message)
+                .SetTag("error.stacktrace", ex.StackTrace);
+            logger.LogError(
+                ex,
+                "Error removing cache entries for tag {CacheTag}",
+                tag);
 
             throw;
         }

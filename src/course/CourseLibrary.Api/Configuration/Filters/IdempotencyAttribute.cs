@@ -1,3 +1,4 @@
+using Azure;
 using CourseLibrary.Application.Abstractions.Idempotency;
 using CourseLibrary.Infrastructure.Configuration.Idempotency;
 using Microsoft.AspNetCore.Mvc;
@@ -33,7 +34,22 @@ public sealed class IdempotencyAttribute : Attribute, IAsyncActionFilter
         var store = context.HttpContext.RequestServices
             .GetRequiredService<IIdempotencyStore>();
 
+        var routeName = context.HttpContext.GetEndpoint()?
+            .Metadata
+            .GetMetadata<RouteNameMetadata>()?
+            .RouteName?? "unknown";
+
         var cacheKey = $"idempotency:{key}";
+
+        // TODO:Add UserId to the cache key if the user is authenticated
+        var tags = new[]
+        {
+            "idempotency",
+            cacheKey,
+            $"route:path:{context.HttpContext.Request.Path}",
+            $"route:path:{routeName}"
+        };
+
         var storedResponse = await store.GetOrCreateAsync(
             cacheKey,
             async cancellationToken =>
@@ -42,6 +58,7 @@ public sealed class IdempotencyAttribute : Attribute, IAsyncActionFilter
                 return IdempotencyEntry.Empty;
             },
             _ttl,
+            tags,
             context.HttpContext.RequestAborted);
 
         if (!storedResponse.IsEmpty)
@@ -62,7 +79,12 @@ public sealed class IdempotencyAttribute : Attribute, IAsyncActionFilter
         var resultEntry = await CreateEntryAsync(context, actionResultContext);
         if (resultEntry is not null)
         {
-            await store.StoreAsync(cacheKey, resultEntry, _ttl, context.HttpContext.RequestAborted);
+            await store.StoreAsync(
+                cacheKey,
+                resultEntry,
+                _ttl,
+                tags,
+                context.HttpContext.RequestAborted);
         }
     }
 

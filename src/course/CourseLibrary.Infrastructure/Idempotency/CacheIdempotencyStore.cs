@@ -22,87 +22,145 @@ public sealed class CacheIdempotencyStore(
         string key,
         Func<CancellationToken, Task<IdempotencyEntry>> factory,
         TimeSpan ttl,
+        IEnumerable<string>? tags = null,
         CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(key);
         ArgumentNullException.ThrowIfNull(factory);
 
+        ValidateTtl(ttl);
+
         using var activity = ActivitySources.Infrastructure.StartActivity(
             "CacheIdempotencyStore.GetOrCreateAsync",
-            ActivityKind.Internal
-            );
-        if (ttl <= TimeSpan.Zero)
+            ActivityKind.Internal);
+
+        activity?.SetTag("idempotency.operation", "get-or-create");
+        activity?.SetTag("idempotency.key", key);
+        activity?.SetTag("idempotency.ttl", ttl.ToString());
+
+        try
         {
-            activity?.AddTag("error", true)
-                .AddTag("error.message", "Idempotency TTL must be greater than zero.");
+            var data = await cacheProvider.GetOrCreateAsync(
+                key,
+                async ct =>
+                {
+                    var entry = await factory(ct);
 
-            throw new ArgumentOutOfRangeException(
-                nameof(ttl),
+                    ArgumentNullException.ThrowIfNull(entry);
+
+                    return _serializer.Serialize(entry);
+                },
                 ttl,
-                "Idempotency TTL must be greater than zero.");
+                tags,
+                cancellationToken);
+
+            var result = _serializer.Deserialize(data);
+
+            ArgumentNullException.ThrowIfNull(result);
+
+            activity?.SetTag("idempotency.success", true);
+
+            logger.LogDebug(
+                "Idempotency entry retrieved or created for key {IdempotencyKey}",
+                key);
+
+            return result;
         }
+        catch (OperationCanceledException)
+        {
+            activity?.SetTag("idempotency.cancelled", true);
+            activity?.SetStatus(
+                ActivityStatusCode.Error,
+                "Operation was cancelled.");
 
-        activity?.AddTag("idempotency.key", key)
-            .AddTag("idempotency.ttl", ttl.ToString());
-        activity?.AddTag("idempotency.factory", factory.Method.Name);
-        var data = await cacheProvider.GetOrCreateAsync(
-            key,
-            async ct =>
-            {
-                var entry = await factory(ct);
+            logger.LogDebug(
+                "Idempotency get-or-create operation was cancelled for key {IdempotencyKey}",
+                key);
 
-                ArgumentNullException.ThrowIfNull(entry);
+            throw;
+        }
+        catch (Exception ex)
+        {
+            activity?.SetTag("idempotency.error", true);
+            activity?.SetStatus(
+                ActivityStatusCode.Error,
+                ex.Message);
 
-                return _serializer.Serialize(entry);
-            },
-            ttl,
-            cancellationToken);
+            logger.LogError(
+                ex,
+                "Error getting or creating idempotency entry for key {IdempotencyKey}",
+                key);
 
-        var result = _serializer.Deserialize(data);
-
-        logger.LogDebug(
-            "Idempotency entry retrieved or created for key {IdempotencyKey}",
-            key);
-
-        return result;
+            throw;
+        }
     }
 
     public async Task StoreAsync(
         string key,
         IdempotencyEntry entry,
         TimeSpan ttl,
+        IEnumerable<string>? tags = null,
         CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(key);
         ArgumentNullException.ThrowIfNull(entry);
 
-        using var activity = ActivitySources.Infrastructure.StartActivity("CacheIdempotencyStore.StoreAsync", ActivityKind.Internal);
+        ValidateTtl(ttl);
 
-        if (ttl <= TimeSpan.Zero)
+        using var activity = ActivitySources.Infrastructure.StartActivity(
+            "CacheIdempotencyStore.StoreAsync",
+            ActivityKind.Internal);
+
+        activity?.SetTag("idempotency.operation", "store");
+        activity?.SetTag("idempotency.key", key);
+        activity?.SetTag("idempotency.ttl", ttl.ToString());
+
+        try
         {
-            activity?.AddTag("error", true)
-                .AddTag("error.message", "Idempotency TTL must be greater than zero.");
-            throw new ArgumentOutOfRangeException(
-                nameof(ttl),
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var data = _serializer.Serialize(entry);
+
+            await cacheProvider.SetAsync(
+                key,
+                data,
                 ttl,
-                "Idempotency TTL must be greater than zero.");
+                tags,
+                cancellationToken);
+
+            activity?.SetTag("idempotency.success", true);
+
+            logger.LogDebug(
+                "Idempotency entry stored for key {IdempotencyKey}",
+                key);
         }
+        catch (OperationCanceledException)
+        {
+            activity?.SetTag("idempotency.cancelled", true);
+            activity?.SetStatus(
+                ActivityStatusCode.Error,
+                "Operation was cancelled.");
 
-        var data = _serializer.Serialize(entry);
+            logger.LogDebug(
+                "Idempotency store operation was cancelled for key {IdempotencyKey}",
+                key);
 
-        activity?.AddTag("idempotency.key", key)
-            .AddTag("idempotency.ttl", ttl.ToString())
-            .AddTag("idempotency.entry", entry.ToString());
+            throw;
+        }
+        catch (Exception ex)
+        {
+            activity?.SetTag("idempotency.error", true);
+            activity?.SetStatus(
+                ActivityStatusCode.Error,
+                ex.Message);
 
-        await cacheProvider.SetAsync(
-            key,
-            data,
-            ttl,
-            cancellationToken);
+            logger.LogError(
+                ex,
+                "Error storing idempotency entry for key {IdempotencyKey}",
+                key);
 
-        logger.LogDebug(
-            "Idempotency entry stored for key {IdempotencyKey}",
-            key);
+            throw;
+        }
     }
 
     public async Task RemoveAsync(
@@ -111,15 +169,116 @@ public sealed class CacheIdempotencyStore(
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(key);
 
-        using var activity = ActivitySources.Infrastructure.StartActivity("CacheIdempotencyStore.RemoveAsync", ActivityKind.Internal);
-        activity?.AddTag("idempotency.key", key);
-        activity?.AddTag("idempotency.operation", "remove");
-        await cacheProvider.RemoveAsync(
-            key,
-            cancellationToken);
+        using var activity = ActivitySources.Infrastructure.StartActivity(
+            "CacheIdempotencyStore.RemoveAsync",
+            ActivityKind.Internal);
 
-        logger.LogDebug(
-            "Idempotency entry removed for key {IdempotencyKey}",
-            key);
+        activity?.SetTag("idempotency.operation", "remove");
+        activity?.SetTag("idempotency.key", key);
+
+        try
+        {
+            await cacheProvider.RemoveAsync(
+                key,
+                cancellationToken);
+
+            activity?.SetTag("idempotency.success", true);
+
+            logger.LogDebug(
+                "Idempotency entry removed for key {IdempotencyKey}",
+                key);
+        }
+        catch (OperationCanceledException)
+        {
+            activity?.SetTag("idempotency.cancelled", true);
+            activity?.SetStatus(
+                ActivityStatusCode.Error,
+                "Operation was cancelled.");
+
+            logger.LogDebug(
+                "Idempotency remove operation was cancelled for key {IdempotencyKey}",
+                key);
+
+            throw;
+        }
+        catch (Exception ex)
+        {
+            activity?.SetTag("idempotency.error", true);
+            activity?.SetStatus(
+                ActivityStatusCode.Error,
+                ex.Message);
+
+            logger.LogError(
+                ex,
+                "Error removing idempotency entry for key {IdempotencyKey}",
+                key);
+
+            throw;
+        }
+    }
+
+    public async Task RemoveByTagAsync(
+        string tag,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(tag);
+
+        using var activity = ActivitySources.Infrastructure.StartActivity(
+            "CacheIdempotencyStore.RemoveByTagAsync",
+            ActivityKind.Internal);
+
+        activity?.SetTag("idempotency.operation", "remove-by-tag");
+        activity?.SetTag("idempotency.tag", tag);
+
+        try
+        {
+            await cacheProvider.RemoveByTagAsync(
+                tag,
+                cancellationToken);
+
+            activity?.SetTag("idempotency.success", true);
+
+            logger.LogDebug(
+                "Idempotency entries removed by tag {IdempotencyTag}",
+                tag);
+        }
+        catch (OperationCanceledException)
+        {
+            activity?.SetTag("idempotency.cancelled", true);
+            activity?.SetStatus(
+                ActivityStatusCode.Error,
+                "Operation was cancelled.");
+
+            logger.LogDebug(
+                "Idempotency remove-by-tag operation was cancelled for tag {IdempotencyTag}",
+                tag);
+
+            throw;
+        }
+        catch (Exception ex)
+        {
+            activity?.SetTag("idempotency.error", true);
+            activity?.SetStatus(
+                ActivityStatusCode.Error,
+                ex.Message);
+
+            logger.LogError(
+                ex,
+                "Error removing idempotency entries for tag {IdempotencyTag}",
+                tag);
+
+            throw;
+        }
+    }
+
+    private static void ValidateTtl(TimeSpan ttl)
+    {
+        if (ttl <= TimeSpan.Zero)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(ttl),
+                ttl,
+                "Idempotency TTL must be greater than zero.");
+        }
     }
 }
