@@ -1,4 +1,5 @@
 ﻿using CourseLibrary.Api.Configuration.OutputCache;
+using CourseLibrary.Infrastructure.Configuration.AzureStorage;
 using CourseLibrary.Infrastructure.Configuration.Caching;
 using CourseLibrary.Infrastructure.Configuration.Cosmos;
 using CourseLibrary.Infrastructure.Configuration.DataProtection;
@@ -28,6 +29,7 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddCourseLibraryHttpResilience(configuration);
         services.AddCourseLibraryRequestContext();
         services.AddCourseLibraryServiceBus(configuration);
+        services.AddCourseLibraryAzureStorage(configuration);
         services.AddCourseLibraryDataProtection(configuration);
         services.AddCourseLibraryOutputCache();
         services.AddResponseCaching(options =>
