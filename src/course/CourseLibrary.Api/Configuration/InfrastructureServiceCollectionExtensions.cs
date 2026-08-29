@@ -1,6 +1,7 @@
 ﻿using CourseLibrary.Api.Configuration.OutputCache;
 using CourseLibrary.Infrastructure.Configuration.Caching;
 using CourseLibrary.Infrastructure.Configuration.Cosmos;
+using CourseLibrary.Infrastructure.Configuration.DataProtection;
 using CourseLibrary.Infrastructure.Configuration.HttpContext;
 using CourseLibrary.Infrastructure.Configuration.Idempotency;
 using CourseLibrary.Infrastructure.Configuration.Messaging;
@@ -27,6 +28,7 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddCourseLibraryHttpResilience(configuration);
         services.AddCourseLibraryRequestContext();
         services.AddCourseLibraryServiceBus(configuration);
+        services.AddCourseLibraryDataProtection(configuration);
         services.AddCourseLibraryOutputCache();
         services.AddResponseCaching(options =>
         {
