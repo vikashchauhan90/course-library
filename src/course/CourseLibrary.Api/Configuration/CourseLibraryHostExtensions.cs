@@ -95,8 +95,13 @@ internal static class CourseLibraryHostExtensions
 
         app.UseHttpLogging();
 
+        // Response headers / observability
         app.UseResponseHeaders();
 
+        // Client/proxy HTTP response caching
+        app.UseResponseCaching();
+
+        // Server-side Output Cache
         app.UseOutputCache();
 
         if (app.Environment.IsDevelopment())

@@ -9,6 +9,8 @@
     "Cosmos__DatabaseName": "CourseLibrary",
     "Resilience__Http__Retry__BackoffType": "Exponential",
     "Resilience__Http__Retry__UseJitter": true,
-    "Resilience__Http__Retry__MaxRetryAttempts": 7
+    "Resilience__Http__Retry__MaxRetryAttempts": 7,
+    "Redis__ConnectionString": "localhost:6379",
+    "Redis__InstanceName": "CourseLibrary"
   }
 }

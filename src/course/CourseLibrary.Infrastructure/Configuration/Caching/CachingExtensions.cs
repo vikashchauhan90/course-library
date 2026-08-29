@@ -3,6 +3,7 @@ using CourseLibrary.Infrastructure.Caching;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using ZiggyCreatures.Caching.Fusion;
+using ZiggyCreatures.Caching.Fusion.Serialization.NeueccMessagePack;
 
 namespace CourseLibrary.Infrastructure.Configuration.Caching;
 
@@ -115,6 +116,8 @@ public static class CachingExtensions
         });
 
         services.AddFusionCache()
+            .WithSerializer(
+        new FusionCacheNeueccMessagePackSerializer())
             .WithDefaultEntryOptions(options =>
             {
                 options.Duration = TimeSpan.FromMinutes(5);
@@ -129,7 +132,6 @@ public static class CachingExtensions
                 options.FactoryHardTimeout =
                     TimeSpan.FromSeconds(5);
             })
-            .WithRegisteredSerializer()
             .WithRegisteredDistributedCache()
             .WithRegisteredBackplane();
 

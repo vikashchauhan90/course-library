@@ -1,5 +1,6 @@
 using Carter;
 using CourseLibrary.Api.Configuration;
+using CourseLibrary.Api.Configuration.OutputCache;
 using CourseLibrary.Api.Endpoints.Authors.GetAuthors;
 using CourseLibrary.Application.Operations.Authors;
 using CourseLibrary.Application.Operations.Authors.Get;
@@ -50,6 +51,7 @@ public sealed class GetAuthorsEndpoint : ICarterModule
                 return Results.Ok(response);
             })
             .WithName("GetAuthors")
-            .HasApiVersion(1.0);
+            .HasApiVersion(1.0)
+            .CacheOutput(OutputCachePolicies.Default);
     }
 }

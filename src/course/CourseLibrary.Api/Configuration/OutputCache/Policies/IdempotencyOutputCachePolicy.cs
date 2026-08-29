@@ -30,7 +30,10 @@ public sealed class IdempotencyOutputCachePolicy(
         }
 
         context.EnableOutputCaching = true;
-
+        context.AllowCacheLookup = true;
+        context.AllowCacheStorage = true;
+        context.AllowLocking = true;
+        context.CacheVaryByRules.QueryKeys = "*";
         context.CacheVaryByRules.HeaderNames = new[]
         {
             IdempotencyHeader

@@ -16,7 +16,7 @@ public static class InfrastructureServiceCollectionExtensions
         IConfiguration configuration)
     {
         services.AddCourseLibrarySerializers();
-        services.AddCourseLibraryMemoryCache();
+        services.AddCourseLibraryFusionCache(configuration);
         services.AddCourseLibraryIdempotency();
         services.AddCosmosDatabase(configuration);
         services.AddRepositories();

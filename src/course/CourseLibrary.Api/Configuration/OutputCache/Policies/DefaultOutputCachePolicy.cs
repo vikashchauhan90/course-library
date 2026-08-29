@@ -37,6 +37,11 @@ public sealed class DefaultOutputCachePolicy(
         }
 
         context.EnableOutputCaching = true;
+        context.AllowCacheLookup = true;
+        context.AllowCacheStorage = true;
+        context.AllowLocking = true;
+        context.CacheVaryByRules.QueryKeys = "*";
+        context.Tags.Add("default");
 
         logger.LogDebug(
             "Output cache enabled for {RequestMethod} {RequestPath}",

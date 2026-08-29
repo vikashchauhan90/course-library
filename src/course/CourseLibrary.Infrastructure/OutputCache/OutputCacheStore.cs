@@ -3,6 +3,8 @@ using CourseLibrary.Infrastructure.Observability.Traces;
 using Microsoft.AspNetCore.OutputCaching;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
+using System.IO.Hashing;
+using System.Text;
 
 namespace CourseLibrary.Infrastructure.Caching;
 
@@ -16,18 +18,18 @@ public sealed class OutputCacheStore(
         CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(key);
-
+        var cacheKey = HashCacheKey(key);
         using var activity = ActivitySources.Infrastructure.StartActivity(
             "OutputCacheStore.GetAsync",
             ActivityKind.Internal);
 
-        activity?.SetTag("cache.key", key);
+        activity?.SetTag("cache.key", cacheKey);
         activity?.SetTag("cache.operation", "get");
 
         try
         {
             var value = await cacheProvider.GetOrCreateAsync(
-                key,
+                cacheKey,
                 factory: _ => Task.FromResult<byte[]>(Array.Empty<byte>()),
                 TimeSpan.FromSeconds(1), // Temporary TTL for the factory, won't be used since we return null
                 null,
@@ -39,7 +41,7 @@ public sealed class OutputCacheStore(
             logger.LogDebug(
                 "Output cache {CacheResult} for key {CacheKey}",
                 value is null ? "miss" : "hit",
-                key);
+                cacheKey);
 
             return value?.Length > 0 ? value : null;
         }
@@ -52,7 +54,7 @@ public sealed class OutputCacheStore(
 
             logger.LogDebug(
                 "Output cache get operation was cancelled for key {CacheKey}",
-                key);
+                cacheKey);
 
             throw;
         }
@@ -66,7 +68,7 @@ public sealed class OutputCacheStore(
             logger.LogError(
                 ex,
                 "Error getting output cache entry for key {CacheKey}",
-                key);
+                cacheKey);
 
             throw;
         }
@@ -81,6 +83,7 @@ public sealed class OutputCacheStore(
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(key);
         ArgumentNullException.ThrowIfNull(value);
+        var cacheKey = HashCacheKey(key);
 
         if (validFor <= TimeSpan.Zero)
         {
@@ -94,7 +97,7 @@ public sealed class OutputCacheStore(
             "OutputCacheStore.SetAsync",
             ActivityKind.Internal);
 
-        activity?.SetTag("cache.key", key);
+        activity?.SetTag("cache.key", cacheKey);
         activity?.SetTag("cache.ttl", validFor.ToString());
         activity?.SetTag("cache.operation", "set");
         activity?.SetTag("cache.tag.count", tags?.Length ?? 0);
@@ -102,7 +105,7 @@ public sealed class OutputCacheStore(
         try
         {
             await cacheProvider.SetAsync(
-                key,
+                cacheKey,
                 value,
                 validFor,
                 tags,
@@ -112,7 +115,7 @@ public sealed class OutputCacheStore(
 
             logger.LogDebug(
                 "Output cache entry set for key {CacheKey} with TTL {CacheTtl}",
-                key,
+                cacheKey,
                 validFor);
         }
         catch (OperationCanceledException)
@@ -124,7 +127,7 @@ public sealed class OutputCacheStore(
 
             logger.LogDebug(
                 "Output cache set operation was cancelled for key {CacheKey}",
-                key);
+                cacheKey);
 
             throw;
         }
@@ -138,7 +141,7 @@ public sealed class OutputCacheStore(
             logger.LogError(
                 ex,
                 "Error setting output cache entry for key {CacheKey}",
-                key);
+                cacheKey);
 
             throw;
         }
@@ -196,5 +199,12 @@ public sealed class OutputCacheStore(
 
             throw;
         }
+    }
+
+    private static string HashCacheKey(string key)
+    {
+        var hash = XxHash128.Hash(Encoding.UTF8.GetBytes(key));
+
+        return Convert.ToHexString(hash);
     }
 }

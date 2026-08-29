@@ -34,6 +34,7 @@ public static class TraceHeaders
     /// </summary>
     public const string TraceId = "X-Trace-ID";
 
-    public const string CacheHit = "X-Cache-Hit";
-    public const string CacheTtl = "X-Cache-TTL";
+    public const string CacheHit = "x-cache-hit";
+    public const string CacheTtl = "x-cache-ttl";
+    public const string Cache = "x-cache";
 }

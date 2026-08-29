@@ -9,3 +9,13 @@ dotnet ef database update --project ..\CourseLibrary.Idp.Infrastructure --startu
 ```
 azurite --skipApiVersionCheck
 ```
+
+## Redis:
+
+open wsl terminal and run following command:
+
+```
+sudo service redis-server start
+ for status:
+ sudo service redis-server status
+```

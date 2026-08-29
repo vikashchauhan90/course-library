@@ -37,6 +37,12 @@ public static class OutputCacheExtensions
                     .Tag("idempotency")
                     .AddPolicy<IdempotencyOutputCachePolicy>();
                 });
+
+            options.AddPolicy(OutputCachePolicies.NoLock, builder => builder.SetLocking(false));
+            options.AddPolicy(OutputCachePolicies.NoCache, builder => builder.NoCache());
+            options.AddPolicy(
+                OutputCachePolicies.NoStore,
+                policy => policy.AddPolicy<NoStoreOutputCachePolicy>());
         });
         
         services.Replace(

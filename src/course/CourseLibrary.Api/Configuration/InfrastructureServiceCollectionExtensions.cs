@@ -17,7 +17,7 @@ public static class InfrastructureServiceCollectionExtensions
         IConfiguration configuration)
     {
         services.AddCourseLibrarySerializers();
-        services.AddCourseLibraryMemoryCache();
+        services.AddCourseLibraryFusionCache(configuration);
         services.AddCourseLibraryIdempotency();
         services.AddCosmosDatabase(configuration);
         services.AddRepositories();
@@ -25,6 +25,11 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddCourseLibraryRequestContext();
         services.AddCourseLibraryServiceBus(configuration);
         services.AddCourseLibraryOutputCache();
+        services.AddResponseCaching(options =>
+        {
+            options.MaximumBodySize = 64 * 1024 * 1024; // 64 MB
+            options.SizeLimit = 100 * 1024 * 1024;      // 100 MB
+        });
         return services;
     }
 }

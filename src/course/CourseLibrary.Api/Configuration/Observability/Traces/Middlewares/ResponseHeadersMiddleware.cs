@@ -3,6 +3,7 @@ using Microsoft.Azure.Cosmos.Linq;
 using Microsoft.Extensions.Primitives;
 using System.Diagnostics;
 using System.Globalization;
+using System.IO.Hashing;
 using InfrastructureObservability = CourseLibrary.Infrastructure.Observability;
 using InfraTrace = CourseLibrary.Infrastructure.Observability.Traces;
 
@@ -76,6 +77,10 @@ internal sealed class ResponseHeadersMiddleware(
                         InfraTrace.TraceHeaders.CacheHit] =
                         outputCache.Hit.Value.ToString()
                             .ToLowerInvariant();
+
+                    context.Response.Headers[
+                        InfraTrace.TraceHeaders.Cache] =
+                        outputCache.Hit.Value ? "HIT" : "MISS";
                 }
 
                 if (outputCache.ExpirationDuration.HasValue)
@@ -85,6 +90,21 @@ internal sealed class ResponseHeadersMiddleware(
                         outputCache.ExpirationDuration.Value
                             .TotalSeconds
                             .ToString(CultureInfo.InvariantCulture);
+
+                    context.Response.Headers.CacheControl = $"public, max-age={outputCache.ExpirationDuration.Value.TotalSeconds.ToString(CultureInfo.InvariantCulture)}";
+                    context.Response.Headers.ETag = $"{Guid.NewGuid():N}";
+                }
+
+                if (context.Response.StatusCode == StatusCodes.Status200OK &&
+    context.Response.Body?.Length > 0 &&
+    !context.Response.Headers.ContainsKey("ETag"))
+                {
+                    var bytes = responseBody.ToArray();
+
+                    var hash = XxHash128.Hash(bytes);
+
+                    context.Response.Headers.ETag =
+                        $"\"{Convert.ToHexString(hash)}\"";
                 }
 
                 return Task.CompletedTask;
