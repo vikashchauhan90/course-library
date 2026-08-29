@@ -13,12 +13,6 @@ public static class OutputCacheExtensions
     {
         services.AddOutputCache(options =>
         {
-            options.AddBasePolicy(builder =>
-            {
-                builder.Expire(TimeSpan.FromSeconds(30));
-                builder.Tag("output-cache");             
-            });
-
             options.AddPolicy(OutputCachePolicies.Default, policy =>
             {
                 policy

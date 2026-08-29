@@ -1,6 +1,7 @@
 ﻿using CourseLibrary.Infrastructure.OutputCache;
 using Microsoft.Azure.Cosmos.Linq;
 using Microsoft.Extensions.Primitives;
+using Microsoft.Net.Http.Headers;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO.Hashing;
@@ -91,20 +92,15 @@ internal sealed class ResponseHeadersMiddleware(
                             .TotalSeconds
                             .ToString(CultureInfo.InvariantCulture);
 
-                    context.Response.Headers.CacheControl = $"public, max-age={outputCache.ExpirationDuration.Value.TotalSeconds.ToString(CultureInfo.InvariantCulture)}";
-                    context.Response.Headers.ETag = $"{Guid.NewGuid():N}";
-                }
+                    context.Response.GetTypedHeaders().CacheControl =
+                    new CacheControlHeaderValue
+                    {
+                        Public = true,
+                        MaxAge = TimeSpan.FromSeconds(10)
+                    };
 
-                if (context.Response.StatusCode == StatusCodes.Status200OK &&
-    context.Response.Body?.Length > 0 &&
-    !context.Response.Headers.ContainsKey("ETag"))
-                {
-                    var bytes = responseBody.ToArray();
-
-                    var hash = XxHash128.Hash(bytes);
-
-                    context.Response.Headers.ETag =
-                        $"\"{Convert.ToHexString(hash)}\"";
+                    // Add Vary header for the User-Agent
+                    context.Response.Headers[HeaderNames.Vary] = "User-Agent";
                 }
 
                 return Task.CompletedTask;

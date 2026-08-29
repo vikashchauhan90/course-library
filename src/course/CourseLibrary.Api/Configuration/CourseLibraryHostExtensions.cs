@@ -95,6 +95,8 @@ internal static class CourseLibraryHostExtensions
 
         app.UseHttpLogging();
 
+        // Response compression
+        app.UseResponseCompression();
         // Response headers / observability
         app.UseResponseHeaders();
 
@@ -116,8 +118,7 @@ internal static class CourseLibraryHostExtensions
             {
                 Predicate = check => check.Tags.Contains("live")
             })
-            .AllowAnonymous()
-            .CacheOutput(OutputCachePolicies.Default);
+            .AllowAnonymous();
 
         app.MapHealthChecks(
             "/health/ready",
