@@ -1,4 +1,5 @@
 ﻿using CourseLibrary.Infrastructure.OutputCache;
+using Microsoft.Azure.Cosmos;
 using Microsoft.Azure.Cosmos.Linq;
 using Microsoft.Extensions.Primitives;
 using Microsoft.Net.Http.Headers;
@@ -102,6 +103,11 @@ internal sealed class ResponseHeadersMiddleware(
                     // Add Vary header for the User-Agent
                     context.Response.Headers[HeaderNames.Vary] = "User-Agent";
                 }
+
+                // Remove server version information
+                context.Response.Headers.Remove("Server");
+                context.Response.Headers.Remove("X-Powered-By");
+                context.Response.Headers.Remove("X-AspNet-Version");
 
                 return Task.CompletedTask;
             });

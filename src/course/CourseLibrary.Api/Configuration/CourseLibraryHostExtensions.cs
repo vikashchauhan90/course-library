@@ -3,7 +3,6 @@ using Carter;
 using CourseLibrary.Api.Configuration.Exceptions;
 using CourseLibrary.Api.Configuration.Observability;
 using CourseLibrary.Api.Configuration.Observability.Metrics;
-using CourseLibrary.Api.Configuration.OutputCache;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using System.Diagnostics;
@@ -77,6 +76,13 @@ internal static class CourseLibraryHostExtensions
         // Application services
         builder.Services.AddCourseLibraryApplication();
 
+
+        builder.Services.AddHsts(opts =>
+        {
+            opts.MaxAge = TimeSpan.FromDays(365);
+            opts.IncludeSubDomains = true;
+            opts.Preload = true;
+        });
         return builder;
     }
 
@@ -86,6 +92,8 @@ internal static class CourseLibraryHostExtensions
         app.UseGlobalExceptionHandler();
 
         app.UseHttpsRedirection();
+
+        app.UseHsts();
 
         app.UseRequestContext();
 
