@@ -34,7 +34,12 @@ builder.Services.AddOpenIddict()
         // Configure OpenIddict to use the default entities with a custom key type.
         options.UseEntityFrameworkCore()
                .UseDbContext<ApplicationDbContext>()
-               .ReplaceDefaultEntities<Guid>();
+              .ReplaceDefaultEntities<
+                OpenIddictApplication,
+                OpenIddictAuthorization,
+                OpenIddictScope,
+                OpenIddictToken,
+                Guid>();
     });
 
 builder.Services.AddDbContext<ApplicationDbContext>((sp, options) =>
