@@ -81,6 +81,7 @@ builder.Services.Configure<DataProtectionTokenProviderOptions>(options =>
     options.TokenLifespan = TimeSpan.FromHours(24));
 
 builder.Services.AddAuthentication();
+builder.Services.AddAuthorization();
 
 var externalProviders = builder.Configuration.GetSection("ExternalAuthentication");
 
@@ -165,22 +166,6 @@ builder.Services.AddOpenIddict()
 
         options.UseDataProtection()
             .PreferDefaultStateTokenFormat();
-
-        options.AddRegistration(new OpenIddictClientRegistration
-        {
-            Issuer = new Uri("https://identity.example.com/"),
-
-            ClientId = "course-library-web",
-            ClientSecret = "...",
-
-            Scopes =
-            {
-                OpenIddictConstants.Scopes.OpenId,
-                OpenIddictConstants.Scopes.Profile,
-                OpenIddictConstants.Scopes.Email,
-                "course_api"
-            }
-        });
 
         options.UseSystemNetHttp();
 
