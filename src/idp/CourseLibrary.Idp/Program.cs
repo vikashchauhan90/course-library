@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using OpenIddict.Abstractions;
+using OpenIddict.Client;
 using System.Security.Cryptography.X509Certificates;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -105,8 +106,31 @@ builder.Services.AddOpenIddict()
     })
     .AddClient(options =>
     {
+        options.AllowAuthorizationCodeFlow();
+
         options.UseDataProtection()
-             .PreferDefaultStateTokenFormat();
+            .PreferDefaultStateTokenFormat();
+
+        options.AddRegistration(new OpenIddictClientRegistration
+        {
+            Issuer = new Uri("https://identity.example.com/"),
+
+            ClientId = "course-library-web",
+            ClientSecret = "...",
+
+            Scopes =
+            {
+                OpenIddictConstants.Scopes.OpenId,
+                OpenIddictConstants.Scopes.Profile,
+                OpenIddictConstants.Scopes.Email,
+                "course_api"
+            }
+        });
+
+        options.UseSystemNetHttp();
+
+        options.UseAspNetCore()
+            .EnableRedirectionEndpointPassthrough();
     })
     .AddServer(options =>
     {
@@ -161,19 +185,20 @@ builder.Services.AddOpenIddict()
         {
             throw new InvalidOperationException("OpenId signing and encryption certificates must be configured outside Development.");
         }
+
         options.UseAspNetCore()
-            .EnableAuthorizationEndpointPassthrough()
-            .EnableEndSessionEndpointPassthrough()
-            .EnableTokenEndpointPassthrough()
-            .EnableUserInfoEndpointPassthrough()
-            .EnableStatusCodePagesIntegration();
+          .EnableAuthorizationEndpointPassthrough()
+          .EnableEndSessionEndpointPassthrough()
+          .EnableTokenEndpointPassthrough()
+          .EnableUserInfoEndpointPassthrough()
+          .EnableStatusCodePagesIntegration();
 
         options.UseDataProtection()
-               .PreferDefaultAccessTokenFormat()
-               .PreferDefaultAuthorizationCodeFormat()
-               .PreferDefaultDeviceCodeFormat()
-               .PreferDefaultRefreshTokenFormat()
-               .PreferDefaultUserCodeFormat(); ;
+            .PreferDefaultAccessTokenFormat()
+            .PreferDefaultAuthorizationCodeFormat()
+            .PreferDefaultDeviceCodeFormat()
+            .PreferDefaultRefreshTokenFormat()
+            .PreferDefaultUserCodeFormat();
     })
     .AddValidation(options =>
     {
