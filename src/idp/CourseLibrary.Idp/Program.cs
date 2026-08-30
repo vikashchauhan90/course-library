@@ -80,11 +80,9 @@ builder.Services.ConfigureApplicationCookie(options =>
 builder.Services.Configure<DataProtectionTokenProviderOptions>(options =>
     options.TokenLifespan = TimeSpan.FromHours(24));
 
+builder.Services.AddAuthentication();
+
 var externalProviders = builder.Configuration.GetSection("ExternalAuthentication");
-var authentication = builder.Services.AddAuthentication();
-ConfigureMicrosoft(authentication, externalProviders);
-ConfigureFacebook(authentication, externalProviders);
-ConfigureTwitter(authentication, externalProviders);
 
 var openId = builder.Configuration.GetSection(OpenIdOptions.SectionName).Get<OpenIdOptions>()
     ?? throw new InvalidOperationException("OpenId configuration is missing.");
@@ -107,6 +105,63 @@ builder.Services.AddOpenIddict()
     .AddClient(options =>
     {
         options.AllowAuthorizationCodeFlow();
+
+        options.UseWebProviders()
+           .AddMicrosoft(options =>
+           {
+               var configuration =
+                   externalProviders.GetSection("Microsoft");
+
+               options.SetClientId(
+                   configuration["ClientId"]
+                   ?? throw new InvalidOperationException(
+                       "ExternalAuthentication:Microsoft:ClientId is missing."));
+
+               options.SetClientSecret(
+                   configuration["ClientSecret"]
+                   ?? throw new InvalidOperationException(
+                       "ExternalAuthentication:Microsoft:ClientSecret is missing."));
+
+               options.SetRedirectUri(
+                   "callback/login/microsoft");
+           })
+           .AddFacebook(options =>
+           {
+               var configuration =
+                   externalProviders.GetSection("Facebook");
+
+               options.SetClientId(
+                   configuration["ClientId"]
+                   ?? throw new InvalidOperationException(
+                       "ExternalAuthentication:Facebook:ClientId is missing."));
+
+               options.SetClientSecret(
+                   configuration["ClientSecret"]
+                   ?? throw new InvalidOperationException(
+                       "ExternalAuthentication:Facebook:ClientSecret is missing."));
+
+               options.SetRedirectUri(
+                   "callback/login/facebook");
+           })
+           .AddTwitter(options =>
+           {
+               var configuration =
+                   externalProviders.GetSection("Twitter");
+
+               options.SetClientId(
+                   configuration["ClientId"]
+                   ?? throw new InvalidOperationException(
+                       "ExternalAuthentication:Twitter:ClientId is missing."));
+
+               options.SetClientSecret(
+                   configuration["ClientSecret"]
+                   ?? throw new InvalidOperationException(
+                       "ExternalAuthentication:Twitter:ClientSecret is missing."));
+
+               options.SetRedirectUri(
+                   "callback/login/twitter");
+           });
+
 
         options.UseDataProtection()
             .PreferDefaultStateTokenFormat();
@@ -224,38 +279,3 @@ app.MapControllerRoute("default", "{controller=Home}/{action=Index}/{id?}");
 app.MapRazorPages();
 
 app.Run();
-
-static void ConfigureMicrosoft(AuthenticationBuilder authentication, IConfigurationSection providers)
-{
-    var section = providers.GetSection("Microsoft");
-    if (!string.IsNullOrWhiteSpace(section["ClientId"]) && !string.IsNullOrWhiteSpace(section["ClientSecret"]))
-        authentication.AddMicrosoftAccount(MicrosoftAccountDefaults.AuthenticationScheme, options =>
-        {
-            options.ClientId = section["ClientId"]!;
-            options.ClientSecret = section["ClientSecret"]!;
-        });
-}
-
-static void ConfigureFacebook(AuthenticationBuilder authentication, IConfigurationSection providers)
-{
-    var section = providers.GetSection("Facebook");
-    if (!string.IsNullOrWhiteSpace(section["AppId"]) && !string.IsNullOrWhiteSpace(section["AppSecret"]))
-        authentication.AddFacebook(FacebookDefaults.AuthenticationScheme, options =>
-        {
-            options.AppId = section["AppId"]!;
-            options.AppSecret = section["AppSecret"]!;
-            options.Scope.Add("email");
-        });
-}
-
-static void ConfigureTwitter(AuthenticationBuilder authentication, IConfigurationSection providers)
-{
-    var section = providers.GetSection("Twitter");
-    if (!string.IsNullOrWhiteSpace(section["ConsumerKey"]) && !string.IsNullOrWhiteSpace(section["ConsumerSecret"]))
-        authentication.AddTwitter(TwitterDefaults.AuthenticationScheme, options =>
-        {
-            options.ConsumerKey = section["ConsumerKey"]!;
-            options.ConsumerSecret = section["ConsumerSecret"]!;
-            options.RetrieveUserDetails = true;
-        });
-}
