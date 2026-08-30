@@ -28,20 +28,6 @@ builder.Services.AddScoped<IInterceptor, QueryTimingInterceptor>();
 builder.Services.AddScoped<IInterceptor, SecurityEntityInterceptor>();
 builder.Services.AddScoped<IInterceptor, TransactionLoggingInterceptor>();
 
-builder.Services.AddOpenIddict()
-    .AddCore(options =>
-    {
-        // Configure OpenIddict to use the default entities with a custom key type.
-        options.UseEntityFrameworkCore()
-               .UseDbContext<ApplicationDbContext>()
-              .ReplaceDefaultEntities<
-                OpenIddictApplication,
-                OpenIddictAuthorization,
-                OpenIddictScope,
-                OpenIddictToken,
-                Guid>();
-    });
-
 builder.Services.AddDbContext<ApplicationDbContext>((sp, options) =>
 {
     options.UseNpgsql(
@@ -105,21 +91,53 @@ if (!Uri.TryCreate(openId.Issuer, UriKind.Absolute, out var issuer) || issuer.Sc
     throw new InvalidOperationException("OpenId:Issuer must be an absolute HTTPS URI.");
 
 builder.Services.AddOpenIddict()
-    .AddCore(options => options.UseEntityFrameworkCore().UseDbContext<ApplicationDbContext>())
+    .AddCore(options =>
+    {
+        // Configure OpenIddict to use the default entities with a custom key type.
+        options.UseEntityFrameworkCore()
+               .UseDbContext<ApplicationDbContext>()
+              .ReplaceDefaultEntities<
+                OpenIddictApplication,
+                OpenIddictAuthorization,
+                OpenIddictScope,
+                OpenIddictToken,
+                Guid>();
+    })
+    .AddClient(options =>
+    {
+        options.UseDataProtection()
+             .PreferDefaultStateTokenFormat();
+    })
     .AddServer(options =>
     {
         options.SetIssuer(issuer);
+
         options.SetAuthorizationEndpointUris("connect/authorize")
             .SetEndSessionEndpointUris("connect/logout")
             .SetTokenEndpointUris("connect/token")
             .SetUserInfoEndpointUris("connect/userinfo");
-        options.RegisterScopes(OpenIddictConstants.Scopes.OpenId, OpenIddictConstants.Scopes.Email,
-            OpenIddictConstants.Scopes.Profile, OpenIddictConstants.Scopes.Roles, openId.ApiScope);
-        options.AllowAuthorizationCodeFlow().AllowRefreshTokenFlow().AllowClientCredentialsFlow();
+
+        options.RegisterScopes(
+         OpenIddictConstants.Scopes.OpenId,
+         OpenIddictConstants.Scopes.Profile,
+         OpenIddictConstants.Scopes.Email,
+         OpenIddictConstants.Scopes.Roles,
+         openId.ApiScope);
+
+        options.AllowAuthorizationCodeFlow()
+            .AllowRefreshTokenFlow()
+            .AllowClientCredentialsFlow();
+
         options.RequireProofKeyForCodeExchange();
+
         options.DisableAccessTokenEncryption();
-        options.SetAccessTokenLifetime(TimeSpan.FromMinutes(openId.AccessTokenLifetimeMinutes));
-        options.SetRefreshTokenLifetime(TimeSpan.FromDays(openId.RefreshTokenLifetimeDays));
+
+        options.SetAccessTokenLifetime(
+              TimeSpan.FromMinutes(openId.AccessTokenLifetimeMinutes));
+
+        options.SetRefreshTokenLifetime(
+            TimeSpan.FromDays(openId.RefreshTokenLifetimeDays));
+
         if (!string.IsNullOrWhiteSpace(openId.SigningCertificatePath) &&
             !string.IsNullOrWhiteSpace(openId.EncryptionCertificatePath))
         {
@@ -149,10 +167,17 @@ builder.Services.AddOpenIddict()
             .EnableTokenEndpointPassthrough()
             .EnableUserInfoEndpointPassthrough()
             .EnableStatusCodePagesIntegration();
+
+        options.UseDataProtection()
+               .PreferDefaultAccessTokenFormat()
+               .PreferDefaultAuthorizationCodeFormat()
+               .PreferDefaultDeviceCodeFormat()
+               .PreferDefaultRefreshTokenFormat()
+               .PreferDefaultUserCodeFormat(); ;
     })
     .AddValidation(options =>
     {
-        options.UseLocalServer();
+        options.UseDataProtection();
         options.UseAspNetCore();
     });
 

@@ -15,6 +15,14 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
         base.OnModelCreating(builder);
         builder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
 
+        // Configure OpenIddict entities
+        builder.UseOpenIddict<
+                OpenIddictApplication,
+                OpenIddictAuthorization,
+                OpenIddictScope,
+                OpenIddictToken,
+                Guid>();
+
         // Seeding via dedicated seeder class
         InitialDataSeeder.SeedData(builder);
     }
