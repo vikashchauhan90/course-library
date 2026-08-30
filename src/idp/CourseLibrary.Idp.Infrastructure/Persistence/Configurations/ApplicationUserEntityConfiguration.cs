@@ -9,7 +9,7 @@ public sealed class ApplicationUserConfiguration : IEntityTypeConfiguration<Appl
 {
     public void Configure(EntityTypeBuilder<ApplicationUser> builder)
     {
-        builder.ToTable("users");
+        builder.ToTable("users", "identity");
         builder.HasKey(u => u.Id);
         builder.Property(u => u.FullName).IsRequired().HasMaxLength(256);
         builder.HasIndex(u => u.Email).IsUnique();

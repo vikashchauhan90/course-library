@@ -9,7 +9,7 @@ public sealed class ApplicationRoleConfiguration : IEntityTypeConfiguration<Appl
 {
     public void Configure(EntityTypeBuilder<ApplicationRole> builder)
     {
-        builder.ToTable("roles");
+        builder.ToTable("roles", "identity");
         builder.Property(r => r.ConcurrencyStamp).IsConcurrencyToken();
         builder.Property(u => u.Name).HasMaxLength(256);
         builder.Property(u => u.NormalizedName).HasMaxLength(256);

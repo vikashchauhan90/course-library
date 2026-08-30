@@ -8,7 +8,7 @@ public sealed class UserClaimConfiguration : IEntityTypeConfiguration<IdentityUs
 {
     public void Configure(EntityTypeBuilder<IdentityUserClaim<string>> builder)
     {
-        builder.ToTable("user_claims");
+        builder.ToTable("user_claims", "identity");
         builder.HasKey(uc => uc.Id);
     }
 }
