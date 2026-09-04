@@ -1,4 +1,5 @@
 using CourseLibrary.Idp.Domain.Entities;
+using CourseLibrary.Idp.Models;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -26,6 +27,18 @@ public sealed class AuthorizationController(
             ?? throw new InvalidOperationException("The OpenID Connect request cannot be retrieved.");
         var user = await userManager.GetUserAsync(User);
         if (user is null) return Challenge();
+
+        if (Request.Method == HttpMethods.Get)
+        {
+            var client = request.ClientId is null ? null : await applicationManager.FindByClientIdAsync(request.ClientId);
+            return View("Consent", new ConsentViewModel
+            {
+                ClientName = client is null ? request.ClientId ?? "Application" : await applicationManager.GetDisplayNameAsync(client) ?? request.ClientId!,
+                Scopes = request.GetScopes().ToList()
+            });
+        }
+        if (!string.Equals(Request.Form["decision"], "approve", StringComparison.OrdinalIgnoreCase))
+            return Forbid(OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
 
         var identity = await CreateUserIdentityAsync(user, request.GetScopes());
         return SignIn(new ClaimsPrincipal(identity), OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);

@@ -13,14 +13,16 @@ using static OpenIddict.Abstractions.OpenIddictConstants;
 
 namespace CourseLibrary.Idp.Controllers;
 
-[Authorize(Roles = "Administrator")]
+[Authorize(Policy = "AdminMfa")]
 [Route("admin")]
 public sealed class AdminController(
     UserManager<ApplicationUser> userManager,
     IOpenIddictApplicationManager applicationManager,
     IOpenIddictScopeManager scopeManager,
     ApplicationDbContext dbContext,
-    ILogger<AdminController> logger) : Controller
+    ILogger<AdminController> logger,
+    RoleManager<ApplicationRole> roleManager,
+    CourseLibrary.Idp.Abstractions.IEmailSender emailSender) : Controller
 {
     [HttpGet("")]
     public async Task<IActionResult> Index()
@@ -124,6 +126,87 @@ public sealed class AdminController(
         return RedirectToAction(nameof(Index));
     }
 
+    [HttpGet("users/{id}/edit")]
+    public async Task<IActionResult> EditUser(string id)
+    {
+        var user = await userManager.FindByIdAsync(id);
+        if (user is null) return NotFound();
+        return View(new EditUserViewModel { Id = user.Id, FullName = user.FullName, Email = user.Email ?? string.Empty, IsAdministrator = await userManager.IsInRoleAsync(user, "Administrator"), IsLocked = user.LockoutEnd > DateTimeOffset.UtcNow });
+    }
+
+    [HttpPost("users/{id}/edit")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> EditUser(string id, EditUserViewModel model)
+    {
+        var user = await userManager.FindByIdAsync(id);
+        if (user is null) return NotFound();
+        if (!ModelState.IsValid) return View(model);
+        user.FullName = model.FullName; user.Email = model.Email; user.UserName = model.Email;
+        var result = await userManager.UpdateAsync(user);
+        if (result.Succeeded)
+        {
+            var isAdmin = await userManager.IsInRoleAsync(user, "Administrator");
+            if (model.IsAdministrator && !isAdmin) result = await userManager.AddToRoleAsync(user, "Administrator");
+            if (!model.IsAdministrator && isAdmin && user.Id != userManager.GetUserId(User)) result = await userManager.RemoveFromRoleAsync(user, "Administrator");
+        }
+        if (!result.Succeeded) { AddErrors(result); return View(model); }
+        await userManager.SetLockoutEndDateAsync(user, model.IsLocked ? DateTimeOffset.MaxValue : null);
+        logger.LogInformation("Administrator {AdministratorId} edited user {UserId}.", userManager.GetUserId(User), user.Id);
+        return RedirectToAction(nameof(Index));
+    }
+
+    [HttpPost("users/{id}/reset-password")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ResetUserPassword(string id, string password)
+    {
+        var user = await userManager.FindByIdAsync(id);
+        if (user is null) return NotFound();
+        var token = await userManager.GeneratePasswordResetTokenAsync(user);
+        var result = await userManager.ResetPasswordAsync(user, token, password);
+        if (!result.Succeeded) AddErrors(result);
+        else logger.LogInformation("Administrator {AdministratorId} reset password for user {UserId}.", userManager.GetUserId(User), id);
+        return RedirectToAction(nameof(Index));
+    }
+
+    [HttpPost("users/{id}/revoke-sessions")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> RevokeUserSessions(string id)
+    {
+        var user = await userManager.FindByIdAsync(id);
+        if (user is null) return NotFound();
+        await userManager.UpdateSecurityStampAsync(user);
+        await dbContext.OpenIddictTokens.Where(x => x.Subject == id && x.Status == Statuses.Valid).ExecuteUpdateAsync(x => x.SetProperty(t => t.Status, Statuses.Revoked));
+        logger.LogInformation("Administrator {AdministratorId} revoked sessions for user {UserId}.", userManager.GetUserId(User), id);
+        return RedirectToAction(nameof(Index));
+    }
+
+    [HttpPost("invitations/{id}/revoke")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> RevokeInvitation(string id)
+    {
+        var invitation = await dbContext.UserInvitations.FindAsync(id);
+        if (invitation is null) return NotFound();
+        invitation.RevokedAt = DateTimeOffset.UtcNow; await dbContext.SaveChangesAsync();
+        return RedirectToAction(nameof(Index));
+    }
+
+    [HttpPost("invitations/{id}/resend")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ResendInvitation(string id)
+    {
+        var invitation = await dbContext.UserInvitations.SingleOrDefaultAsync(x => x.Id == id);
+        if (invitation is null) return NotFound();
+        var user = await userManager.FindByIdAsync(invitation.UserId);
+        if (user is null || user.Email is null) return NotFound();
+        invitation.RevokedAt = DateTimeOffset.UtcNow;
+        var token = WebEncoders.Base64UrlEncode(RandomNumberGenerator.GetBytes(32));
+        dbContext.UserInvitations.Add(new UserInvitation { Id = Guid.NewGuid().ToString(), UserId = user.Id, TokenHash = HashToken(token), CreatedAt = DateTimeOffset.UtcNow, ExpiresAt = DateTimeOffset.UtcNow.AddDays(3) });
+        await dbContext.SaveChangesAsync();
+        var link = Url.Action("AcceptInvitation", "Invitation", new { email = user.Email, token }, Request.Scheme)!;
+        await emailSender.SendAsync(user.Email, "Your Course Library invitation", link);
+        return RedirectToAction(nameof(Index));
+    }
+
     [HttpGet("clients/create")]
     public IActionResult CreateClient() => View(new CreateClientViewModel());
 
@@ -174,6 +257,65 @@ public sealed class AdminController(
         logger.LogInformation("Administrator {AdministratorId} rotated the secret for OAuth client {ClientId}.", userManager.GetUserId(User), clientId);
         TempData["ClientSecret"] = secret;
         TempData["Success"] = "Client secret rotated. Copy the new value now; it will not be displayed again.";
+        return RedirectToAction(nameof(Index));
+    }
+
+    [HttpPost("clients/{clientId}/delete")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> DeleteClient(string clientId)
+    {
+        var client = await applicationManager.FindByClientIdAsync(clientId);
+        if (client is null) return NotFound();
+        await applicationManager.DeleteAsync(client);
+        return RedirectToAction(nameof(Index));
+    }
+
+    [HttpPost("clients/{clientId}/edit")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> EditClient(string clientId, string displayName, string redirectUri)
+    {
+        var client = await applicationManager.FindByClientIdAsync(clientId);
+        if (client is null) return NotFound();
+        var descriptor = new OpenIddictApplicationDescriptor(); await applicationManager.PopulateAsync(descriptor, client);
+        descriptor.DisplayName = displayName;
+        descriptor.RedirectUris.Clear();
+        if (Uri.TryCreate(redirectUri, UriKind.Absolute, out var uri)) descriptor.RedirectUris.Add(uri);
+        await applicationManager.UpdateAsync(client, descriptor);
+        return RedirectToAction(nameof(Index));
+    }
+
+    [HttpPost("scopes/{name}/delete")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> DeleteScope(string name)
+    {
+        var scope = await scopeManager.FindByNameAsync(name);
+        if (scope is null) return NotFound();
+        await scopeManager.DeleteAsync(scope);
+        return RedirectToAction(nameof(Index));
+    }
+
+    [HttpPost("scopes/{name}/edit")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> EditScope(string name, string displayName, string resource)
+    {
+        var scope = await scopeManager.FindByNameAsync(name);
+        if (scope is null) return NotFound();
+        var descriptor = new OpenIddictScopeDescriptor(); await scopeManager.PopulateAsync(descriptor, scope);
+        descriptor.DisplayName = displayName; descriptor.Resources.Clear(); descriptor.Resources.Add(resource);
+        await scopeManager.UpdateAsync(scope, descriptor);
+        return RedirectToAction(nameof(Index));
+    }
+
+    [HttpPost("roles/{roleName}/permissions")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> SetRolePermission(string roleName, string permission, bool enabled)
+    {
+        var role = await roleManager.FindByNameAsync(roleName);
+        if (role is null) return NotFound();
+        var existing = await roleManager.GetClaimsAsync(role);
+        var claim = existing.SingleOrDefault(x => x.Type == "permission" && x.Value == permission);
+        if (enabled && claim is null) await roleManager.AddClaimAsync(role, new System.Security.Claims.Claim("permission", permission));
+        if (!enabled && claim is not null) await roleManager.RemoveClaimAsync(role, claim);
         return RedirectToAction(nameof(Index));
     }
 

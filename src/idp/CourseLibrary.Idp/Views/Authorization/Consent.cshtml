@@ -1,0 +1,2 @@
+@model ConsentViewModel
+<h1>Authorize @Model.ClientName</h1><p>This application is requesting:</p><ul>@foreach (var scope in Model.Scopes) { <li>@scope</li> }</ul><form method="post"><button name="decision" value="approve" type="submit">Approve</button><button name="decision" value="deny" type="submit">Deny</button></form>

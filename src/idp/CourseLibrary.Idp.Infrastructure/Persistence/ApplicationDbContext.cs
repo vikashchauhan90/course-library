@@ -9,6 +9,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options) { }
 
     public DbSet<UserInvitation> UserInvitations => Set<UserInvitation>();
+    public DbSet<OpenIddictToken> OpenIddictTokens => Set<OpenIddictToken>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

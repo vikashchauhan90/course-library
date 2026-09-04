@@ -2,7 +2,10 @@ using CourseLibrary.Idp;
 using CourseLibrary.Idp.Domain.Entities;
 using CourseLibrary.Idp.Infrastructure.Persistence;
 using CourseLibrary.Idp.Infrastructure.Persistence.Interceptors;
+using CourseLibrary.Idp.Abstractions;
+using CourseLibrary.Idp.Infrastructure;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Authentication.Facebook;
 using Microsoft.AspNetCore.Authentication.MicrosoftAccount;
 using Microsoft.AspNetCore.Authentication.Twitter;
@@ -17,6 +20,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllersWithViews();
 builder.Services.AddRazorPages();
+builder.Services.AddScoped<IEmailSender, EmailSender>();
 builder.Services.Configure<OpenIdOptions>(builder.Configuration.GetSection(OpenIdOptions.SectionName));
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
@@ -82,6 +86,9 @@ builder.Services.Configure<DataProtectionTokenProviderOptions>(options =>
 
 builder.Services.AddAuthentication();
 builder.Services.AddAuthorization();
+builder.Services.AddScoped<IAuthorizationHandler, AdminMfaHandler>();
+builder.Services.AddAuthorizationBuilder().AddPolicy("AdminMfa", policy =>
+    policy.AddRequirements(new AdminMfaRequirement()));
 
 var externalProviders = builder.Configuration.GetSection("ExternalAuthentication");
 
@@ -106,6 +113,34 @@ builder.Services.AddOpenIddict()
     .AddClient(options =>
     {
         options.AllowAuthorizationCodeFlow();
+
+        if (builder.Environment.IsDevelopment())
+        {
+            options.AddDevelopmentSigningCertificate();
+            options.AddDevelopmentEncryptionCertificate();
+        }
+        else if (!string.IsNullOrWhiteSpace(openId.SigningCertificatePath) &&
+                 !string.IsNullOrWhiteSpace(openId.EncryptionCertificatePath))
+        {
+            var clientSigningCertificate = X509CertificateLoader.LoadPkcs12FromFile(
+                openId.SigningCertificatePath,
+                openId.SigningCertificatePassword,
+                X509KeyStorageFlags.MachineKeySet | X509KeyStorageFlags.EphemeralKeySet);
+            var clientEncryptionCertificate = X509CertificateLoader.LoadPkcs12FromFile(
+                openId.EncryptionCertificatePath,
+                openId.EncryptionCertificatePassword,
+                X509KeyStorageFlags.MachineKeySet | X509KeyStorageFlags.EphemeralKeySet);
+            if (!clientSigningCertificate.HasPrivateKey)
+                throw new InvalidOperationException("OpenId:SigningCertificatePath must contain a private key.");
+            if (!clientEncryptionCertificate.HasPrivateKey)
+                throw new InvalidOperationException("OpenId:EncryptionCertificatePath must contain a private key.");
+            options.AddSigningCertificate(clientSigningCertificate);
+            options.AddEncryptionCertificate(clientEncryptionCertificate);
+        }
+        else
+        {
+            throw new InvalidOperationException("OpenId signing and encryption certificates must be configured outside Development.");
+        }
 
         options.UseWebProviders()
            .AddMicrosoft(options =>
@@ -179,6 +214,7 @@ builder.Services.AddOpenIddict()
         options.SetAuthorizationEndpointUris("connect/authorize")
             .SetEndSessionEndpointUris("connect/logout")
             .SetTokenEndpointUris("connect/token")
+            .SetRevocationEndpointUris("connect/revoke")
             .SetUserInfoEndpointUris("connect/userinfo");
 
         options.RegisterScopes(
@@ -243,6 +279,7 @@ builder.Services.AddOpenIddict()
     .AddValidation(options =>
     {
         options.UseDataProtection();
+        options.UseLocalServer();
         options.UseAspNetCore();
     });
 

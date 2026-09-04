@@ -1,0 +1,2 @@
+@model List<ExternalLoginItem>
+<h1>External logins</h1>@foreach (var login in Model) { <form asp-action="UnlinkExternalLogin" method="post"><input name="provider" value="@login.LoginProvider" type="hidden" /><input name="key" value="@login.ProviderKey" type="hidden" /><span>@login.ProviderDisplayName</span><button type="submit">Unlink</button></form> }<p>Use a configured provider to link it during sign-in.</p>
