@@ -23,6 +23,8 @@ public sealed class PolicyFactory(
            ActivityKind.Internal);
         activity?.SetTag("policyName", policyName);
         activity?.SetTag("operationType", "void");
+        activity?.SetTag("operationMethod", operation.Method.Name);
+        activity?.SetTag("startTime", DateTime.UtcNow.ToString("o"));
         var pipeline = provider.GetPipeline(policyName);
 
         return pipeline.ExecuteAsync(
@@ -40,7 +42,8 @@ public sealed class PolicyFactory(
             ActivityKind.Internal);
         activity?.SetTag("policyName", policyName);
         activity?.SetTag("operationType", typeof(T).Name);
-
+        activity?.SetTag("operationMethod", operation.Method.Name);
+        activity?.SetTag("startTime", DateTime.UtcNow.ToString("o"));
         var pipeline = provider.GetPipeline(policyName);
 
         return pipeline.ExecuteAsync(

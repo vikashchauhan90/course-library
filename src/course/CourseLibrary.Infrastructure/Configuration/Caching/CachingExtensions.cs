@@ -1,5 +1,6 @@
 ﻿using CourseLibrary.Application.Abstractions.Caching;
 using CourseLibrary.Infrastructure.Caching;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using ZiggyCreatures.Caching.Fusion;
@@ -42,6 +43,15 @@ public static class CachingExtensions
 
             options.InstanceName =
                 cacheOptions.InstanceName;
+
+            options.ConfigurationOptions =
+           new StackExchange.Redis.ConfigurationOptions
+           {
+               AbortOnConnectFail = false,
+               ConnectRetry = 3,
+               ConnectTimeout = 5000,
+               SyncTimeout = 5000
+           };
         });
 
         services.AddSingleton<ICacheProvider, RedisCacheProvider>();
@@ -73,6 +83,15 @@ public static class CachingExtensions
 
             options.InstanceName =
                 cacheOptions.InstanceName;
+
+            options.ConfigurationOptions =
+           new StackExchange.Redis.ConfigurationOptions
+           {
+               AbortOnConnectFail = false,
+               ConnectRetry = 3,
+               ConnectTimeout = 5000,
+               SyncTimeout = 5000
+           };
         });
 
         services.AddHybridCache();
@@ -98,6 +117,12 @@ public static class CachingExtensions
            ?? throw new InvalidOperationException(
                "Redis configuration is missing.");
 
+        // L1 in-memory cache
+        services.AddMemoryCache(options =>
+        {
+            options.SizeLimit = 1000;
+        });
+
         // L2 distributed cache
         services.AddStackExchangeRedisCache(options =>
         {
@@ -106,6 +131,15 @@ public static class CachingExtensions
 
             options.InstanceName =
                 cacheOptions.InstanceName;
+
+            options.ConfigurationOptions =
+            new StackExchange.Redis.ConfigurationOptions
+            {
+                AbortOnConnectFail = false,
+                ConnectRetry = 3,
+                ConnectTimeout = 5000,
+                SyncTimeout = 5000
+            };
         });
 
         // Redis backplane
@@ -113,6 +147,14 @@ public static class CachingExtensions
         {
             options.Configuration =
             cacheOptions.ConnectionString;
+            options.ConfigurationOptions = 
+            new StackExchange.Redis.ConfigurationOptions
+            {
+                AbortOnConnectFail = false,
+                ConnectRetry = 3,
+                ConnectTimeout = 5000,
+                SyncTimeout = 5000
+            };
         });
 
         services.AddFusionCache()
@@ -120,17 +162,31 @@ public static class CachingExtensions
         new FusionCacheNeueccMessagePackSerializer())
             .WithDefaultEntryOptions(options =>
             {
+                // L2 Redis lifetime
                 options.Duration = TimeSpan.FromMinutes(5);
 
-                options.IsFailSafeEnabled = true;
+                // Fail-safe
+                options.IsFailSafeEnabled = false;
                 options.FailSafeMaxDuration = TimeSpan.FromHours(1);
                 options.FailSafeThrottleDuration = TimeSpan.FromSeconds(30);
 
+                // Factory timeouts
                 options.FactorySoftTimeout =
                     TimeSpan.FromMilliseconds(500);
 
                 options.FactoryHardTimeout =
                     TimeSpan.FromSeconds(5);
+
+                // Distributed/backplane operations
+                options.AllowBackgroundBackplaneOperations = true;
+                options.AllowBackgroundDistributedCacheOperations = true;
+
+                // L1 memory-cache lifetime/capacity
+                options.MemoryCacheDuration = TimeSpan.FromMinutes(1);
+                options.Priority = CacheItemPriority.Low;
+
+                // One size unit per entry.
+                options.Size = 1;
             })
             .WithRegisteredDistributedCache()
             .WithRegisteredBackplane();
