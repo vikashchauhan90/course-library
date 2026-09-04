@@ -14,15 +14,6 @@ internal sealed class CreateAuthorOrchestrator
     {
         var logger = context.CreateReplaySafeLogger<CreateAuthorOrchestrator>();
 
-        // Handle replay without creating activities
-        if (context.IsReplaying)
-        {
-            logger.LogDebug("Replaying orchestration {InstanceId}", context.InstanceId);
-            var replayEvent = context.GetInput<AuthorCreatedEvent>();
-            await context.CallActivityAsync(nameof(CreateAuthorAuditActivity), replayEvent);
-            return;
-        }
-
         using var orchestrationActivity = ActivitySources.EventConsumer.StartActivity(
             "orchestration.create-author",
             ActivityKind.Internal);
