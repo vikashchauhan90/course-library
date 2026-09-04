@@ -35,6 +35,9 @@ form button { margin-top: 1rem; }
 .page-section { max-width: 1180px; margin: 0 auto; padding: 3rem 1rem; }
 .page-section h1 { font-weight: 700; }
 .action-row { display: flex; flex-wrap: wrap; gap: .75rem; align-items: center; }
+.table { --bs-table-border-color: var(--cl-border); }
+.table th { color: var(--cl-muted); font-size: .75rem; text-transform: uppercase; letter-spacing: .04em; }
+.card { border-radius: .75rem; }
 
 @media (max-width: 576px) {
     .auth-shell { padding: 2rem .75rem; }
