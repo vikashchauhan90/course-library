@@ -31,10 +31,14 @@ public sealed class UpdateCourseEndpoint : ICarterModule
                 logger.UpdatingCourse(courseId);
 
                 if (string.IsNullOrWhiteSpace(requestContext.UserId) ||
-                    !string.Equals(requestContext.UserId, request.AuthorId, StringComparison.Ordinal))
+                    !string.Equals(requestContext.UserId, partitionKey, StringComparison.Ordinal))
                     return Results.Forbid();
 
-                var command = UpdateCourseMapper.ToCommand(courseId, request);
+                var command = new UpdateCourseCommand(
+                    courseId,
+                    request.Title,
+                    request.Description,
+                    partitionKey);
 
                 var course = await dispatcher.SendAsync<UpdateCourseCommand, CourseResponse>(
                     command,

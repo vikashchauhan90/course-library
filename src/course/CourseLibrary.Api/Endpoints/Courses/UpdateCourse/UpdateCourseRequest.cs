@@ -1,3 +1,3 @@
 namespace CourseLibrary.Api.Endpoints.Courses.UpdateCourse;
 
-public sealed record UpdateCourseRequest(string Title, string Description, string AuthorId);
+public sealed record UpdateCourseRequest(string Title, string Description);

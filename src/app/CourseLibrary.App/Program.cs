@@ -1,13 +1,34 @@
-using System.Net.Http.Headers;
+using CourseLibrary.App.Authentication;
+using CourseLibrary.Client.Configuration;
+using CourseLibrary.Client.Observability;
+using CourseLibrary.Client.Security;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllersWithViews();
 builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<IAccessTokenProvider, HttpContextAccessTokenProvider>();
+builder.Services.AddCourseLibraryClients(builder.Configuration);
+builder.Services.AddOpenTelemetry()
+    .ConfigureResource(resource => resource.AddService("CourseLibrary.App"))
+    .WithTracing(tracing => tracing
+        .AddAspNetCoreInstrumentation()
+        .AddHttpClientInstrumentation()
+        .AddSource(CourseApiDiagnostics.ActivitySourceName)
+        .AddConsoleExporter())
+    .WithMetrics(metrics => metrics
+        .AddAspNetCoreInstrumentation()
+        .AddHttpClientInstrumentation()
+        .AddRuntimeInstrumentation()
+        .AddMeter(CourseApiDiagnostics.MeterName)
+        .AddConsoleExporter());
 
 builder.Services.AddAuthentication(options =>
 {
@@ -42,14 +63,6 @@ builder.Services.AddAuthentication(options =>
     options.RequireHttpsMetadata = true;
 });
 
-builder.Services.AddHttpClient<CourseGatewayClient>((services, client) =>
-{
-    var configuration = services.GetRequiredService<IConfiguration>();
-    client.BaseAddress = new Uri(
-        configuration["Gateway:BaseUrl"]
-        ?? throw new InvalidOperationException("Gateway:BaseUrl is missing."));
-});
-
 var app = builder.Build();
 
 if (!app.Environment.IsDevelopment())
@@ -69,113 +82,3 @@ app.MapControllerRoute(
     pattern: "{controller=Home}/{action=Index}/{id?}");
 
 app.Run();
-
-public sealed class CourseGatewayClient(HttpClient httpClient, IHttpContextAccessor httpContextAccessor)
-{
-    private HttpClient HttpClient => httpClient;
-
-    private async Task<HttpRequestMessage> CreateRequestAsync(
-        HttpMethod method,
-        string path,
-        CancellationToken cancellationToken)
-    {
-        var accessToken = await httpContextAccessor.HttpContext!
-            .GetTokenAsync("access_token");
-
-        if (string.IsNullOrWhiteSpace(accessToken))
-            throw new InvalidOperationException("The current session has no access token.");
-
-        var request = new HttpRequestMessage(method, path);
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
-        return request;
-    }
-
-    public async Task<CourseDetails?> GetCourseAsync(string courseId, string partitionKey, CancellationToken cancellationToken)
-    {
-        using var request = await CreateRequestAsync(
-            HttpMethod.Get,
-            $"api/v1/courses/{Uri.EscapeDataString(courseId)}/{Uri.EscapeDataString(partitionKey)}",
-            cancellationToken);
-
-        using var response = await httpClient.SendAsync(request, cancellationToken);
-        if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
-            return null;
-
-        await EnsureSuccessAsync(response, cancellationToken);
-        return await response.Content.ReadFromJsonAsync<CourseDetails>(cancellationToken);
-    }
-
-    public async Task<IReadOnlyList<CourseDetails>> SearchAsync(string? query, CancellationToken cancellationToken)
-    {
-        using var request = await CreateRequestAsync(
-            HttpMethod.Get,
-            $"api/v1/courses/search?q={Uri.EscapeDataString(query?.Trim() ?? string.Empty)}&pageSize=50",
-            cancellationToken);
-        using var response = await httpClient.SendAsync(request, cancellationToken);
-        await EnsureSuccessAsync(response, cancellationToken);
-        return await response.Content.ReadFromJsonAsync<List<CourseDetails>>(cancellationToken) ?? [];
-    }
-
-    public async Task<IReadOnlyList<CourseDetails>> GetMineAsync(CancellationToken cancellationToken)
-    {
-        using var request = await CreateRequestAsync(HttpMethod.Get, "api/v1/courses/mine", cancellationToken);
-        using var response = await httpClient.SendAsync(request, cancellationToken);
-        await EnsureSuccessAsync(response, cancellationToken);
-        return await response.Content.ReadFromJsonAsync<List<CourseDetails>>(cancellationToken) ?? [];
-    }
-
-    public async Task<CourseDetails> CreateAsync(CreateCourseRequest requestModel, CancellationToken cancellationToken)
-    {
-        using var request = await CreateRequestAsync(HttpMethod.Post, "api/v1/courses/", cancellationToken);
-        request.Content = JsonContent.Create(requestModel);
-        using var response = await httpClient.SendAsync(request, cancellationToken);
-        await EnsureSuccessAsync(response, cancellationToken);
-        return (await response.Content.ReadFromJsonAsync<CourseDetails>(cancellationToken))!;
-    }
-
-    public async Task<CourseDetails> UpdateAsync(string courseId, string partitionKey, UpdateCourseRequest requestModel, CancellationToken cancellationToken)
-    {
-        using var request = await CreateRequestAsync(
-            HttpMethod.Put,
-            $"api/v1/courses/{Uri.EscapeDataString(courseId)}/{Uri.EscapeDataString(partitionKey)}",
-            cancellationToken);
-        request.Content = JsonContent.Create(requestModel);
-        using var response = await httpClient.SendAsync(request, cancellationToken);
-        await EnsureSuccessAsync(response, cancellationToken);
-        return (await response.Content.ReadFromJsonAsync<CourseDetails>(cancellationToken))!;
-    }
-
-    public async Task DeleteAsync(string courseId, string partitionKey, CancellationToken cancellationToken)
-    {
-        using var request = await CreateRequestAsync(
-            HttpMethod.Delete,
-            $"api/v1/courses/{Uri.EscapeDataString(courseId)}/{Uri.EscapeDataString(partitionKey)}",
-            cancellationToken);
-        using var response = await httpClient.SendAsync(request, cancellationToken);
-        await EnsureSuccessAsync(response, cancellationToken);
-    }
-
-    private static async Task EnsureSuccessAsync(HttpResponseMessage response, CancellationToken cancellationToken)
-    {
-        if (response.IsSuccessStatusCode)
-            return;
-
-        var detail = await response.Content.ReadAsStringAsync(cancellationToken);
-        throw new HttpRequestException(
-            $"Gateway returned {(int)response.StatusCode} ({response.StatusCode}). {detail}",
-            inner: null,
-            response.StatusCode);
-    }
-}
-
-public sealed record CourseDetails(
-    string? Id,
-    string? Title,
-    string? Description,
-    string? AuthorId,
-    DateTimeOffset CreatedAt,
-    DateTimeOffset UpdatedAt);
-
-public sealed record CreateCourseRequest(string Title, string Description, string AuthorId);
-
-public sealed record UpdateCourseRequest(string Title, string Description, string AuthorId);

@@ -4,6 +4,7 @@
     <Project Path="src/app/CourseLibrary.App/CourseLibrary.App.csproj" />
   </Folder>
   <Folder Name="/src/course/">
+    <Project Path="src/course/CourseLibrary.Client/CourseLibrary.Client.csproj" />
     <Project Path="src/course/CourseLibrary.Api/CourseLibrary.Api.csproj" />
     <Project Path="src/course/CourseLibrary.Application/CourseLibrary.Application.csproj" Id="e3762092-40c5-498a-8603-2925bb385484" />
     <Project Path="src/course/CourseLibrary.Domain/CourseLibrary.Domain.csproj" Id="b9aa2d1b-3001-4770-822a-5fe387ba3941" />

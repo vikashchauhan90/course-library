@@ -3,10 +3,11 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Mvc;
+using CourseLibrary.Client.Courses;
 
 namespace CourseLibrary.App.Controllers;
 
-public sealed class HomeController(CourseGatewayClient courseGatewayClient) : Controller
+public sealed class HomeController(ICourseApiClient courseApiClient) : Controller
 {
     [Authorize]
     public IActionResult Index() => View();
@@ -18,7 +19,7 @@ public sealed class HomeController(CourseGatewayClient courseGatewayClient) : Co
         if (string.IsNullOrWhiteSpace(courseId) || string.IsNullOrWhiteSpace(partitionKey))
             return View(new CourseLookupViewModel());
 
-        var course = await courseGatewayClient.GetCourseAsync(courseId, partitionKey, cancellationToken);
+        var course = await courseApiClient.GetCourseAsync(courseId, partitionKey, cancellationToken);
         return View(new CourseLookupViewModel
         {
             CourseId = courseId,
@@ -34,14 +35,14 @@ public sealed class HomeController(CourseGatewayClient courseGatewayClient) : Co
     {
         try
         {
-            var courses = await courseGatewayClient.SearchAsync(q, cancellationToken);
+            var courses = await courseApiClient.SearchAsync(q, cancellationToken);
             return View(new CourseSearchViewModel(q, courses));
         }
-        catch (HttpRequestException exception) when (exception.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+        catch (CourseApiException exception) when (exception.StatusCode == System.Net.HttpStatusCode.Unauthorized)
         {
             return await ReauthenticateAfterUnauthorizedAsync();
         }
-        catch (HttpRequestException)
+        catch (CourseApiException)
         {
             return View(new CourseSearchViewModel(q, [], "The gateway denied the request."));
         }
@@ -53,10 +54,10 @@ public sealed class HomeController(CourseGatewayClient courseGatewayClient) : Co
     {
         try
         {
-            var courses = await courseGatewayClient.GetMineAsync(cancellationToken);
+            var courses = await courseApiClient.GetMineAsync(cancellationToken);
             return View(courses);
         }
-        catch (HttpRequestException exception) when (exception.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+        catch (CourseApiException exception) when (exception.StatusCode == System.Net.HttpStatusCode.Unauthorized)
         {
             return await ReauthenticateAfterUnauthorizedAsync();
         }
@@ -72,10 +73,8 @@ public sealed class HomeController(CourseGatewayClient courseGatewayClient) : Co
     public async Task<IActionResult> Create(CourseFormViewModel model, CancellationToken cancellationToken)
     {
         if (!ModelState.IsValid) return View(model);
-        var authorId = User.FindFirst("sub")?.Value;
-        if (string.IsNullOrWhiteSpace(authorId)) return Challenge();
-        await courseGatewayClient.CreateAsync(
-            new CreateCourseRequest(model.Title, model.Description, authorId), cancellationToken);
+        await courseApiClient.CreateAsync(
+            new CreateCourseRequest(model.Title, model.Description), cancellationToken);
         return RedirectToAction(nameof(Mine));
     }
 
@@ -83,7 +82,7 @@ public sealed class HomeController(CourseGatewayClient courseGatewayClient) : Co
     [HttpGet]
     public async Task<IActionResult> Edit(string courseId, string partitionKey, CancellationToken cancellationToken)
     {
-        var course = await courseGatewayClient.GetCourseAsync(courseId, partitionKey, cancellationToken);
+        var course = await courseApiClient.GetCourseAsync(courseId, partitionKey, cancellationToken);
         if (course is null) return NotFound();
         return View(new CourseFormViewModel
         {
@@ -100,12 +99,10 @@ public sealed class HomeController(CourseGatewayClient courseGatewayClient) : Co
     public async Task<IActionResult> Edit(CourseFormViewModel model, CancellationToken cancellationToken)
     {
         if (!ModelState.IsValid) return View(model);
-        var authorId = User.FindFirst("sub")?.Value;
-        if (string.IsNullOrWhiteSpace(authorId)) return Challenge();
-        await courseGatewayClient.UpdateAsync(
+        await courseApiClient.UpdateAsync(
             model.CourseId!,
             model.PartitionKey!,
-            new UpdateCourseRequest(model.Title, model.Description, authorId),
+            new UpdateCourseRequest(model.Title, model.Description),
             cancellationToken);
         return RedirectToAction(nameof(Mine));
     }
@@ -115,7 +112,7 @@ public sealed class HomeController(CourseGatewayClient courseGatewayClient) : Co
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Delete(string courseId, string partitionKey, CancellationToken cancellationToken)
     {
-        await courseGatewayClient.DeleteAsync(courseId, partitionKey, cancellationToken);
+        await courseApiClient.DeleteAsync(courseId, partitionKey, cancellationToken);
         return RedirectToAction(nameof(Mine));
     }
 

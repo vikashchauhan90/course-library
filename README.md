@@ -69,3 +69,21 @@ The administrator must enable authenticator-based MFA before accessing the
 administration area. Restart the IDP after changing the seeder or its
 configuration. The applications and scopes tables are seeded immediately;
 authorization and token rows are created only after a successful OAuth login.
+
+## Shared Course API Client
+
+`src/course/CourseLibrary.Client` is the reusable Course API client module.
+Applications consume `ICourseApiClient` and do not construct gateway URLs or
+bearer headers themselves. The module provides:
+
+- typed course contracts and operations;
+- access-token injection through `IAccessTokenProvider`;
+- standard HTTP resilience with exponential jitter, circuit breaking, timeout,
+	and no retries for unsafe mutation methods;
+- `ActivitySource`, `Meter`, and source-generated logs for each operation;
+- structured `CourseApiException` errors that preserve HTTP status and problem
+	details.
+
+The App registers this module with `AddCourseLibraryClients`. Its OIDC token
+provider is kept in the App composition root, while HTTP concerns remain in
+the shared module.
