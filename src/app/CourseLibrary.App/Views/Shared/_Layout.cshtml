@@ -12,6 +12,8 @@
         <nav>
             @if (User.Identity?.IsAuthenticated == true)
             {
+                <a asp-controller="Home" asp-action="Search">Browse</a>
+                <a asp-controller="Home" asp-action="Mine">My courses</a>
                 <a asp-controller="Home" asp-action="Course">Courses</a>
                 <span class="identity">@User.Identity.Name</span>
                 <a asp-controller="Home" asp-action="Logout">Sign out</a>

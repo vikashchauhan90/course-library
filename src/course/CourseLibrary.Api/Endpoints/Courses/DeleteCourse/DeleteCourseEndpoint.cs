@@ -2,6 +2,7 @@ using Carter;
 using CourseLibrary.Api.Configuration;
 using CourseLibrary.Api.Endpoints.Courses.DeleteCourse;
 using CourseLibrary.Application.Operations.Courses.Delete;
+using CourseLibrary.Application.Abstractions.RequestContext;
 using MediatorForge.Abstractions;
 
 namespace CourseLibrary.Api.Endpoints.Courses.DeleteCourse;
@@ -20,9 +21,14 @@ public sealed class DeleteCourseEndpoint : ICarterModule
                 IDispatcher dispatcher,
                 string courseId,
                 string partitionKey,
+                IRequestContext requestContext,
                 ILogger<DeleteCourseEndpoint> logger) =>
             {
                 var ct = httpContext.RequestAborted;
+
+                if (string.IsNullOrWhiteSpace(requestContext.UserId) ||
+                    !string.Equals(requestContext.UserId, partitionKey, StringComparison.Ordinal))
+                    return Results.Forbid();
 
                 logger.DeletingCourse(courseId);
 

@@ -3,6 +3,7 @@ using CourseLibrary.Api.Configuration;
 using CourseLibrary.Api.Endpoints.Courses.UpdateCourse;
 using CourseLibrary.Application.Operations.Courses;
 using CourseLibrary.Application.Operations.Courses.Update;
+using CourseLibrary.Application.Abstractions.RequestContext;
 using MediatorForge.Abstractions;
 
 namespace CourseLibrary.Api.Endpoints.Courses.UpdateCourse;
@@ -22,11 +23,16 @@ public sealed class UpdateCourseEndpoint : ICarterModule
                 string courseId,
                 string partitionKey,
                 UpdateCourseRequest request,
+                IRequestContext requestContext,
                 ILogger<UpdateCourseEndpoint> logger) =>
             {
                 var ct = httpContext.RequestAborted;
 
                 logger.UpdatingCourse(courseId);
+
+                if (string.IsNullOrWhiteSpace(requestContext.UserId) ||
+                    !string.Equals(requestContext.UserId, request.AuthorId, StringComparison.Ordinal))
+                    return Results.Forbid();
 
                 var command = UpdateCourseMapper.ToCommand(courseId, request);
 

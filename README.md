@@ -49,6 +49,12 @@ server-side authentication session, and sends it as a bearer token when
 calling the gateway. The initial UI supports lookup through the existing
 `GET /api/v1/courses/{courseId}/{partitionKey}` API endpoint.
 
+The App also provides global course search and authenticated ownership
+management. Users can view courses returned by search, but only the owner can
+create, update, or delete a course. The gateway validates the bearer token and
+the API derives ownership from the forwarded subject instead of trusting a
+browser-supplied owner ID.
+
 In Development, the IDP seeds the database on startup when
 `Database:ApplyMigrationsOnStartup` and `Database:SeedDevelopmentUser` are
 enabled. It creates the `course-library-app` client, the `course-library-api`

@@ -13,14 +13,23 @@ internal sealed class AuditContainerInitializer(
     {
         var database = client.GetDatabase(options.Value.DatabaseName);
 
-        await database.CreateContainerIfNotExistsAsync(
-            new ContainerProperties("author-audit", "/authorId"),
-            cancellationToken: cancellationToken);
-
-        await database.CreateContainerIfNotExistsAsync(
-            new ContainerProperties("course-audit", "/courseId"),
-            cancellationToken: cancellationToken);
+        await CreateContainerAsync(database, "courses", cancellationToken);
+        await CreateContainerAsync(database, "authors", cancellationToken);
+        await CreateContainerAsync(database, "discussions", cancellationToken);
+        await CreateContainerAsync(database, "comments", cancellationToken);
+        await CreateContainerAsync(database, "author-audit", cancellationToken);
+        await CreateContainerAsync(database, "course-audit", cancellationToken);
     }
 
     public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+
+    private static Task CreateContainerAsync(
+        Database database,
+        string containerName,
+        CancellationToken cancellationToken)
+    {
+        return database.CreateContainerIfNotExistsAsync(
+            new ContainerProperties(containerName, "/partitionKeyValue"),
+            cancellationToken: cancellationToken);
+    }
 }

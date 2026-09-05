@@ -1,0 +1,36 @@
+@model IReadOnlyList<CourseDetails>
+
+<section class="page-heading page-heading-row">
+    <div>
+        <p class="eyebrow">Your library</p>
+        <h1>My courses</h1>
+        <p class="lede">Create, refine, and remove the courses you own.</p>
+    </div>
+    <a class="button" asp-action="Create">Create course</a>
+</section>
+
+<section class="course-grid">
+    @if (Model.Count == 0)
+    {
+        <p class="notice">You have not created a course yet.</p>
+    }
+    else
+    {
+        foreach (var course in Model)
+        {
+            <article class="course-card">
+                <p class="eyebrow">Updated @course.UpdatedAt.ToLocalTime().ToString("d")</p>
+                <h2>@course.Title</h2>
+                <p>@course.Description</p>
+                <div class="card-actions">
+                    <a asp-action="Edit" asp-route-courseId="@course.Id" asp-route-partitionKey="@course.AuthorId">Edit</a>
+                    <form method="post" asp-action="Delete">
+                        <input type="hidden" name="courseId" value="@course.Id" />
+                        <input type="hidden" name="partitionKey" value="@course.AuthorId" />
+                        <button class="link-button" type="submit">Delete</button>
+                    </form>
+                </div>
+            </article>
+        }
+    }
+</section>

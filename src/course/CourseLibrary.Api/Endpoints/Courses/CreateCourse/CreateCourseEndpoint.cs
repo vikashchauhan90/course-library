@@ -3,6 +3,7 @@ using CourseLibrary.Api.Configuration;
 using CourseLibrary.Api.Endpoints.Courses.CreateCourse;
 using CourseLibrary.Application.Operations.Courses;
 using CourseLibrary.Application.Operations.Courses.Create;
+using CourseLibrary.Application.Abstractions.RequestContext;
 using CourseLibrary.Domain.Entities;
 using MediatorForge.Abstractions;
 
@@ -20,6 +21,7 @@ public sealed class CreateCourseEndpoint : ICarterModule
             async (
                 HttpContext httpContext,
                 CreateCourseRequest request,
+                IRequestContext requestContext,
                 IDispatcher dispatcher,
                 ILogger<CreateCourseEndpoint> logger) =>
             {
@@ -27,7 +29,11 @@ public sealed class CreateCourseEndpoint : ICarterModule
 
                 logger.CreatingCourse(request.Title);
 
-                var command = CreateCourseMapper.ToCommand(request);
+                var authorId = requestContext.UserId;
+                if (string.IsNullOrWhiteSpace(authorId))
+                    return Results.Unauthorized();
+
+                var command = new CreateCourseCommand(request.Title, request.Description, authorId);
 
                 var course = await dispatcher.SendAsync<CreateCourseCommand, CourseResponse>(
                     command,

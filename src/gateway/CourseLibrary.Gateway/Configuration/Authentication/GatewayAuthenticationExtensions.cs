@@ -30,6 +30,7 @@ internal static class GatewayAuthenticationExtensions
             .AddJwtBearer(options =>
             {
                 options.Authority = jwt.Authority;
+                options.MapInboundClaims = false;
                 if (!string.IsNullOrWhiteSpace(jwt.MetadataAddress)) { options.MetadataAddress = jwt.MetadataAddress; }
                 options.Audience = jwt.Audience;
 

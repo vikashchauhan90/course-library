@@ -1,0 +1,10 @@
+@model CourseFormViewModel
+
+<form method="post" class="course-form">
+    @Html.AntiForgeryToken()
+    <input type="hidden" asp-for="CourseId" />
+    <input type="hidden" asp-for="PartitionKey" />
+    <label asp-for="Title">Title<input asp-for="Title" required maxlength="200" /></label>
+    <label asp-for="Description">Description<textarea asp-for="Description" rows="8" required maxlength="4000"></textarea></label>
+    <button class="button" type="submit">@(Model.CourseId is null ? "Create course" : "Save changes")</button>
+</form>

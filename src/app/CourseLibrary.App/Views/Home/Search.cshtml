@@ -1,0 +1,39 @@
+@model CourseSearchViewModel
+
+<section class="page-heading">
+    <p class="eyebrow">Course library</p>
+    <h1>Find something worth learning.</h1>
+    <p class="lede">Search every published course available through the gateway.</p>
+</section>
+
+<form method="get" class="search-form">
+    <label for="q">Search courses</label>
+    <div>
+        <input id="q" name="q" value="@Model.Query" placeholder="Try design, data, or leadership" />
+        <button class="button" type="submit">Search</button>
+    </div>
+</form>
+
+@if (!string.IsNullOrWhiteSpace(Model.Error))
+{
+    <p class="notice">@Model.Error</p>
+}
+
+<section class="course-grid" aria-live="polite">
+    @if (Model.Courses.Count == 0)
+    {
+        <p class="notice">No courses matched that search.</p>
+    }
+    else
+    {
+        foreach (var course in Model.Courses)
+        {
+            <article class="course-card">
+                <p class="eyebrow">By @course.AuthorId</p>
+                <h2>@course.Title</h2>
+                <p>@course.Description</p>
+                <a asp-action="Course" asp-route-courseId="@course.Id" asp-route-partitionKey="@course.AuthorId">View course</a>
+            </article>
+        }
+    }
+</section>
