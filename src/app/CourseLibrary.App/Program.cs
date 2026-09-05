@@ -29,7 +29,7 @@ builder.Services.AddAuthentication(options =>
     options.ResponseType = OpenIdConnectResponseType.Code;
     options.UsePkce = true;
     options.SaveTokens = true;
-    options.GetClaimsFromUserInfoEndpoint = true;
+    options.GetClaimsFromUserInfoEndpoint = false;
     options.MapInboundClaims = false;
     options.Scope.Clear();
     options.Scope.Add("openid");

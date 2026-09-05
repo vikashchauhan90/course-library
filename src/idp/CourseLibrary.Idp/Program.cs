@@ -287,4 +287,7 @@ app.MapControllers();
 app.MapControllerRoute("default", "{controller=Home}/{action=Index}/{id?}");
 app.MapRazorPages();
 
+if (app.Environment.IsDevelopment())
+    await DevelopmentDataSeeder.SeedAsync(app.Services, app.Configuration);
+
 app.Run();
