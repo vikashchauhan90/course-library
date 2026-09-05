@@ -19,3 +19,32 @@ sudo service redis-server start
  for status:
  sudo service redis-server status
 ```
+
+## CourseLibrary.App
+
+The web application runs at `https://localhost:7060` and uses the IDP at
+`https://localhost:59890`. Create an authorization-code client from the IDP
+admin screen (`/admin/clients/create`) with these values:
+
+```text
+Client ID: course-library-app
+Display name: Course Library Web App
+Redirect URI: https://localhost:7060/signin-oidc
+Grant type: Authorization Code
+Scope: course-library-api
+```
+
+Copy the generated secret into
+`src/app/CourseLibrary.App/appsettings.Development.json` under
+`OpenId:ClientSecret`, then start the services:
+
+```powershell
+dotnet run --project .\src\idp\CourseLibrary.Idp
+dotnet run --project .\src\gateway\CourseLibrary.Gateway
+dotnet run --project .\src\app\CourseLibrary.App
+```
+
+The app signs users in with OpenID Connect, stores the access token in its
+server-side authentication session, and sends it as a bearer token when
+calling the gateway. The initial UI supports lookup through the existing
+`GET /api/v1/courses/{courseId}/{partitionKey}` API endpoint.

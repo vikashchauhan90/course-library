@@ -40,6 +40,12 @@ public sealed class AccountController(SignInManager<ApplicationUser> signInManag
     public async Task<IActionResult> Register(RegisterViewModel model)
     {
         if (!ModelState.IsValid) return View(model);
+
+        if (await userManager.FindByEmailAsync(model.Email) is not null)
+        {
+            ModelState.AddModelError(nameof(model.Email), "This email is already registered.");
+            return View(model);
+        }
         var user = new ApplicationUser { UserName = model.Email, Email = model.Email, FullName = model.FullName, CreatedAt = DateTimeOffset.UtcNow, LockoutEnabled = true };
         var result = await userManager.CreateAsync(user, model.Password);
         if (!result.Succeeded) { AddErrors(result); return View(model); }

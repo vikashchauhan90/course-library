@@ -1,5 +1,8 @@
 <Solution>
   <Folder Name="/src/" />
+  <Folder Name="/src/app/">
+    <Project Path="src/app/CourseLibrary.App/CourseLibrary.App.csproj" />
+  </Folder>
   <Folder Name="/src/course/">
     <Project Path="src/course/CourseLibrary.Api/CourseLibrary.Api.csproj" />
     <Project Path="src/course/CourseLibrary.Application/CourseLibrary.Application.csproj" Id="e3762092-40c5-498a-8603-2925bb385484" />

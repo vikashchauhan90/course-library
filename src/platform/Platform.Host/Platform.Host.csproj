@@ -13,6 +13,7 @@
     <PackageReference Include="MessagePack" Version="3.1.8" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\app\CourseLibrary.App\CourseLibrary.App.csproj" />
     <ProjectReference Include="..\..\course\CourseLibrary.Api\CourseLibrary.Api.csproj" />
     <ProjectReference Include="..\..\course\CourseLibrary.EventConsumer\CourseLibrary.EventConsumer.csproj" />
     <ProjectReference Include="..\..\gateway\CourseLibrary.Gateway\CourseLibrary.Gateway.csproj" />

@@ -1,0 +1,38 @@
+@model CourseLookupViewModel
+
+<section class="page-heading">
+    <p class="eyebrow">Gateway resource</p>
+    <h1>Course lookup</h1>
+    <p class="lede">Retrieve a course through the authenticated gateway connection.</p>
+</section>
+
+<form method="get" class="lookup-form">
+    <label>
+        Course ID
+        <input name="courseId" value="@Model.CourseId" required />
+    </label>
+    <label>
+        Partition key
+        <input name="partitionKey" value="@Model.PartitionKey" required />
+    </label>
+    <button class="button" type="submit">Load course</button>
+</form>
+
+@if (Model.NotFound)
+{
+    <p class="notice">No course was found for those values.</p>
+}
+else if (Model.Course is not null)
+{
+    <article class="course-result">
+        <p class="eyebrow">Course</p>
+        <h2>@Model.Course.Title</h2>
+        <p>@Model.Course.Description</p>
+        <dl>
+            <dt>Course ID</dt>
+            <dd>@Model.Course.Id</dd>
+            <dt>Author ID</dt>
+            <dd>@Model.Course.AuthorId</dd>
+        </dl>
+    </article>
+}

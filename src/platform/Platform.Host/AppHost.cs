@@ -35,10 +35,15 @@ var consumer = builder
     .AddProject<Projects.CourseLibrary_EventConsumer>("consumer")
     .WaitFor(serviceBus);
 
+var app = builder
+    .AddProject<Projects.CourseLibrary_App>("app")
+    .WaitFor(serviceBus);
+
 builder
     .AddProject<Projects.CourseLibrary_Gateway>("gateway")
     .WithReference(api)
     .WithReference(idp)
-    .WithReference(consumer);
+    .WithReference(consumer)
+    .WithReference(app);
 
 builder.Build().Run();
