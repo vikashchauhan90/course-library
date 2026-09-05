@@ -12,11 +12,22 @@ namespace CourseLibrary.Idp.Infrastructure.Persistence.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.EnsureSchema(
+                name: "oauth");
+
+            migrationBuilder.EnsureSchema(
+                name: "identity");
+
             migrationBuilder.CreateTable(
-                name: "OpenIddictApplications",
+                name: "applications",
+                schema: "oauth",
                 columns: table => new
                 {
-                    id = table.Column<string>(type: "text", nullable: false),
+                    id = table.Column<Guid>(type: "uuid", nullable: false),
+                    created_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    updated_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
+                    deleted_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
+                    concurrency_stamp = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: true),
                     application_type = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
                     client_id = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
                     client_secret = table.Column<string>(type: "text", nullable: true),
@@ -35,30 +46,12 @@ namespace CourseLibrary.Idp.Infrastructure.Persistence.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("pk_open_iddict_applications", x => x.id);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "OpenIddictScopes",
-                columns: table => new
-                {
-                    id = table.Column<string>(type: "text", nullable: false),
-                    concurrency_token = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
-                    description = table.Column<string>(type: "text", nullable: true),
-                    descriptions = table.Column<string>(type: "text", nullable: true),
-                    display_name = table.Column<string>(type: "text", nullable: true),
-                    display_names = table.Column<string>(type: "text", nullable: true),
-                    name = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: true),
-                    properties = table.Column<string>(type: "text", nullable: true),
-                    resources = table.Column<string>(type: "text", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("pk_open_iddict_scopes", x => x.id);
+                    table.PrimaryKey("pk_applications", x => x.id);
                 });
 
             migrationBuilder.CreateTable(
                 name: "roles",
+                schema: "identity",
                 columns: table => new
                 {
                     id = table.Column<string>(type: "text", nullable: false),
@@ -75,7 +68,32 @@ namespace CourseLibrary.Idp.Infrastructure.Persistence.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "scopes",
+                schema: "oauth",
+                columns: table => new
+                {
+                    id = table.Column<Guid>(type: "uuid", nullable: false),
+                    created_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    updated_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
+                    deleted_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
+                    concurrency_stamp = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: true),
+                    concurrency_token = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
+                    description = table.Column<string>(type: "text", nullable: true),
+                    descriptions = table.Column<string>(type: "text", nullable: true),
+                    display_name = table.Column<string>(type: "text", nullable: true),
+                    display_names = table.Column<string>(type: "text", nullable: true),
+                    name = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: true),
+                    properties = table.Column<string>(type: "text", nullable: true),
+                    resources = table.Column<string>(type: "text", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("pk_scopes", x => x.id);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "users",
+                schema: "identity",
                 columns: table => new
                 {
                     id = table.Column<string>(type: "text", nullable: false),
@@ -104,11 +122,16 @@ namespace CourseLibrary.Idp.Infrastructure.Persistence.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "OpenIddictAuthorizations",
+                name: "authorizations",
+                schema: "oauth",
                 columns: table => new
                 {
-                    id = table.Column<string>(type: "text", nullable: false),
-                    application_id = table.Column<string>(type: "text", nullable: true),
+                    id = table.Column<Guid>(type: "uuid", nullable: false),
+                    created_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    updated_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
+                    deleted_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
+                    concurrency_stamp = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: true),
+                    application_id = table.Column<Guid>(type: "uuid", nullable: true),
                     concurrency_token = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
                     creation_date = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     properties = table.Column<string>(type: "text", nullable: true),
@@ -119,16 +142,18 @@ namespace CourseLibrary.Idp.Infrastructure.Persistence.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("pk_open_iddict_authorizations", x => x.id);
+                    table.PrimaryKey("pk_authorizations", x => x.id);
                     table.ForeignKey(
-                        name: "fk_open_iddict_authorizations_open_iddict_applications_application",
+                        name: "fk_authorizations_applications_application_id",
                         column: x => x.application_id,
-                        principalTable: "OpenIddictApplications",
+                        principalSchema: "oauth",
+                        principalTable: "applications",
                         principalColumn: "id");
                 });
 
             migrationBuilder.CreateTable(
                 name: "role_claims",
+                schema: "identity",
                 columns: table => new
                 {
                     id = table.Column<int>(type: "integer", nullable: false)
@@ -143,6 +168,7 @@ namespace CourseLibrary.Idp.Infrastructure.Persistence.Migrations
                     table.ForeignKey(
                         name: "fk_role_claims_roles_role_id",
                         column: x => x.role_id,
+                        principalSchema: "identity",
                         principalTable: "roles",
                         principalColumn: "id",
                         onDelete: ReferentialAction.Cascade);
@@ -150,6 +176,7 @@ namespace CourseLibrary.Idp.Infrastructure.Persistence.Migrations
 
             migrationBuilder.CreateTable(
                 name: "user_claims",
+                schema: "identity",
                 columns: table => new
                 {
                     id = table.Column<int>(type: "integer", nullable: false)
@@ -164,6 +191,7 @@ namespace CourseLibrary.Idp.Infrastructure.Persistence.Migrations
                     table.ForeignKey(
                         name: "fk_user_claims_users_user_id",
                         column: x => x.user_id,
+                        principalSchema: "identity",
                         principalTable: "users",
                         principalColumn: "id",
                         onDelete: ReferentialAction.Cascade);
@@ -171,6 +199,7 @@ namespace CourseLibrary.Idp.Infrastructure.Persistence.Migrations
 
             migrationBuilder.CreateTable(
                 name: "user_invitations",
+                schema: "identity",
                 columns: table => new
                 {
                     id = table.Column<string>(type: "text", nullable: false),
@@ -190,6 +219,7 @@ namespace CourseLibrary.Idp.Infrastructure.Persistence.Migrations
                     table.ForeignKey(
                         name: "fk_user_invitations_users_user_id",
                         column: x => x.user_id,
+                        principalSchema: "identity",
                         principalTable: "users",
                         principalColumn: "id",
                         onDelete: ReferentialAction.Cascade);
@@ -197,6 +227,7 @@ namespace CourseLibrary.Idp.Infrastructure.Persistence.Migrations
 
             migrationBuilder.CreateTable(
                 name: "user_logins",
+                schema: "identity",
                 columns: table => new
                 {
                     login_provider = table.Column<string>(type: "text", nullable: false),
@@ -210,6 +241,7 @@ namespace CourseLibrary.Idp.Infrastructure.Persistence.Migrations
                     table.ForeignKey(
                         name: "fk_user_logins_users_user_id",
                         column: x => x.user_id,
+                        principalSchema: "identity",
                         principalTable: "users",
                         principalColumn: "id",
                         onDelete: ReferentialAction.Cascade);
@@ -217,6 +249,7 @@ namespace CourseLibrary.Idp.Infrastructure.Persistence.Migrations
 
             migrationBuilder.CreateTable(
                 name: "user_roles",
+                schema: "identity",
                 columns: table => new
                 {
                     user_id = table.Column<string>(type: "text", nullable: false),
@@ -228,12 +261,14 @@ namespace CourseLibrary.Idp.Infrastructure.Persistence.Migrations
                     table.ForeignKey(
                         name: "fk_user_roles_roles_role_id",
                         column: x => x.role_id,
+                        principalSchema: "identity",
                         principalTable: "roles",
                         principalColumn: "id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
                         name: "fk_user_roles_users_user_id",
                         column: x => x.user_id,
+                        principalSchema: "identity",
                         principalTable: "users",
                         principalColumn: "id",
                         onDelete: ReferentialAction.Cascade);
@@ -241,6 +276,7 @@ namespace CourseLibrary.Idp.Infrastructure.Persistence.Migrations
 
             migrationBuilder.CreateTable(
                 name: "user_tokens",
+                schema: "identity",
                 columns: table => new
                 {
                     user_id = table.Column<string>(type: "text", nullable: false),
@@ -254,18 +290,24 @@ namespace CourseLibrary.Idp.Infrastructure.Persistence.Migrations
                     table.ForeignKey(
                         name: "fk_user_tokens_users_user_id",
                         column: x => x.user_id,
+                        principalSchema: "identity",
                         principalTable: "users",
                         principalColumn: "id",
                         onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
-                name: "OpenIddictTokens",
+                name: "tokens",
+                schema: "oauth",
                 columns: table => new
                 {
-                    id = table.Column<string>(type: "text", nullable: false),
-                    application_id = table.Column<string>(type: "text", nullable: true),
-                    authorization_id = table.Column<string>(type: "text", nullable: true),
+                    id = table.Column<Guid>(type: "uuid", nullable: false),
+                    created_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    updated_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
+                    deleted_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
+                    concurrency_stamp = table.Column<string>(type: "character varying(64)", maxLength: 64, nullable: true),
+                    application_id = table.Column<Guid>(type: "uuid", nullable: true),
+                    authorization_id = table.Column<Guid>(type: "uuid", nullable: true),
                     concurrency_token = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
                     creation_date = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     expiration_date = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
@@ -279,125 +321,219 @@ namespace CourseLibrary.Idp.Infrastructure.Persistence.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("pk_open_iddict_tokens", x => x.id);
+                    table.PrimaryKey("pk_tokens", x => x.id);
                     table.ForeignKey(
-                        name: "fk_open_iddict_tokens_open_iddict_applications_application_id",
+                        name: "fk_tokens_applications_application_id",
                         column: x => x.application_id,
-                        principalTable: "OpenIddictApplications",
+                        principalSchema: "oauth",
+                        principalTable: "applications",
                         principalColumn: "id");
                     table.ForeignKey(
-                        name: "fk_open_iddict_tokens_open_iddict_authorizations_authorization_id",
+                        name: "fk_tokens_authorizations_authorization_id",
                         column: x => x.authorization_id,
-                        principalTable: "OpenIddictAuthorizations",
+                        principalSchema: "oauth",
+                        principalTable: "authorizations",
                         principalColumn: "id");
                 });
 
             migrationBuilder.CreateIndex(
-                name: "ix_open_iddict_applications_client_id",
-                table: "OpenIddictApplications",
+                name: "ix_applications_client_id",
+                schema: "oauth",
+                table: "applications",
                 column: "client_id",
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "ix_open_iddict_authorizations_application_id_status_subject_type",
-                table: "OpenIddictAuthorizations",
+                name: "ix_applications_concurrency_stamp",
+                schema: "oauth",
+                table: "applications",
+                column: "concurrency_stamp");
+
+            migrationBuilder.CreateIndex(
+                name: "ix_applications_created_at",
+                schema: "oauth",
+                table: "applications",
+                column: "created_at");
+
+            migrationBuilder.CreateIndex(
+                name: "ix_applications_deleted_at",
+                schema: "oauth",
+                table: "applications",
+                column: "deleted_at");
+
+            migrationBuilder.CreateIndex(
+                name: "ix_authorizations_application_id_status_subject_type",
+                schema: "oauth",
+                table: "authorizations",
                 columns: new[] { "application_id", "status", "subject", "type" });
 
             migrationBuilder.CreateIndex(
-                name: "ix_open_iddict_scopes_name",
-                table: "OpenIddictScopes",
-                column: "name",
-                unique: true);
+                name: "ix_authorizations_concurrency_stamp",
+                schema: "oauth",
+                table: "authorizations",
+                column: "concurrency_stamp");
 
             migrationBuilder.CreateIndex(
-                name: "ix_open_iddict_tokens_application_id_status_subject_type",
-                table: "OpenIddictTokens",
-                columns: new[] { "application_id", "status", "subject", "type" });
+                name: "ix_authorizations_created_at",
+                schema: "oauth",
+                table: "authorizations",
+                column: "created_at");
 
             migrationBuilder.CreateIndex(
-                name: "ix_open_iddict_tokens_authorization_id",
-                table: "OpenIddictTokens",
-                column: "authorization_id");
-
-            migrationBuilder.CreateIndex(
-                name: "ix_open_iddict_tokens_reference_id",
-                table: "OpenIddictTokens",
-                column: "reference_id",
-                unique: true);
+                name: "ix_authorizations_deleted_at",
+                schema: "oauth",
+                table: "authorizations",
+                column: "deleted_at");
 
             migrationBuilder.CreateIndex(
                 name: "ix_role_claims_role_id",
+                schema: "identity",
                 table: "role_claims",
                 column: "role_id");
 
             migrationBuilder.CreateIndex(
                 name: "ix_roles_deleted_at",
+                schema: "identity",
                 table: "roles",
                 column: "deleted_at");
 
             migrationBuilder.CreateIndex(
                 name: "ix_roles_name",
+                schema: "identity",
                 table: "roles",
                 column: "name",
                 unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "RoleNameIndex",
+                schema: "identity",
                 table: "roles",
                 column: "normalized_name",
                 unique: true);
 
             migrationBuilder.CreateIndex(
+                name: "ix_scopes_concurrency_stamp",
+                schema: "oauth",
+                table: "scopes",
+                column: "concurrency_stamp");
+
+            migrationBuilder.CreateIndex(
+                name: "ix_scopes_created_at",
+                schema: "oauth",
+                table: "scopes",
+                column: "created_at");
+
+            migrationBuilder.CreateIndex(
+                name: "ix_scopes_deleted_at",
+                schema: "oauth",
+                table: "scopes",
+                column: "deleted_at");
+
+            migrationBuilder.CreateIndex(
+                name: "ix_scopes_name",
+                schema: "oauth",
+                table: "scopes",
+                column: "name",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "ix_tokens_application_id_status_subject_type",
+                schema: "oauth",
+                table: "tokens",
+                columns: new[] { "application_id", "status", "subject", "type" });
+
+            migrationBuilder.CreateIndex(
+                name: "ix_tokens_authorization_id",
+                schema: "oauth",
+                table: "tokens",
+                column: "authorization_id");
+
+            migrationBuilder.CreateIndex(
+                name: "ix_tokens_concurrency_stamp",
+                schema: "oauth",
+                table: "tokens",
+                column: "concurrency_stamp");
+
+            migrationBuilder.CreateIndex(
+                name: "ix_tokens_created_at",
+                schema: "oauth",
+                table: "tokens",
+                column: "created_at");
+
+            migrationBuilder.CreateIndex(
+                name: "ix_tokens_deleted_at",
+                schema: "oauth",
+                table: "tokens",
+                column: "deleted_at");
+
+            migrationBuilder.CreateIndex(
+                name: "ix_tokens_reference_id",
+                schema: "oauth",
+                table: "tokens",
+                column: "reference_id",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
                 name: "ix_user_claims_user_id",
+                schema: "identity",
                 table: "user_claims",
                 column: "user_id");
 
             migrationBuilder.CreateIndex(
                 name: "ix_user_invitations_token_hash",
+                schema: "identity",
                 table: "user_invitations",
                 column: "token_hash",
                 unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "ix_user_invitations_user_id_expires_at",
+                schema: "identity",
                 table: "user_invitations",
                 columns: new[] { "user_id", "expires_at" });
 
             migrationBuilder.CreateIndex(
                 name: "ix_user_logins_user_id",
+                schema: "identity",
                 table: "user_logins",
                 column: "user_id");
 
             migrationBuilder.CreateIndex(
                 name: "ix_user_roles_role_id",
+                schema: "identity",
                 table: "user_roles",
                 column: "role_id");
 
             migrationBuilder.CreateIndex(
                 name: "EmailIndex",
+                schema: "identity",
                 table: "users",
                 column: "normalized_email",
                 unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "ix_users_deleted_at",
+                schema: "identity",
                 table: "users",
                 column: "deleted_at");
 
             migrationBuilder.CreateIndex(
                 name: "ix_users_email",
+                schema: "identity",
                 table: "users",
                 column: "email",
                 unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "ix_users_user_name",
+                schema: "identity",
                 table: "users",
                 column: "user_name",
                 unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "UserNameIndex",
+                schema: "identity",
                 table: "users",
                 column: "normalized_user_name",
                 unique: true);
@@ -407,40 +543,52 @@ namespace CourseLibrary.Idp.Infrastructure.Persistence.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "OpenIddictScopes");
+                name: "role_claims",
+                schema: "identity");
 
             migrationBuilder.DropTable(
-                name: "OpenIddictTokens");
+                name: "scopes",
+                schema: "oauth");
 
             migrationBuilder.DropTable(
-                name: "role_claims");
+                name: "tokens",
+                schema: "oauth");
 
             migrationBuilder.DropTable(
-                name: "user_claims");
+                name: "user_claims",
+                schema: "identity");
 
             migrationBuilder.DropTable(
-                name: "user_invitations");
+                name: "user_invitations",
+                schema: "identity");
 
             migrationBuilder.DropTable(
-                name: "user_logins");
+                name: "user_logins",
+                schema: "identity");
 
             migrationBuilder.DropTable(
-                name: "user_roles");
+                name: "user_roles",
+                schema: "identity");
 
             migrationBuilder.DropTable(
-                name: "user_tokens");
+                name: "user_tokens",
+                schema: "identity");
 
             migrationBuilder.DropTable(
-                name: "OpenIddictAuthorizations");
+                name: "authorizations",
+                schema: "oauth");
 
             migrationBuilder.DropTable(
-                name: "roles");
+                name: "roles",
+                schema: "identity");
 
             migrationBuilder.DropTable(
-                name: "users");
+                name: "users",
+                schema: "identity");
 
             migrationBuilder.DropTable(
-                name: "OpenIddictApplications");
+                name: "applications",
+                schema: "oauth");
         }
     }
 }
