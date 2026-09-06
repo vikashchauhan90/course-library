@@ -1,6 +1,7 @@
 using Carter;
 using CourseLibrary.Api.Configuration;
 using CourseLibrary.Api.Endpoints.Discussions.CreateDiscussion;
+using CourseLibrary.Api.Hypermedia;
 using CourseLibrary.Application.Operations.Discussions;
 using CourseLibrary.Application.Operations.Discussions.Create;
 using CourseLibrary.Domain.Entities;
@@ -21,6 +22,7 @@ public sealed class CreateDiscussionEndpoint : ICarterModule
                 HttpContext httpContext,
                 CreateDiscussionRequest request,
                 IDispatcher dispatcher,
+                LinkGenerator linkGenerator,
                 ILogger<CreateDiscussionEndpoint> logger) =>
             {
                 var ct = httpContext.RequestAborted;
@@ -37,7 +39,7 @@ public sealed class CreateDiscussionEndpoint : ICarterModule
 
                 return Results.Created(
                     $"/api/v1/discussions/{discussion.Id}/{discussion.CourseId}",
-                    discussion);
+                    DiscussionHalHelper.ToResource(linkGenerator, discussion));
             })
             .WithName("CreateDiscussion")
             .HasApiVersion(1.0);

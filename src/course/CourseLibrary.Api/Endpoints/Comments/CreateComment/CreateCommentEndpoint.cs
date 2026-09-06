@@ -1,6 +1,8 @@
 using Carter;
 using CourseLibrary.Api.Configuration;
 using CourseLibrary.Api.Endpoints.Comments.CreateComment;
+using CourseLibrary.Api.Hypermedia;
+using CourseLibrary.Application.Operations.Comments;
 using CourseLibrary.Application.Operations.Comments.Create;
 using CourseLibrary.Domain.Entities;
 using MediatorForge.Abstractions;
@@ -20,6 +22,7 @@ public sealed class CreateCommentEndpoint : ICarterModule
                 HttpContext httpContext,
                 CreateCommentRequest request,
                 IDispatcher dispatcher,
+                LinkGenerator linkGenerator,
                 ILogger<CreateCommentEndpoint> logger) =>
             {
                 var ct = httpContext.RequestAborted;
@@ -36,7 +39,9 @@ public sealed class CreateCommentEndpoint : ICarterModule
 
                 return Results.Created(
                     $"/api/v1/comments/{comment.Id}/{comment.CourseId}",
-                    comment);
+                    CommentHalHelper.ToResource(
+                        linkGenerator,
+                        CommentMapper.ToResponse(comment)));
             })
             .WithName("CreateComment")
             .HasApiVersion(1.0);

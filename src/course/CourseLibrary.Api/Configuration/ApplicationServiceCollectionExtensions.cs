@@ -1,5 +1,4 @@
 ﻿using CourseLibrary.Application.Behaviors;
-using CourseLibrary.Application.Operations.Authors.Create;
 using CourseLibrary.Application.Operations.Comments.Create;
 using CourseLibrary.Application.Operations.Courses.Create;
 using CourseLibrary.Application.Operations.Discussions.Create;

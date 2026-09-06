@@ -26,7 +26,7 @@ public sealed class UpdateCourseCommandHandler(
         {
             Title = command.Title,
             Description = command.Description,
-            AuthorName = command.AuthorName,
+            AuthorName = command.AuthorName ?? existing.AuthorName,
             AuthorId = command.AuthorId,
             UpdatedAt = DateTime.UtcNow
         };

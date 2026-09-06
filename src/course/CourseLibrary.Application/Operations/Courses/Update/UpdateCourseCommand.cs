@@ -7,5 +7,5 @@ public sealed record UpdateCourseCommand(
     string Title,
     string Description,
     string AuthorId,
-    string AuthorName) 
+    string? AuthorName)
     : ICommand<CourseResponse>;

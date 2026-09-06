@@ -18,7 +18,7 @@ internal sealed class DeleteCourseAuditActivity(IDispatcher dispatcher, ILogger<
         using var activity = ActivitySources.EventConsumer.StartActivity("activity.delete-course-audit", ActivityKind.Internal);
         try
         {
-            await dispatcher.SendAsync<DeleteCourseAuditCommand, Unit>(new DeleteCourseAuditCommand(courseEvent.CourseId, courseEvent.AuthorId, courseEvent.Title, courseEvent.Description, courseEvent.ActorId, courseEvent.OccurredAt), cancellationToken);
+            await dispatcher.SendAsync<DeleteCourseAuditCommand, Unit>(new DeleteCourseAuditCommand(courseEvent.CourseId, courseEvent.AuthorId, courseEvent.AuthorName, courseEvent.Title, courseEvent.Description, courseEvent.ActorId, courseEvent.OccurredAt), cancellationToken);
             activity?.SetStatus(ActivityStatusCode.Ok);
             Meters.ActivitiesCompleted.Add(1, new TagList { { "activity", nameof(DeleteCourseAuditActivity) } });
             Meters.ActivityDuration.Record(Stopwatch.GetElapsedTime(started).TotalMilliseconds, new TagList { { "activity", nameof(DeleteCourseAuditActivity) } });

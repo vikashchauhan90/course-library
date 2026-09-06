@@ -19,6 +19,7 @@ public sealed class DeleteCourseAuditHandler(
             Id = Guid.NewGuid().ToString(),
             CourseId = command.CourseId,
             AuthorId = command.AuthorId,
+            AuthorName = command.AuthorName,
             Action = AuditAction.Deleted,
             Title = command.Title,
             Description = command.Description,

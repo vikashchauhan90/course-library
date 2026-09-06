@@ -1,6 +1,8 @@
 using Carter;
 using CourseLibrary.Api.Configuration;
 using CourseLibrary.Api.Endpoints.Comments.UpdateComment;
+using CourseLibrary.Api.Hypermedia;
+using CourseLibrary.Application.Operations.Comments;
 using CourseLibrary.Application.Operations.Comments.Update;
 using MediatorForge.Abstractions;
 
@@ -21,6 +23,7 @@ public sealed class UpdateCommentEndpoint : ICarterModule
                 string commentId,
                 string courseId,
                 UpdateCommentRequest request,
+                LinkGenerator linkGenerator,
                 ILogger<UpdateCommentEndpoint> logger) =>
             {
                 var ct = httpContext.RequestAborted;
@@ -34,7 +37,9 @@ public sealed class UpdateCommentEndpoint : ICarterModule
                     ct);
 
                 logger.CommentUpdated(commentId);
-                return Results.Ok(comment);
+                return Results.Ok(CommentHalHelper.ToResource(
+                    linkGenerator,
+                    CommentMapper.ToResponse(comment)));
             })
             .WithName("UpdateComment")
             .HasApiVersion(1.0);

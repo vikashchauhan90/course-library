@@ -1,6 +1,4 @@
 ﻿using CourseLibrary.Application.Behaviors;
-using CourseLibrary.Application.Operations.Authors.Create;
-using CourseLibrary.Application.Operations.Authors.Update;
 using CourseLibrary.Application.Operations.Courses.Create;
 using CourseLibrary.Application.Operations.Courses.Delete;
 using CourseLibrary.Application.Operations.Courses.Update;

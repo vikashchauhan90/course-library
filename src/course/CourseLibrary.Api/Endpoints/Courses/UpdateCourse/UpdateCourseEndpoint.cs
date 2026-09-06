@@ -38,7 +38,8 @@ public sealed class UpdateCourseEndpoint : ICarterModule
                     courseId,
                     request.Title,
                     request.Description,
-                    partitionKey);
+                    partitionKey,
+                    null);
 
                 var course = await dispatcher.SendAsync<UpdateCourseCommand, CourseResponse>(
                     command,

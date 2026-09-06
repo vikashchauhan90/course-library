@@ -8,7 +8,6 @@ public sealed class UpdateCourseValidator : AbstractValidator<UpdateCourseComman
     {
         RuleFor(x => x.Title).NotEmpty().WithMessage("Title is required");
         RuleFor(x => x.AuthorId).NotEmpty().WithMessage("AuthorId is required");
-        RuleFor(x => x.AuthorName).NotEmpty().WithMessage("AuthorName is required");
         RuleFor(x => x.Description).NotEmpty().WithMessage("Description is required");
     }
 }

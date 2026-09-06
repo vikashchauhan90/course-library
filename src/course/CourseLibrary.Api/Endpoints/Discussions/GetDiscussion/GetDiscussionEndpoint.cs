@@ -1,6 +1,7 @@
 using Carter;
 using CourseLibrary.Api.Configuration;
 using CourseLibrary.Api.Endpoints.Discussions.GetDiscussion;
+using CourseLibrary.Api.Hypermedia;
 using CourseLibrary.Application.Operations.Discussions;
 using CourseLibrary.Application.Operations.Discussions.Get;
 using MediatorForge.Abstractions;
@@ -21,6 +22,7 @@ public sealed class GetDiscussionEndpoint : ICarterModule
                 IDispatcher dispatcher,
                 string discussionId,
                 string courseId,
+                LinkGenerator linkGenerator,
                 ILogger<GetDiscussionEndpoint> logger) =>
             {
                 var ct = httpContext.RequestAborted;
@@ -40,7 +42,7 @@ public sealed class GetDiscussionEndpoint : ICarterModule
                 }
 
                 logger.DiscussionRetrieved(discussionId);
-                return Results.Ok(discussion);
+                return Results.Ok(DiscussionHalHelper.ToResource(linkGenerator, discussion));
             })
             .WithName("GetDiscussion")
             .HasApiVersion(1.0);

@@ -1,7 +1,9 @@
 using Carter;
 using CourseLibrary.Api.Configuration;
 using CourseLibrary.Application.Abstractions.Repositories;
+using CourseLibrary.Application.Operations.Comments;
 using CourseLibrary.Application.Operations.Courses;
+using CourseLibrary.Application.Operations.Discussions;
 using CourseLibrary.Domain.Models;
 
 namespace CourseLibrary.Api.Endpoints.Courses.SearchCourses;
@@ -18,7 +20,8 @@ public sealed class SearchCoursesEndpoint : ICarterModule
                 async (
                     HttpContext httpContext,
                     ICourseRepository repository,
-                    IAuthorRepository authorRepository,
+                    ICommentRepository commentRepository,
+                    IDiscussionRepository discussionRepository,
                     string? q,
                     int? pageSize,
                     string? continuationToken) =>
@@ -30,11 +33,8 @@ public sealed class SearchCoursesEndpoint : ICarterModule
                         continuationToken,
                         httpContext.RequestAborted);
 
-                    var responses = await Task.WhenAll(
-                        page.Items.Select(course => CourseMapper.ToResponseAsync(
-                            course,
-                            authorRepository,
-                            httpContext.RequestAborted)));
+                    var responses = await Task.WhenAll(page.Items.Select(course =>
+                        ToResponseAsync(course, commentRepository, discussionRepository, httpContext.RequestAborted)));
 
                     return Results.Ok(new PageResult<CourseResponse>(
                         responses,
@@ -49,7 +49,8 @@ public sealed class SearchCoursesEndpoint : ICarterModule
                 async (
                     HttpContext httpContext,
                     ICourseRepository repository,
-                    IAuthorRepository authorRepository,
+                    ICommentRepository commentRepository,
+                    IDiscussionRepository discussionRepository,
                     CourseLibrary.Application.Abstractions.RequestContext.IRequestContext requestContext,
                     int? pageSize,
                     string? continuationToken) =>
@@ -63,11 +64,8 @@ public sealed class SearchCoursesEndpoint : ICarterModule
                         continuationToken,
                         httpContext.RequestAborted);
 
-                    var responses = await Task.WhenAll(
-                        page.Items.Select(course => CourseMapper.ToResponseAsync(
-                            course,
-                            authorRepository,
-                            httpContext.RequestAborted)));
+                    var responses = await Task.WhenAll(page.Items.Select(course =>
+                        ToResponseAsync(course, commentRepository, discussionRepository, httpContext.RequestAborted)));
 
                     return Results.Ok(new PageResult<CourseResponse>(
                         responses,
@@ -76,5 +74,21 @@ public sealed class SearchCoursesEndpoint : ICarterModule
                 })
             .WithName("GetMyCourses")
             .HasApiVersion(1.0);
+    }
+
+    private static async Task<CourseResponse> ToResponseAsync(
+        Domain.Entities.Course course,
+        ICommentRepository commentRepository,
+        IDiscussionRepository discussionRepository,
+        CancellationToken cancellationToken)
+    {
+        var commentsTask = commentRepository.GetByCourseAsync(course.Id, cancellationToken);
+        var discussionsTask = discussionRepository.GetByCourseAsync(course.Id, cancellationToken);
+        await Task.WhenAll(commentsTask, discussionsTask);
+
+        return CourseMapper.ToResponse(
+            course,
+            CommentMapper.ToResponses(await commentsTask),
+            DiscussionMapper.ToResponses(await discussionsTask));
     }
 }

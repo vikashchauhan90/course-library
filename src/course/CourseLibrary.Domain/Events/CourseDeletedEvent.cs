@@ -6,6 +6,7 @@ namespace CourseLibrary.Domain.Events;
 public sealed record CourseDeletedEvent(
     string CourseId,
     string AuthorId,
+    string AuthorName,
     string Title,
     string Description,
     string EventId,

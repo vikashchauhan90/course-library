@@ -25,6 +25,7 @@ public sealed class DeleteCourseCommandHandler(
             new CourseDeletedEvent(
                 command.CourseId,
                 course.AuthorId,
+                course.AuthorName,
                 course.Title,
                 course.Description,
                 Guid.NewGuid().ToString(),

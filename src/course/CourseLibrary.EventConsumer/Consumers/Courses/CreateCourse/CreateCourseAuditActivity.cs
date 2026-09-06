@@ -18,7 +18,7 @@ internal sealed class CreateCourseAuditActivity(IDispatcher dispatcher, ILogger<
         using var activity = ActivitySources.EventConsumer.StartActivity("activity.create-course-audit", ActivityKind.Internal);
         try
         {
-            await dispatcher.SendAsync<CreateCourseAuditCommand, Unit>(new CreateCourseAuditCommand(courseEvent.CourseId, courseEvent.AuthorId, courseEvent.Title, courseEvent.Description, courseEvent.ActorId, courseEvent.OccurredAt), cancellationToken);
+            await dispatcher.SendAsync<CreateCourseAuditCommand, Unit>(new CreateCourseAuditCommand(courseEvent.CourseId, courseEvent.AuthorId, courseEvent.Title, courseEvent.Description, courseEvent.AuthorName, courseEvent.EventId, courseEvent.ActorId, courseEvent.OccurredAt), cancellationToken);
             activity?.SetStatus(ActivityStatusCode.Ok);
             Meters.ActivitiesCompleted.Add(1, new TagList { { "activity", nameof(CreateCourseAuditActivity) } });
             Meters.ActivityDuration.Record(Stopwatch.GetElapsedTime(started).TotalMilliseconds, new TagList { { "activity", nameof(CreateCourseAuditActivity) } });
