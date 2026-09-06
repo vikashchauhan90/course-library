@@ -1,10 +1,8 @@
 using Carter;
 using CourseLibrary.Api.Configuration;
-using CourseLibrary.Api.Endpoints.Courses.CreateCourse;
 using CourseLibrary.Application.Operations.Courses;
 using CourseLibrary.Application.Operations.Courses.Create;
 using CourseLibrary.Application.Abstractions.RequestContext;
-using CourseLibrary.Domain.Entities;
 using MediatorForge.Abstractions;
 
 namespace CourseLibrary.Api.Endpoints.Courses.CreateCourse;
@@ -33,7 +31,11 @@ public sealed class CreateCourseEndpoint : ICarterModule
                 if (string.IsNullOrWhiteSpace(authorId))
                     return Results.Unauthorized();
 
-                var command = new CreateCourseCommand(request.Title, request.Description, authorId);
+                var command = new CreateCourseCommand(
+                    request.Title,
+                    request.Description,
+                    request.AuthorId,
+                    request.AuthorName);
 
                 var course = await dispatcher.SendAsync<CreateCourseCommand, CourseResponse>(
                     command,

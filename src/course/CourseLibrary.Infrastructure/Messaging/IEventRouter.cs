@@ -1,4 +1,4 @@
-﻿using CourseLibrary.Domain.Events;
+﻿using CourseLibrary.Domain.Abstractions;
 
 namespace CourseLibrary.Infrastructure.Messaging;
 

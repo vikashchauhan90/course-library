@@ -22,8 +22,6 @@ public static class ApplicationServiceCollectionExtensions
         services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ExceptionHandlingBehavior<,>));
         services.AddTransient(typeof(IPipelineBehavior<,>), typeof(PerformanceBehavior<,>));
 
-        services.AddTransient<IHandler<CreateAuthorAuditCommand, Unit>, CreateAuthorAuditHandler>();
-        services.AddTransient<IHandler<UpdateAuthorAuditCommand, Unit>, UpdateAuthorAuditHandler>();
         services.AddTransient<IHandler<CreateCourseAuditCommand, Unit>, CreateCourseAuditHandler>();
         services.AddTransient<IHandler<UpdateCourseAuditCommand, Unit>, UpdateCourseAuditHandler>();
         services.AddTransient<IHandler<DeleteCourseAuditCommand, Unit>, DeleteCourseAuditHandler>();

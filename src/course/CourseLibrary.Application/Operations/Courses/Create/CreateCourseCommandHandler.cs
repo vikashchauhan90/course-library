@@ -1,6 +1,5 @@
 using CourseLibrary.Application.Abstractions.Repositories;
 using CourseLibrary.Application.Abstractions.RequestContext;
-using CourseLibrary.Application.Operations.Authors;
 using CourseLibrary.Domain.Entities;
 using CourseLibrary.Domain.Events;
 using MediatorForge.Abstractions;
@@ -10,7 +9,6 @@ namespace CourseLibrary.Application.Operations.Courses.Create;
 
 public sealed class CreateCourseCommandHandler(
     ICourseRepository repository,
-    IAuthorRepository authorRepository,
     IRequestContext requestContext,
     ILogger<CreateCourseCommandHandler> logger,
     IEventDispatcher eventDispatcher) 
@@ -18,9 +16,6 @@ public sealed class CreateCourseCommandHandler(
 {
     public async Task<CourseResponse> HandleAsync(CreateCourseCommand command, CancellationToken ct)
     {
-        var author = await authorRepository.GetByIdAsync(command.AuthorId, ct);
-        if (author is null)
-            throw new KeyNotFoundException($"Author '{command.AuthorId}' not found");
 
         var now = DateTime.UtcNow;
         var course = new Course
@@ -29,6 +24,7 @@ public sealed class CreateCourseCommandHandler(
             Title = command.Title,
             Description = command.Description,
             AuthorId = command.AuthorId,
+            AuthorName = command.AuthorName,
             CreatedAt = now,
             UpdatedAt = now
         };
@@ -44,11 +40,12 @@ public sealed class CreateCourseCommandHandler(
                 course.AuthorId,
                 course.Title,
                 course.Description,
+                course.AuthorName,
                 Guid.NewGuid().ToString(),
                 requestContext.UserId ?? "unknown",
                 course.CreatedAt),
             ct);
 
-        return CourseMapper.ToResponse(course, AuthorMapper.ToResponse(author));
+        return CourseMapper.ToResponse(course);
     }
 }

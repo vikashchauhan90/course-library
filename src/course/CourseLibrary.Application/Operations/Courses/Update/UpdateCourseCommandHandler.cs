@@ -1,6 +1,5 @@
 using CourseLibrary.Application.Abstractions.Repositories;
 using CourseLibrary.Application.Abstractions.RequestContext;
-using CourseLibrary.Domain.Entities;
 using CourseLibrary.Domain.Events;
 using MediatorForge.Abstractions;
 using Microsoft.Extensions.Logging;
@@ -9,7 +8,6 @@ namespace CourseLibrary.Application.Operations.Courses.Update;
 
 public sealed class UpdateCourseCommandHandler(
     ICourseRepository repository,
-    IAuthorRepository authorRepository,
     IRequestContext requestContext,
     ILogger<UpdateCourseCommandHandler> logger,
     IEventDispatcher eventDispatcher)
@@ -28,6 +26,8 @@ public sealed class UpdateCourseCommandHandler(
         {
             Title = command.Title,
             Description = command.Description,
+            AuthorName = command.AuthorName,
+            AuthorId = command.AuthorId,
             UpdatedAt = DateTime.UtcNow
         };
 
@@ -38,10 +38,11 @@ public sealed class UpdateCourseCommandHandler(
                 updated.AuthorId,
                 updated.Title,
                 updated.Description,
+                updated.AuthorName,
                 Guid.NewGuid().ToString(),
                 requestContext.UserId ?? "unknown",
                 updated.UpdatedAt),
             ct);
-        return await CourseMapper.ToResponseAsync(updated, authorRepository, ct);
+        return CourseMapper.ToResponse(updated);
     }
 }

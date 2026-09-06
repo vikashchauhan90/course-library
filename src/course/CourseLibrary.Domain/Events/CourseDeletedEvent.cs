@@ -1,4 +1,6 @@
-﻿namespace CourseLibrary.Domain.Events;
+﻿using CourseLibrary.Domain.Abstractions;
+
+namespace CourseLibrary.Domain.Events;
 
 [EventRouting("CourseDeleted", MessageChannelType.Topic)]
 public sealed record CourseDeletedEvent(

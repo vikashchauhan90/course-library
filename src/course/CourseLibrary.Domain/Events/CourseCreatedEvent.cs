@@ -1,4 +1,6 @@
-﻿namespace CourseLibrary.Domain.Events;
+﻿using CourseLibrary.Domain.Abstractions;
+
+namespace CourseLibrary.Domain.Events;
 
 [EventRouting("CourseCreated", MessageChannelType.Topic)]
 public sealed record CourseCreatedEvent(
@@ -6,6 +8,7 @@ public sealed record CourseCreatedEvent(
     string AuthorId,
     string Title,
     string Description,
+    string AuthorName,
     string EventId,
     string ActorId,
     DateTimeOffset OccurredAt) :

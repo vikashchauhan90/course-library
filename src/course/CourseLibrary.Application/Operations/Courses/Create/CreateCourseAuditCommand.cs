@@ -7,5 +7,7 @@ public sealed record CreateCourseAuditCommand(
     string AuthorId,
     string Title,
     string Description,
+    string AuthorName,
+    string EventId,
     string ActorId,
     DateTimeOffset OccurredAt) : ICommand<Unit>;

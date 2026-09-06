@@ -9,6 +9,7 @@ public sealed record Course : ICosmosPartitioned
     public required string Title { get; init; }
     public required string Description { get; init; }
     public required string AuthorId { get; init; }
+    public required string AuthorName { get; init; }
     public required DateTimeOffset CreatedAt { get; init; }
     public required DateTimeOffset UpdatedAt { get; init; }
 

@@ -1,8 +1,8 @@
 using FluentValidation;
 
-namespace CourseLibrary.Application.Operations.Courses.Create;
+namespace CourseLibrary.Application.Operations.Courses.Update;
 
-public sealed class UpdateCourseValidator : AbstractValidator<CreateCourseCommand>
+public sealed class UpdateCourseValidator : AbstractValidator<UpdateCourseCommand>
 {
     public UpdateCourseValidator()
     {

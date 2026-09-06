@@ -1,5 +1,4 @@
-﻿
-namespace CourseLibrary.Domain.Events;
+﻿namespace CourseLibrary.Domain.Abstractions;
 
 [AttributeUsage(AttributeTargets.Class, Inherited = false, AllowMultiple = false)]
 public class EventRoutingAttribute : Attribute

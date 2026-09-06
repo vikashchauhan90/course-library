@@ -9,6 +9,7 @@ public sealed record CourseAuditEntry : ICosmosPartitioned
     public required string CourseId { get; init; }
     public required AuditAction Action { get; init; }
     public required string AuthorId { get; init; }
+    public required string AuthorName { get; init; }
     public required string Title { get; init; }
     public required string Description { get; init; }
     public required DateTimeOffset OccurredAt { get; init; }

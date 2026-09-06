@@ -25,7 +25,7 @@ public static class ApplicationServiceCollectionExtensions
         services.AddTransient(typeof(IPipelineBehavior<,>), typeof(PerformanceBehavior<,>));
 
         // Register FluentValidation validators from the application assembly
-        services.AddValidatorsFromAssemblyContaining<CreateCourseValidator>(includeInternalTypes: true);
+        services.AddValidatorsFromAssemblyContaining<UpdateCourseValidator>(includeInternalTypes: true);
 
         // Register event handlers from the application assembly
         services.AddEventHandlersFromAssemblyContaining<CourseCreatedEventHandler>();

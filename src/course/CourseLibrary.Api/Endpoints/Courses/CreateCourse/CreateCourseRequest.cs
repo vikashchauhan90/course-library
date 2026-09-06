@@ -1,3 +1,7 @@
 namespace CourseLibrary.Api.Endpoints.Courses.CreateCourse;
 
-public sealed record CreateCourseRequest(string Title, string Description);
+public sealed record CreateCourseRequest(
+    string Title,
+    string Description,
+    string AuthorId,
+    string AuthorName);

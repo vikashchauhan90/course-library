@@ -1,4 +1,4 @@
-﻿using CourseLibrary.Domain.Events;
+﻿using CourseLibrary.Domain.Abstractions;
 using CourseLibrary.Infrastructure.Observability.Traces;
 using System.Collections.Concurrent;
 using System.Diagnostics;

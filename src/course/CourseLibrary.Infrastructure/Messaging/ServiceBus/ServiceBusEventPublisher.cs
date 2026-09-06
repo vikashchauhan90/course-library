@@ -3,7 +3,7 @@ using CourseLibrary.Application.Abstractions.Messaging;
 using CourseLibrary.Application.Abstractions.RequestContext;
 using CourseLibrary.Application.Abstractions.Serialization;
 using CourseLibrary.Application.Abstractions.Serializers;
-using CourseLibrary.Domain.Events;
+using CourseLibrary.Domain.Abstractions;
 using CourseLibrary.Infrastructure.Observability.Metrics;
 using CourseLibrary.Infrastructure.Observability.Traces;
 using Microsoft.Extensions.Logging;

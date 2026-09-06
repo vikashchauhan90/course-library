@@ -14,10 +14,8 @@ internal sealed class AuditContainerInitializer(
         var database = client.GetDatabase(options.Value.DatabaseName);
 
         await CreateContainerAsync(database, "courses", cancellationToken);
-        await CreateContainerAsync(database, "authors", cancellationToken);
         await CreateContainerAsync(database, "discussions", cancellationToken);
         await CreateContainerAsync(database, "comments", cancellationToken);
-        await CreateContainerAsync(database, "author-audit", cancellationToken);
         await CreateContainerAsync(database, "course-audit", cancellationToken);
     }
 

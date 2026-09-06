@@ -19,6 +19,7 @@ public sealed class UpdateCourseAuditHandler(
             Id = Guid.NewGuid().ToString(),
             CourseId = command.CourseId,
             AuthorId = command.AuthorId,
+            AuthorName = command.AuthorName,
             Action = AuditAction.Updated,
             Title = command.Title,
             Description = command.Description,

@@ -1,5 +1,4 @@
-﻿
-namespace CourseLibrary.Domain.Events;
+﻿namespace CourseLibrary.Domain.Abstractions;
 
 public interface IDomainEvent
 {
