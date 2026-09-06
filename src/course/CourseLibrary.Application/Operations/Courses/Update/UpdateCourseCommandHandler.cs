@@ -9,6 +9,7 @@ namespace CourseLibrary.Application.Operations.Courses.Update;
 
 public sealed class UpdateCourseCommandHandler(
     ICourseRepository repository,
+    IAuthorRepository authorRepository,
     IRequestContext requestContext,
     ILogger<UpdateCourseCommandHandler> logger,
     IEventDispatcher eventDispatcher)
@@ -41,6 +42,6 @@ public sealed class UpdateCourseCommandHandler(
                 requestContext.UserId ?? "unknown",
                 updated.UpdatedAt),
             ct);
-        return CourseMapper.ToResponse(updated);
+        return await CourseMapper.ToResponseAsync(updated, authorRepository, ct);
     }
 }

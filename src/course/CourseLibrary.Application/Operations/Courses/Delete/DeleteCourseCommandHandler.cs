@@ -24,6 +24,9 @@ public sealed class DeleteCourseCommandHandler(
       await eventDispatcher.PublishAsync(
             new CourseDeletedEvent(
                 command.CourseId,
+                course.AuthorId,
+                course.Title,
+                course.Description,
                 Guid.NewGuid().ToString(),
                 requestContext.UserId ?? "unknown",
                 DateTimeOffset.UtcNow),

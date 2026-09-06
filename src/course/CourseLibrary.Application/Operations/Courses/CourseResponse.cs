@@ -1,5 +1,7 @@
 namespace CourseLibrary.Application.Operations.Courses;
 
+using CourseLibrary.Application.Operations.Authors;
+
 /// <summary>
 /// Response model for Course operations.
 /// </summary>
@@ -9,4 +11,5 @@ public sealed record CourseResponse(
     string Description,
     string AuthorId,
     DateTimeOffset CreatedAt,
-    DateTimeOffset UpdatedAt);
+    DateTimeOffset UpdatedAt,
+    AuthorResponse? Author);

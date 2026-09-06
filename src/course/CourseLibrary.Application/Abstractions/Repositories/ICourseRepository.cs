@@ -1,12 +1,21 @@
 using CourseLibrary.Domain.Entities;
+using CourseLibrary.Domain.Models;
 
 namespace CourseLibrary.Application.Abstractions.Repositories;
 
 public interface ICourseRepository
 {
     Task<Course?> GetByIdAsync(string courseId, string partitionKey, CancellationToken cancellationToken = default);
-    Task<IReadOnlyList<Course>> GetByAuthorAsync(string authorId, CancellationToken cancellationToken = default);
-    Task<IReadOnlyList<Course>> SearchAsync(string query, int pageSize, string? continuationToken, CancellationToken cancellationToken = default);
+    Task<PageResult<Course>> GetByAuthorAsync(
+        string authorId,
+        int pageSize,
+        string? continuationToken,
+        CancellationToken cancellationToken = default);
+    Task<PageResult<Course>> SearchAsync(
+        string query,
+        int pageSize,
+        string? continuationToken,
+        CancellationToken cancellationToken = default);
     Task UpsertAsync(Course course, CancellationToken cancellationToken = default);
     Task<bool> DeleteAsync(string courseId, string partitionKey, CancellationToken cancellationToken = default);
 }

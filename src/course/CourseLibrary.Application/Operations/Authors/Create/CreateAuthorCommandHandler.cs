@@ -19,7 +19,7 @@ public sealed class CreateAuthorCommandHandler(
         var now = DateTime.UtcNow;
         var author = new Author
         {
-            Id = Guid.NewGuid().ToString(),
+            Id = requestContext.UserId ?? Guid.NewGuid().ToString(),
             Name = command.Name,
             Bio = command.Bio,
             Website = command.Website,

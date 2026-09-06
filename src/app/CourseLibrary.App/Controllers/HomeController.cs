@@ -35,8 +35,8 @@ public sealed class HomeController(ICourseApiClient courseApiClient) : Controlle
     {
         try
         {
-            var courses = await courseApiClient.SearchAsync(q, cancellationToken);
-            return View(new CourseSearchViewModel(q, courses));
+            var page = await courseApiClient.SearchAsync(q, cancellationToken: cancellationToken);
+            return View(new CourseSearchViewModel(q, page.Items));
         }
         catch (CourseApiException exception) when (exception.StatusCode == System.Net.HttpStatusCode.Unauthorized)
         {
@@ -54,8 +54,8 @@ public sealed class HomeController(ICourseApiClient courseApiClient) : Controlle
     {
         try
         {
-            var courses = await courseApiClient.GetMineAsync(cancellationToken);
-            return View(courses);
+            var page = await courseApiClient.GetMineAsync(cancellationToken: cancellationToken);
+            return View(page.Items);
         }
         catch (CourseApiException exception) when (exception.StatusCode == System.Net.HttpStatusCode.Unauthorized)
         {

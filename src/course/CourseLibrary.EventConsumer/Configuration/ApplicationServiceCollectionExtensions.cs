@@ -1,6 +1,9 @@
 ﻿using CourseLibrary.Application.Behaviors;
 using CourseLibrary.Application.Operations.Authors.Create;
 using CourseLibrary.Application.Operations.Authors.Update;
+using CourseLibrary.Application.Operations.Courses.Create;
+using CourseLibrary.Application.Operations.Courses.Delete;
+using CourseLibrary.Application.Operations.Courses.Update;
 using MediatorForge;
 using MediatorForge.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
@@ -21,6 +24,9 @@ public static class ApplicationServiceCollectionExtensions
 
         services.AddTransient<IHandler<CreateAuthorAuditCommand, Unit>, CreateAuthorAuditHandler>();
         services.AddTransient<IHandler<UpdateAuthorAuditCommand, Unit>, UpdateAuthorAuditHandler>();
+        services.AddTransient<IHandler<CreateCourseAuditCommand, Unit>, CreateCourseAuditHandler>();
+        services.AddTransient<IHandler<UpdateCourseAuditCommand, Unit>, UpdateCourseAuditHandler>();
+        services.AddTransient<IHandler<DeleteCourseAuditCommand, Unit>, DeleteCourseAuditHandler>();
 
         return services;
     }

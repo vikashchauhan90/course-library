@@ -22,17 +22,24 @@ internal sealed class CourseApiClient(
             operation: "get-course",
             cancellationToken);
 
-    public Task<IReadOnlyList<CourseDetails>> SearchAsync(string? query, CancellationToken cancellationToken = default) =>
-        SendAsync<IReadOnlyList<CourseDetails>>(
+    public Task<PageResult<CourseDetails>> SearchAsync(
+        string? query,
+        int pageSize = 20,
+        string? continuationToken = null,
+        CancellationToken cancellationToken = default) =>
+        SendAsync<PageResult<CourseDetails>>(
             HttpMethod.Get,
-            $"api/v1/courses/search?q={Uri.EscapeDataString(query?.Trim() ?? string.Empty)}&pageSize=50",
+            $"api/v1/courses/search?q={Uri.EscapeDataString(query?.Trim() ?? string.Empty)}&pageSize={pageSize}&continuationToken={Uri.EscapeDataString(continuationToken ?? string.Empty)}",
             operation: "search-courses",
             cancellationToken);
 
-    public Task<IReadOnlyList<CourseDetails>> GetMineAsync(CancellationToken cancellationToken = default) =>
-        SendAsync<IReadOnlyList<CourseDetails>>(
+    public Task<PageResult<CourseDetails>> GetMineAsync(
+        int pageSize = 20,
+        string? continuationToken = null,
+        CancellationToken cancellationToken = default) =>
+        SendAsync<PageResult<CourseDetails>>(
             HttpMethod.Get,
-            "api/v1/courses/mine",
+            $"api/v1/courses/mine?pageSize={pageSize}&continuationToken={Uri.EscapeDataString(continuationToken ?? string.Empty)}",
             operation: "get-my-courses",
             cancellationToken);
 
@@ -108,7 +115,17 @@ internal sealed class CourseApiClient(
                 CourseApiDiagnostics.Failures.Add(1, new KeyValuePair<string, object?>("operation", operation));
                 logger.Failed(operation, (int)response.StatusCode);
                 var detail = await response.Content.ReadAsStringAsync(cancellationToken);
-                throw new CourseApiException(response.StatusCode, operation, detail);
+                CourseApiProblemDetails? problemDetails = null;
+                try
+                {
+                    problemDetails = JsonSerializer.Deserialize<CourseApiProblemDetails>(detail, JsonOptions);
+                }
+                catch (JsonException)
+                {
+                    // Preserve the raw response when the server did not return RFC 7807 JSON.
+                }
+
+                throw new CourseApiException(response.StatusCode, operation, problemDetails, detail);
             }
 
             if (typeof(T) == typeof(object) || response.StatusCode == System.Net.HttpStatusCode.NoContent)
