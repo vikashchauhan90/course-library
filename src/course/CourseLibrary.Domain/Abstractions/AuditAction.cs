@@ -1,4 +1,4 @@
-namespace CourseLibrary.Domain.Entities;
+namespace CourseLibrary.Domain.Abstractions;
 
 public enum AuditAction
 {

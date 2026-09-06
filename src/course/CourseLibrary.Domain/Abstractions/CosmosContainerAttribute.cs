@@ -1,4 +1,4 @@
-﻿namespace CourseLibrary.Domain.Entities;
+﻿namespace CourseLibrary.Domain.Abstractions;
 
 [AttributeUsage(AttributeTargets.Class, AllowMultiple = false)]
 public sealed class CosmosContainerAttribute : Attribute

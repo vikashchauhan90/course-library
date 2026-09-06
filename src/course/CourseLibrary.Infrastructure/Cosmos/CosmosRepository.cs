@@ -1,5 +1,4 @@
 using CourseLibrary.Domain.Abstractions;
-using CourseLibrary.Domain.Entities;
 using CourseLibrary.Domain.Models;
 using CourseLibrary.Infrastructure.Configuration.Cosmos;
 using CourseLibrary.Infrastructure.Cosmos.Extensions;

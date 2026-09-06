@@ -1,4 +1,5 @@
 ﻿using CourseLibrary.Application.Abstractions.Repositories;
+using CourseLibrary.Domain.Abstractions;
 using CourseLibrary.Domain.Entities;
 using MediatorForge.Abstractions;
 using Microsoft.Extensions.Logging;
