@@ -1,6 +1,8 @@
 using CourseLibrary.Client.Courses;
+using CourseLibrary.Client.Handlers;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using Polly;
 using System.Net;
 
@@ -12,9 +14,10 @@ public static class CourseLibraryClientExtensions
         this IServiceCollection services,
         IConfiguration configuration)
     {
-        var gatewayBaseUrl = configuration["Gateway:BaseUrl"];
-        if (!Uri.TryCreate(gatewayBaseUrl, UriKind.Absolute, out var baseUri) || baseUri.Scheme != Uri.UriSchemeHttps)
-            throw new InvalidOperationException("Gateway:BaseUrl must be an absolute HTTPS URI.");
+        services
+           .AddOptions<CourseLibraryClientOptions>()
+           .Bind(configuration.GetSection(CourseLibraryClientOptions.SectionName))
+           .ValidateOnStart();
 
         services.ConfigureHttpClientDefaults(
              builder =>
@@ -67,11 +70,15 @@ public static class CourseLibraryClientExtensions
                  });
              });
 
-        services.AddHttpClient<ICourseApiClient, CourseApiClient>(client =>
+        services.AddTransient<AuthorizationDelegatingHandler>();
+        services.AddTransient<CommonHeadersDelegatingHandler>();
+        services.AddHttpClient<ICourseApiClient, CourseApiClient>((sp, client) =>
         {
-            client.BaseAddress = baseUri;
-            client.Timeout = TimeSpan.FromSeconds(30);
-        });
+            var options = sp.GetRequiredService<IOptions<CourseLibraryClientOptions>>().Value;
+            client.BaseAddress = new Uri(options.BaseUrl);
+            client.Timeout = TimeSpan.FromSeconds(options.TimeoutSeconds);
+        }).AddHttpMessageHandler<CommonHeadersDelegatingHandler>()
+        .AddHttpMessageHandler<AuthorizationDelegatingHandler>();
 
         return services;
     }

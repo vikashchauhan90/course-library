@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Mvc;
 using CourseLibrary.Client.Courses;
 using CourseLibrary.Models.Course;
+using CourseLibrary.Client;
 
 namespace CourseLibrary.App.Controllers;
 
@@ -37,7 +38,7 @@ public sealed class HomeController(ICourseApiClient courseApiClient) : Controlle
         {
             var criteria = new CourseSearchCriteria(
                 q,
-                AuthorId: null,
+                AuthorId: null, // TODO: Add support for searching by author ID if needed
                 IncludeDeleted: false,
                 IncludeRetired: false);
             var page = await courseApiClient.SearchAsync(criteria, cancellationToken: cancellationToken);
@@ -59,7 +60,12 @@ public sealed class HomeController(ICourseApiClient courseApiClient) : Controlle
     {
         try
         {
-            var page = await courseApiClient.GetMineAsync(cancellationToken: cancellationToken);
+            var criteria = new CourseSearchCriteria(
+                null,
+                AuthorId: null,
+                IncludeDeleted: false,
+                IncludeRetired: false);
+            var page = await courseApiClient.SearchAsync(criteria, cancellationToken: cancellationToken);
             return View(page.Data.Items.Select(item => item.Data).ToArray());
         }
         catch (CourseApiException exception) when (exception.StatusCode == System.Net.HttpStatusCode.Unauthorized)

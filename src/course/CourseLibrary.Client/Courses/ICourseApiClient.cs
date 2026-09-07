@@ -14,10 +14,6 @@ public interface ICourseApiClient
         int pageSize = 20,
         string? continuationToken = null,
         CancellationToken cancellationToken = default);
-    Task<IResource<PageResult<IResource<CourseResponse>>>> GetMineAsync(
-        int pageSize = 20,
-        string? continuationToken = null,
-        CancellationToken cancellationToken = default);
     Task<IResource<CourseResponse>> CreateAsync(
         CreateCourseRequest request,
         CancellationToken cancellationToken = default);

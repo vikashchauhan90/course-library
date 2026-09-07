@@ -1,12 +1,10 @@
 using CourseLibrary.Client.Observability;
-using CourseLibrary.Client.Security;
 using CourseLibrary.Models;
 using CourseLibrary.Models.Course;
 using Hal.Core;
 using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
-using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 
@@ -14,7 +12,6 @@ namespace CourseLibrary.Client.Courses;
 
 internal sealed class CourseApiClient(
     HttpClient httpClient,
-    IAccessTokenProvider accessTokenProvider,
     ILogger<CourseApiClient> logger) : ICourseApiClient
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
@@ -37,48 +34,11 @@ internal sealed class CourseApiClient(
             operation: "search-courses",
             cancellationToken);
 
-    public Task<IResource<PageResult<IResource<CourseResponse>>>> GetMineAsync(
-        int pageSize = 20,
-        string? continuationToken = null,
-        CancellationToken cancellationToken = default) =>
-        SendPageAsync(
-            HttpMethod.Get,
-            $"api/v1/courses/?mine=true&pageSize={pageSize}&pageToken={Uri.EscapeDataString(continuationToken ?? string.Empty)}",
-            operation: "get-my-courses",
-            cancellationToken);
-
-
-private static string BuildSearchPath(
-    CourseSearchCriteria? criteria,
-    int pageSize,
-    string? continuationToken)
-{
-    var query = new QueryBuilder
-    {
-        { "pageSize", pageSize.ToString() },
-        { "pageToken", continuationToken ?? string.Empty }
-    };
-
-    if (!string.IsNullOrWhiteSpace(criteria?.SearchTerm))
-        query.Add("searchTerm", criteria.SearchTerm.Trim());
-
-    if (!string.IsNullOrWhiteSpace(criteria?.AuthorId))
-        query.Add("authorId", criteria.AuthorId);
-
-    if (criteria?.IncludeDeleted == true)
-        query.Add("includeDeleted", "true");
-
-    if (criteria?.IncludeRetired == true)
-        query.Add("includeRetired", "true");
-
-    return $"api/v1/courses/{query}";
-}
-
 
 public async Task<IResource<CourseResponse>> CreateAsync(CreateCourseRequest request, CancellationToken cancellationToken = default) =>
         await SendResourceAsync(
             HttpMethod.Post,
-            "api/v1/courses/",
+            "api/v1/courses",
             request,
             operation: "create-course",
             cancellationToken);
@@ -127,7 +87,7 @@ public async Task<IResource<CourseResponse>> CreateAsync(CreateCourseRequest req
         string path,
         string operation,
         CancellationToken cancellationToken) =>
-        (await SendAsync<HalDocument<CourseResponse>>(method, path, operation, cancellationToken)).ToResource();
+        (await SendAsync<IResource<CourseResponse>>(method, path, operation, cancellationToken));
 
     private async Task<IResource<CourseResponse>> SendResourceAsync(
         HttpMethod method,
@@ -135,7 +95,7 @@ public async Task<IResource<CourseResponse>> CreateAsync(CreateCourseRequest req
         object content,
         string operation,
         CancellationToken cancellationToken) =>
-        (await SendAsync<HalDocument<CourseResponse>>(method, path, content, operation, cancellationToken)).ToResource();
+        (await SendAsync<IResource<CourseResponse>>(method, path, content, operation, cancellationToken));
 
     private async Task<IResource<PageResult<IResource<CourseResponse>>>> SendPageAsync(
         HttpMethod method,
@@ -143,22 +103,8 @@ public async Task<IResource<CourseResponse>> CreateAsync(CreateCourseRequest req
         string operation,
         CancellationToken cancellationToken)
     {
-        var document = await SendAsync<HalDocument<PageResult<HalDocument<CourseResponse>>>>(method, path, operation, cancellationToken);
-        if (document.Data is null)
-            throw new JsonException("The HAL response did not contain a page payload.");
-
-        var items = document.Data.Items
-            .Select(item => item.ToResource())
-            .ToList();
-        var page = new PageResult<IResource<CourseResponse>>(
-            items,
-            document.Data.ContinuationToken,
-            document.Data.HasMore);
-        return new HalDocument<PageResult<IResource<CourseResponse>>>
-        {
-            Data = page,
-            Links = document.Links
-        }.ToResource();
+      return await SendAsync<IResource<PageResult<IResource<CourseResponse>>>>(method, path, operation, cancellationToken);
+        
     }
 
     private async Task<T> SendAsync<T>(
@@ -177,15 +123,10 @@ public async Task<IResource<CourseResponse>> CreateAsync(CreateCourseRequest req
 
         try
         {
-            var accessToken = await accessTokenProvider.GetAccessTokenAsync(cancellationToken);
-            if (string.IsNullOrWhiteSpace(accessToken))
-                throw new InvalidOperationException("The current session has no access token.");
-
             using var request = new HttpRequestMessage(method, path)
             {
                 Content = content
             };
-            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
 
             using var response = await httpClient.SendAsync(request, cancellationToken);
             if (!response.IsSuccessStatusCode)
@@ -228,5 +169,32 @@ public async Task<IResource<CourseResponse>> CreateAsync(CreateCourseRequest req
                 stopwatch.Elapsed.TotalMilliseconds,
                 new KeyValuePair<string, object?>("operation", operation));
         }
+    }
+
+
+    private static string BuildSearchPath(
+        CourseSearchCriteria? criteria,
+        int pageSize,
+        string? continuationToken)
+    {
+        var query = new QueryBuilder
+    {
+        { "pageSize", pageSize.ToString() },
+        { "pageToken", continuationToken ?? string.Empty }
+    };
+
+        if (!string.IsNullOrWhiteSpace(criteria?.SearchTerm))
+            query.Add("searchTerm", criteria.SearchTerm.Trim());
+
+        if (!string.IsNullOrWhiteSpace(criteria?.AuthorId))
+            query.Add("authorId", criteria.AuthorId);
+
+        if (criteria?.IncludeDeleted == true)
+            query.Add("includeDeleted", "true");
+
+        if (criteria?.IncludeRetired == true)
+            query.Add("includeRetired", "true");
+
+        return $"api/v1/courses/{query}";
     }
 }

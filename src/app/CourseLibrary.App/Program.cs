@@ -2,7 +2,6 @@ using CourseLibrary.App.Authentication;
 using CourseLibrary.Client.Configuration;
 using CourseLibrary.Client.Observability;
 using CourseLibrary.Client.Security;
-using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
