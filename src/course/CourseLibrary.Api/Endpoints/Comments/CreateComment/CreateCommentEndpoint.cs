@@ -1,10 +1,8 @@
 using Carter;
 using CourseLibrary.Api.Configuration;
 using CourseLibrary.Api.Endpoints.Comments.CreateComment;
-using CourseLibrary.Api.Hypermedia;
 using CourseLibrary.Application.Operations.Comments;
 using CourseLibrary.Application.Operations.Comments.Create;
-using CourseLibrary.Domain.Entities;
 using MediatorForge.Abstractions;
 
 namespace CourseLibrary.Api.Endpoints.Comments.CreateComment;
@@ -31,17 +29,16 @@ public sealed class CreateCommentEndpoint : ICarterModule
 
                 var command = CreateCommentMapper.ToCommand(request);
 
-                var comment = await dispatcher.SendAsync<CreateCommentCommand, Comment>(
+                var comment = await dispatcher.SendAsync<CreateCommentCommand, CommentResponse>(
                     command,
                     ct);
 
                 logger.CommentCreated(comment.Id);
 
+                var resource = CommentHalHelper.ToResource(linkGenerator, comment);
                 return Results.Created(
-                    $"/api/v1/comments/{comment.Id}/{comment.CourseId}",
-                    CommentHalHelper.ToResource(
-                        linkGenerator,
-                        CommentMapper.ToResponse(comment)));
+                    resource.Links.First(x => x.Rel.Equals("self")).Href,
+                    resource);
             })
             .WithName("CreateComment")
             .HasApiVersion(1.0);

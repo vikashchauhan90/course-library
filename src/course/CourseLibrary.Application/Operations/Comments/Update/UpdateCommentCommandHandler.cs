@@ -5,9 +5,9 @@ using Microsoft.Extensions.Logging;
 
 namespace CourseLibrary.Application.Operations.Comments.Update;
 
-public sealed class UpdateCommentCommandHandler(ICommentRepository repository, ILogger<UpdateCommentCommandHandler> logger, IEventDispatcher eventDispatcher) : IHandler<UpdateCommentCommand, CourseLibrary.Domain.Entities.Comment>
+public sealed class UpdateCommentCommandHandler(ICommentRepository repository, ILogger<UpdateCommentCommandHandler> logger) : IHandler<UpdateCommentCommand, CommentResponse>
 {
-    public async Task<CourseLibrary.Domain.Entities.Comment> HandleAsync(UpdateCommentCommand command, CancellationToken ct)
+    public async Task<CommentResponse> HandleAsync(UpdateCommentCommand command, CancellationToken ct)
     {
         logger.UpdatingComment(command.Id);
         var existing = await repository.GetByIdAsync(command.Id, command.CourseId, ct);
@@ -21,6 +21,6 @@ public sealed class UpdateCommentCommandHandler(ICommentRepository repository, I
         };
 
         await repository.UpsertAsync(updated, ct);
-        return updated;
+        return CommentMapper.ToResponse(updated);
     }
 }

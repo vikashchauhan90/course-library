@@ -1,7 +1,6 @@
 using Carter;
 using CourseLibrary.Api.Configuration;
 using CourseLibrary.Api.Endpoints.Comments.GetComment;
-using CourseLibrary.Api.Hypermedia;
 using CourseLibrary.Application.Operations.Comments;
 using CourseLibrary.Application.Operations.Comments.Get;
 using MediatorForge.Abstractions;
@@ -31,7 +30,7 @@ public sealed class GetCommentEndpoint : ICarterModule
 
                 var query = GetCommentMapper.ToQuery(commentId, courseId);
 
-                var comment = await dispatcher.QueryAsync<GetCommentQuery, Domain.Entities.Comment?>(
+                var comment = await dispatcher.QueryAsync<GetCommentQuery, CommentResponse?>(
                     query,
                     ct);
 
@@ -44,7 +43,7 @@ public sealed class GetCommentEndpoint : ICarterModule
                 logger.CommentRetrieved(commentId);
                 return Results.Ok(CommentHalHelper.ToResource(
                     linkGenerator,
-                    CommentMapper.ToResponse(comment)));
+                    comment));
             })
             .WithName("GetComment")
             .HasApiVersion(1.0);

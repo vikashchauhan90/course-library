@@ -1,39 +1,41 @@
 using CourseLibrary.Application.Operations.Discussions;
+using CourseLibrary.Api.Endpoints.Courses.GetCourses;
 using Hal.Core;
 using Hal.Core.Builders;
 
-namespace CourseLibrary.Api.Hypermedia;
+namespace CourseLibrary.Api.Endpoints.Discussions;
 
 internal static class DiscussionHalHelper
 {
     public static IResource<DiscussionResponse> ToResource(
         LinkGenerator linkGenerator,
-        DiscussionResponse discussion)
+        DiscussionResponse discussion,
+        string version = "1")
     {
         return new ResourceBuilder<DiscussionResponse>(discussion)
             .AddLink(
                 "self",
                 linkGenerator.GetPathByName(
                     "GetDiscussion",
-                    new { version = "1", discussionId = discussion.Id, courseId = discussion.CourseId })!,
+                    new { version, discussionId = discussion.Id, courseId = discussion.CourseId })!,
                 HttpVerbs.Get)
             .AddLink(
-                "course",
+                "courses",
                 linkGenerator.GetPathByName(
-                    "GetCourse",
-                    new { version = "1", courseId = discussion.CourseId, partitionKey = discussion.CourseId })!,
+                    GetCoursesEndpoint.RouteName,
+                    new { version })!,
                 HttpVerbs.Get)
             .AddLink(
                 "update",
                 linkGenerator.GetPathByName(
                     "UpdateDiscussion",
-                    new { version = "1", discussionId = discussion.Id, courseId = discussion.CourseId })!,
+                    new { version, discussionId = discussion.Id, courseId = discussion.CourseId })!,
                 HttpVerbs.Put)
             .AddLink(
                 "delete",
                 linkGenerator.GetPathByName(
                     "DeleteDiscussion",
-                    new { version = "1", discussionId = discussion.Id, courseId = discussion.CourseId })!,
+                    new { version, discussionId = discussion.Id, courseId = discussion.CourseId })!,
                 HttpVerbs.Delete)
             .Build();
     }

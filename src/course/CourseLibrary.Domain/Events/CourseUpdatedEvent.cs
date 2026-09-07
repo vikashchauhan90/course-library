@@ -7,9 +7,14 @@ public sealed record CourseUpdatedEvent(
     string CourseId,
     string AuthorId,
     string Title,
-    string? Description,
+    string Description,
     string AuthorName,
     string EventId,
     string ActorId,
-    DateTimeOffset OccurredAt) :
+    DateTimeOffset OccurredAt,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset UpdatedAt,
+    DateTimeOffset? RetiredAt,
+    DateTimeOffset? DeletedAt,
+    IReadOnlyList<string> ChangedProperties) :
     IDomainEvent;

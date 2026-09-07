@@ -35,17 +35,44 @@ public sealed class CosmosCourseRepository : ICourseRepository
     }
 
     public Task<PageResult<Course>> SearchAsync(
-        string query,
+        CourseSearchCriteria criteria,
         int pageSize,
         string? continuationToken,
         CancellationToken cancellationToken = default)
     {
-        var sql = new Microsoft.Azure.Cosmos.QueryDefinition(
-            "SELECT * FROM c WHERE CONTAINS(c.title, @query) OR CONTAINS(c.description, @query) ORDER BY c.updatedAt DESC")
-            .WithParameter("@query", query);
+        var predicates = new List<string>();
+        var sql = "SELECT * FROM c";
+        var parameters = new List<(string Name, object Value)>();
+
+        if (!string.IsNullOrWhiteSpace(criteria.SearchTerm))
+        {
+            predicates.Add("(CONTAINS(c.title, @searchTerm, true) OR CONTAINS(c.description, @searchTerm, true))");
+            parameters.Add(("@searchTerm", criteria.SearchTerm));
+        }
+
+        if (!string.IsNullOrWhiteSpace(criteria.AuthorId))
+        {
+            predicates.Add("c.authorId = @authorId");
+            parameters.Add(("@authorId", criteria.AuthorId));
+        }
+
+        if (!criteria.IncludeDeleted)
+            predicates.Add("(NOT IS_DEFINED(c.deletedAt) OR IS_NULL(c.deletedAt))");
+
+        if (!criteria.IncludeRetired)
+            predicates.Add("(NOT IS_DEFINED(c.retiredAt) OR IS_NULL(c.retiredAt))");
+
+        if (predicates.Count > 0)
+            sql += " WHERE " + string.Join(" AND ", predicates);
+
+        sql += " ORDER BY c.updatedAt DESC";
+
+        var queryDefinition = new Microsoft.Azure.Cosmos.QueryDefinition(sql);
+        foreach (var parameter in parameters)
+            queryDefinition = queryDefinition.WithParameter(parameter.Name, parameter.Value);
 
         return _repository.QueryPageAsync(
-            sql,
+            queryDefinition,
             continuationToken: continuationToken,
             pageSize: pageSize,
             cancellationToken: cancellationToken);

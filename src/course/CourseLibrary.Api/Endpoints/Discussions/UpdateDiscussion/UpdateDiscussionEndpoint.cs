@@ -1,7 +1,6 @@
 using Carter;
 using CourseLibrary.Api.Configuration;
 using CourseLibrary.Api.Endpoints.Discussions.UpdateDiscussion;
-using CourseLibrary.Api.Hypermedia;
 using CourseLibrary.Application.Operations.Discussions;
 using CourseLibrary.Application.Operations.Discussions.Update;
 using MediatorForge.Abstractions;

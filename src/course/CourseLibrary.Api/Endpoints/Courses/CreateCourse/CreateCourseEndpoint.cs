@@ -1,14 +1,16 @@
+using Asp.Versioning;
 using Carter;
 using CourseLibrary.Api.Configuration;
+using CourseLibrary.Application.Abstractions.RequestContext;
 using CourseLibrary.Application.Operations.Courses;
 using CourseLibrary.Application.Operations.Courses.Create;
-using CourseLibrary.Application.Abstractions.RequestContext;
 using MediatorForge.Abstractions;
 
 namespace CourseLibrary.Api.Endpoints.Courses.CreateCourse;
 
 public sealed class CreateCourseEndpoint : ICarterModule
 {
+    public const string RouteName = "CreateCourse";
     public void AddRoutes(IEndpointRouteBuilder app)
     {
         var group = app.MapApiVersionedGroup("/courses")
@@ -18,17 +20,20 @@ public sealed class CreateCourseEndpoint : ICarterModule
             "/",
             async (
                 HttpContext httpContext,
+                 LinkGenerator linkGenerator,
                 CreateCourseRequest request,
                 IRequestContext requestContext,
                 IDispatcher dispatcher,
                 ILogger<CreateCourseEndpoint> logger) =>
             {
                 var ct = httpContext.RequestAborted;
+                var feature = httpContext.Features.Get<IApiVersioningFeature>();
+                var apiVersion = feature?.RequestedApiVersion?.ToString() ?? "1";
 
                 logger.CreatingCourse(request.Title);
 
-                var authorId = requestContext.UserId;
-                if (string.IsNullOrWhiteSpace(authorId))
+                var actorId = requestContext.UserId;
+                if (string.IsNullOrWhiteSpace(actorId))
                     return Results.Unauthorized();
 
                 var command = new CreateCourseCommand(
@@ -42,12 +47,10 @@ public sealed class CreateCourseEndpoint : ICarterModule
                     ct);
 
                 logger.CourseCreated(course.Id);
-
-                return Results.Created(
-                    $"/api/v1/courses/{course.Id}/{course.AuthorId}",
-                    course);
+                var resource = CourseHelper.GetCourseResponse(linkGenerator, course, apiVersion);
+                return Results.Created(resource.Links.First(x => x.Rel.Equals("self")).Href, resource);
             })
-            .WithName("CreateCourse")
+            .WithName(RouteName)
             .HasApiVersion(1.0);
     }
 }

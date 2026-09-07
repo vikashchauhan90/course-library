@@ -1,7 +1,6 @@
 using Carter;
 using CourseLibrary.Api.Configuration;
 using CourseLibrary.Api.Endpoints.Comments.UpdateComment;
-using CourseLibrary.Api.Hypermedia;
 using CourseLibrary.Application.Operations.Comments;
 using CourseLibrary.Application.Operations.Comments.Update;
 using MediatorForge.Abstractions;
@@ -32,14 +31,14 @@ public sealed class UpdateCommentEndpoint : ICarterModule
 
                 var command = UpdateCommentMapper.ToCommand(commentId, courseId, request);
 
-                var comment = await dispatcher.SendAsync<UpdateCommentCommand, Domain.Entities.Comment>(
+                var comment = await dispatcher.SendAsync<UpdateCommentCommand, CommentResponse>(
                     command,
                     ct);
 
                 logger.CommentUpdated(commentId);
                 return Results.Ok(CommentHalHelper.ToResource(
                     linkGenerator,
-                    CommentMapper.ToResponse(comment)));
+                    comment));
             })
             .WithName("UpdateComment")
             .HasApiVersion(1.0);

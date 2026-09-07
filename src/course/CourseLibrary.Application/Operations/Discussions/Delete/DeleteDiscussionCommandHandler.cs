@@ -5,7 +5,7 @@ using Microsoft.Extensions.Logging;
 
 namespace CourseLibrary.Application.Operations.Discussions.Delete;
 
-public sealed class DeleteDiscussionCommandHandler(IDiscussionRepository repository, ILogger<DeleteDiscussionCommandHandler> logger, IEventDispatcher eventDispatcher) : IHandler<DeleteDiscussionCommand, bool>
+public sealed class DeleteDiscussionCommandHandler(IDiscussionRepository repository, ILogger<DeleteDiscussionCommandHandler> logger) : IHandler<DeleteDiscussionCommand, bool>
 {
     public async Task<bool> HandleAsync(DeleteDiscussionCommand command, CancellationToken ct)
     {

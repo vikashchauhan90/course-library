@@ -10,4 +10,9 @@ public sealed record CreateCourseAuditCommand(
     string AuthorName,
     string EventId,
     string ActorId,
-    DateTimeOffset OccurredAt) : ICommand<Unit>;
+    DateTimeOffset OccurredAt,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset UpdatedAt,
+    DateTimeOffset? RetiredAt,
+    DateTimeOffset? DeletedAt,
+    IReadOnlyList<string> ChangedProperties) : ICommand<Unit>;

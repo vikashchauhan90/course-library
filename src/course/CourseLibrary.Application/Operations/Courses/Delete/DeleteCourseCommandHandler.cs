@@ -1,6 +1,5 @@
 using CourseLibrary.Application.Abstractions.Repositories;
 using CourseLibrary.Application.Abstractions.RequestContext;
-using CourseLibrary.Domain.Entities;
 using CourseLibrary.Domain.Events;
 using MediatorForge.Abstractions;
 using Microsoft.Extensions.Logging;
@@ -19,7 +18,9 @@ public sealed class DeleteCourseCommandHandler(
         logger.DeletingCourse(command.CourseId);
         var course = await repository.GetByIdAsync(command.CourseId, command.PartitionKey, ct);
         if (course is null) { logger.CourseNotFoundForDeletion(command.CourseId); return false; }
-        if (!await repository.DeleteAsync(command.CourseId, command.PartitionKey, ct)) return false;
+        var deletedAt = DateTimeOffset.UtcNow;
+        var deleted = course with { DeletedAt = deletedAt, UpdatedAt = deletedAt };
+        await repository.UpsertAsync(deleted, ct);
 
       await eventDispatcher.PublishAsync(
             new CourseDeletedEvent(
@@ -30,7 +31,12 @@ public sealed class DeleteCourseCommandHandler(
                 course.Description,
                 Guid.NewGuid().ToString(),
                 requestContext.UserId ?? "unknown",
-                DateTimeOffset.UtcNow),
+                deletedAt,
+                deleted.CreatedAt,
+                deleted.UpdatedAt,
+                deleted.RetiredAt,
+                deleted.DeletedAt,
+                [nameof(deleted.DeletedAt)]),
             ct);
         return true;
     }

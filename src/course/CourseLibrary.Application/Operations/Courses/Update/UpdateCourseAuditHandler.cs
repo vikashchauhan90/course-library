@@ -13,7 +13,7 @@ public sealed class UpdateCourseAuditHandler(
 {
     public async Task<Unit> HandleAsync(UpdateCourseAuditCommand command, CancellationToken ct)
     {
-        logger.LogInformation("Creating audit entry for CourseId {CourseId}.", command.CourseId);
+        logger.CreatingCourseUpdateAudit(command.CourseId);
         await auditRepository.AddAsync(new CourseAuditEntry
         {
             Id = Guid.NewGuid().ToString(),
@@ -23,6 +23,12 @@ public sealed class UpdateCourseAuditHandler(
             Action = AuditAction.Updated,
             Title = command.Title,
             Description = command.Description,
+            EventId = command.EventId,
+            CreatedAt = command.CreatedAt,
+            UpdatedAt = command.UpdatedAt,
+            RetiredAt = command.RetiredAt,
+            DeletedAt = command.DeletedAt,
+            ChangedProperties = command.ChangedProperties,
             ActorId = command.ActorId,
             OccurredAt = command.OccurredAt
         }, ct);

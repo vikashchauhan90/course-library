@@ -11,5 +11,10 @@ public sealed record CourseCreatedEvent(
     string AuthorName,
     string EventId,
     string ActorId,
-    DateTimeOffset OccurredAt) :
+    DateTimeOffset OccurredAt,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset UpdatedAt,
+    DateTimeOffset? RetiredAt,
+    DateTimeOffset? DeletedAt,
+    IReadOnlyList<string> ChangedProperties) :
     IDomainEvent;

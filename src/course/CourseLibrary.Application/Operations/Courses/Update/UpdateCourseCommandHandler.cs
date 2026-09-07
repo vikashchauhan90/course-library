@@ -41,8 +41,27 @@ public sealed class UpdateCourseCommandHandler(
                 updated.AuthorName,
                 Guid.NewGuid().ToString(),
                 requestContext.UserId ?? "unknown",
-                updated.UpdatedAt),
+                updated.UpdatedAt,
+                updated.CreatedAt,
+                updated.UpdatedAt,
+                updated.RetiredAt,
+                updated.DeletedAt,
+                GetChangedProperties(existing, updated)),
             ct);
         return CourseMapper.ToResponse(updated);
+    }
+
+    private static IReadOnlyList<string> GetChangedProperties(
+        CourseLibrary.Domain.Entities.Course previous,
+        CourseLibrary.Domain.Entities.Course current)
+    {
+        var changes = new List<string>();
+        if (!string.Equals(previous.Title, current.Title, StringComparison.Ordinal)) changes.Add(nameof(current.Title));
+        if (!string.Equals(previous.Description, current.Description, StringComparison.Ordinal)) changes.Add(nameof(current.Description));
+        if (!string.Equals(previous.AuthorName, current.AuthorName, StringComparison.Ordinal)) changes.Add(nameof(current.AuthorName));
+        if (previous.RetiredAt != current.RetiredAt) changes.Add(nameof(current.RetiredAt));
+        if (previous.DeletedAt != current.DeletedAt) changes.Add(nameof(current.DeletedAt));
+        if (changes.Count == 0) changes.Add(nameof(current.UpdatedAt));
+        return changes;
     }
 }

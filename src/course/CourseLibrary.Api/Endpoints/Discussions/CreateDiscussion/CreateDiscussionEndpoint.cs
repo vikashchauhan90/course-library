@@ -1,7 +1,6 @@
 using Carter;
 using CourseLibrary.Api.Configuration;
 using CourseLibrary.Api.Endpoints.Discussions.CreateDiscussion;
-using CourseLibrary.Api.Hypermedia;
 using CourseLibrary.Application.Operations.Discussions;
 using CourseLibrary.Application.Operations.Discussions.Create;
 using CourseLibrary.Domain.Entities;
@@ -37,9 +36,10 @@ public sealed class CreateDiscussionEndpoint : ICarterModule
 
                 logger.DiscussionCreated(discussion.Id);
 
+                var resource = DiscussionHalHelper.ToResource(linkGenerator, discussion);
                 return Results.Created(
-                    $"/api/v1/discussions/{discussion.Id}/{discussion.CourseId}",
-                    DiscussionHalHelper.ToResource(linkGenerator, discussion));
+                    resource.Links.First(x => x.Rel.Equals("self")).Href,
+                    resource);
             })
             .WithName("CreateDiscussion")
             .HasApiVersion(1.0);

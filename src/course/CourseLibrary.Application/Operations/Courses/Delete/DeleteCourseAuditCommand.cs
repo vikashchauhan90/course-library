@@ -8,5 +8,11 @@ public sealed record DeleteCourseAuditCommand(
     string AuthorName,
     string Title,
     string Description,
+    string EventId,
     string ActorId,
-    DateTimeOffset OccurredAt) : ICommand<Unit>;
+    DateTimeOffset OccurredAt,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset UpdatedAt,
+    DateTimeOffset? RetiredAt,
+    DateTimeOffset? DeletedAt,
+    IReadOnlyList<string> ChangedProperties) : ICommand<Unit>;

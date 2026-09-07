@@ -12,6 +12,8 @@ public sealed record Course : ICosmosPartitioned
     public required string AuthorName { get; init; }
     public required DateTimeOffset CreatedAt { get; init; }
     public required DateTimeOffset UpdatedAt { get; init; }
+    public DateTimeOffset? RetiredAt { get; init; }
+    public DateTimeOffset? DeletedAt { get; init; }
 
     public string PartitionKeyValue => AuthorId;
 }

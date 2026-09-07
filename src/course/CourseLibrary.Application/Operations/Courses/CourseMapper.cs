@@ -21,6 +21,8 @@ public static class CourseMapper
             course.AuthorName,
             course.CreatedAt,
             course.UpdatedAt,
+            course.RetiredAt,
+            course.DeletedAt,
             comments ?? Array.Empty<CommentResponse>(),
             discussions ?? Array.Empty<DiscussionResponse>());
 }

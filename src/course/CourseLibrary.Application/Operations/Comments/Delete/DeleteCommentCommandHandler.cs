@@ -5,7 +5,7 @@ using Microsoft.Extensions.Logging;
 
 namespace CourseLibrary.Application.Operations.Comments.Delete;
 
-public sealed class DeleteCommentCommandHandler(ICommentRepository repository, ILogger<DeleteCommentCommandHandler> logger, IEventDispatcher eventDispatcher) : IHandler<DeleteCommentCommand, bool>
+public sealed class DeleteCommentCommandHandler(ICommentRepository repository, ILogger<DeleteCommentCommandHandler> logger) : IHandler<DeleteCommentCommand, bool>
 {
     public async Task<bool> HandleAsync(DeleteCommentCommand command, CancellationToken ct)
     {

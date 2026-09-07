@@ -5,7 +5,7 @@ using Microsoft.Extensions.Logging;
 
 namespace CourseLibrary.Application.Operations.Discussions.Update;
 
-public sealed class UpdateDiscussionCommandHandler(IDiscussionRepository repository, ILogger<UpdateDiscussionCommandHandler> logger, IEventDispatcher eventDispatcher) : IHandler<UpdateDiscussionCommand, DiscussionResponse>
+public sealed class UpdateDiscussionCommandHandler(IDiscussionRepository repository, ILogger<UpdateDiscussionCommandHandler> logger) : IHandler<UpdateDiscussionCommand, DiscussionResponse>
 {
     public async Task<DiscussionResponse> HandleAsync(UpdateDiscussionCommand command, CancellationToken ct)
     {

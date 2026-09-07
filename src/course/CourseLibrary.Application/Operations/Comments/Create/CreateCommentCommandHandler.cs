@@ -5,20 +5,18 @@ using CourseLibrary.Application.Operations.Comments;
 
 namespace CourseLibrary.Application.Operations.Comments.Create;
 
-public sealed class CreateCommentCommandHandler : IHandler<CreateCommentCommand, Domain.Entities.Comment>
+public sealed class CreateCommentCommandHandler : IHandler<CreateCommentCommand, CommentResponse>
 {
     private readonly ICommentRepository _repository;
     private readonly ILogger<CreateCommentCommandHandler> _logger;
-    private readonly IEventDispatcher _eventDispatcher;
 
-    public CreateCommentCommandHandler(ICommentRepository repository, ILogger<CreateCommentCommandHandler> logger, IEventDispatcher eventDispatcher)
+    public CreateCommentCommandHandler(ICommentRepository repository, ILogger<CreateCommentCommandHandler> logger)
     {
         _repository = repository;
         _logger = logger;
-        _eventDispatcher = eventDispatcher;
     }
 
-    public async Task<Domain.Entities.Comment> HandleAsync(CreateCommentCommand command, CancellationToken ct)
+    public async Task<CommentResponse> HandleAsync(CreateCommentCommand command, CancellationToken ct)
     {
         var now = DateTime.UtcNow;
         var comment = new Domain.Entities.Comment
@@ -36,6 +34,6 @@ public sealed class CreateCommentCommandHandler : IHandler<CreateCommentCommand,
 
         await _repository.UpsertAsync(comment, ct);
 
-        return comment;
+        return CommentMapper.ToResponse(comment);
     }
 }

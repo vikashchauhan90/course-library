@@ -43,7 +43,12 @@ public sealed class CreateCourseCommandHandler(
                 course.AuthorName,
                 Guid.NewGuid().ToString(),
                 requestContext.UserId ?? "unknown",
-                course.CreatedAt),
+                course.CreatedAt,
+                course.CreatedAt,
+                course.UpdatedAt,
+                course.RetiredAt,
+                course.DeletedAt,
+                ["created"]),
             ct);
 
         return CourseMapper.ToResponse(course);

@@ -12,7 +12,7 @@ public interface ICourseRepository
         string? continuationToken,
         CancellationToken cancellationToken = default);
     Task<PageResult<Course>> SearchAsync(
-        string query,
+        CourseSearchCriteria criteria,
         int pageSize,
         string? continuationToken,
         CancellationToken cancellationToken = default);
