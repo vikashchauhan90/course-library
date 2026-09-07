@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Mvc;
 using CourseLibrary.Client.Courses;
+using CourseLibrary.Models.Course;
 
 namespace CourseLibrary.App.Controllers;
 
@@ -74,7 +75,7 @@ public sealed class HomeController(ICourseApiClient courseApiClient) : Controlle
     {
         if (!ModelState.IsValid) return View(model);
         await courseApiClient.CreateAsync(
-            new CreateCourseRequest(model.Title, model.Description), cancellationToken);
+            new CourseWriteRequest(model.Title, model.Description), cancellationToken);
         return RedirectToAction(nameof(Mine));
     }
 
@@ -102,7 +103,7 @@ public sealed class HomeController(ICourseApiClient courseApiClient) : Controlle
         await courseApiClient.UpdateAsync(
             model.CourseId!,
             model.PartitionKey!,
-            new UpdateCourseRequest(model.Title, model.Description),
+            new CourseWriteRequest(model.Title, model.Description),
             cancellationToken);
         return RedirectToAction(nameof(Mine));
     }

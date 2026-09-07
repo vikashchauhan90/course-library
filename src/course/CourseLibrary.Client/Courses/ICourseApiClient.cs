@@ -1,3 +1,6 @@
+using CourseLibrary.Models;
+using CourseLibrary.Models.Course;
+
 namespace CourseLibrary.Client.Courses;
 
 public interface ICourseApiClient
@@ -12,7 +15,7 @@ public interface ICourseApiClient
         int pageSize = 20,
         string? continuationToken = null,
         CancellationToken cancellationToken = default);
-    Task<CourseDetails> CreateAsync(CreateCourseRequest request, CancellationToken cancellationToken = default);
-    Task<CourseDetails> UpdateAsync(string courseId, string partitionKey, UpdateCourseRequest request, CancellationToken cancellationToken = default);
+    Task<CourseDetails> CreateAsync(CourseWriteRequest request, CancellationToken cancellationToken = default);
+    Task<CourseDetails> UpdateAsync(string courseId, string partitionKey, CourseWriteRequest request, CancellationToken cancellationToken = default);
     Task DeleteAsync(string courseId, string partitionKey, CancellationToken cancellationToken = default);
 }

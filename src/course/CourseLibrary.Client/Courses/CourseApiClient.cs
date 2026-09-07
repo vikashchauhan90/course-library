@@ -5,6 +5,8 @@ using System.Text.Json;
 using CourseLibrary.Client.Observability;
 using CourseLibrary.Client.Security;
 using Microsoft.Extensions.Logging;
+using CourseLibrary.Models;
+using CourseLibrary.Models.Course;
 
 namespace CourseLibrary.Client.Courses;
 
@@ -29,7 +31,7 @@ internal sealed class CourseApiClient(
         CancellationToken cancellationToken = default) =>
         SendAsync<PageResult<CourseDetails>>(
             HttpMethod.Get,
-            $"api/v1/courses/search?q={Uri.EscapeDataString(query?.Trim() ?? string.Empty)}&pageSize={pageSize}&continuationToken={Uri.EscapeDataString(continuationToken ?? string.Empty)}",
+            $"api/v1/courses/?q={Uri.EscapeDataString(query?.Trim() ?? string.Empty)}&pageSize={pageSize}&pageToken={Uri.EscapeDataString(continuationToken ?? string.Empty)}",
             operation: "search-courses",
             cancellationToken);
 
@@ -39,11 +41,11 @@ internal sealed class CourseApiClient(
         CancellationToken cancellationToken = default) =>
         SendAsync<PageResult<CourseDetails>>(
             HttpMethod.Get,
-            $"api/v1/courses/mine?pageSize={pageSize}&continuationToken={Uri.EscapeDataString(continuationToken ?? string.Empty)}",
+            $"api/v1/courses/?mine=true&pageSize={pageSize}&pageToken={Uri.EscapeDataString(continuationToken ?? string.Empty)}",
             operation: "get-my-courses",
             cancellationToken);
 
-    public Task<CourseDetails> CreateAsync(CreateCourseRequest request, CancellationToken cancellationToken = default) =>
+    public Task<CourseDetails> CreateAsync(CourseWriteRequest request, CancellationToken cancellationToken = default) =>
         SendAsync<CourseDetails>(
             HttpMethod.Post,
             "api/v1/courses/",
@@ -51,7 +53,7 @@ internal sealed class CourseApiClient(
             operation: "create-course",
             cancellationToken);
 
-    public Task<CourseDetails> UpdateAsync(string courseId, string partitionKey, UpdateCourseRequest request, CancellationToken cancellationToken = default) =>
+    public Task<CourseDetails> UpdateAsync(string courseId, string partitionKey, CourseWriteRequest request, CancellationToken cancellationToken = default) =>
         SendAsync<CourseDetails>(
             HttpMethod.Put,
             $"api/v1/courses/{Uri.EscapeDataString(courseId)}/{Uri.EscapeDataString(partitionKey)}",
