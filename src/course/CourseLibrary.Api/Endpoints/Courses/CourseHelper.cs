@@ -3,7 +3,7 @@ using CourseLibrary.Api.Endpoints.Courses.GetCourse;
 using CourseLibrary.Api.Endpoints.Courses.GetCourses;
 using CourseLibrary.Api.Endpoints.Courses.UpdateCourse;
 using CourseLibrary.Application.Operations.Courses;
-using CourseLibrary.Domain.Models;
+using CourseLibrary.Models;
 using Hal.Core;
 using Hal.Core.Builders;
 

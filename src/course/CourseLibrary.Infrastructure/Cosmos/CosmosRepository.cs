@@ -1,5 +1,5 @@
 using CourseLibrary.Domain.Abstractions;
-using CourseLibrary.Domain.Models;
+using CourseLibrary.Models;
 using CourseLibrary.Infrastructure.Configuration.Cosmos;
 using CourseLibrary.Infrastructure.Cosmos.Extensions;
 using CourseLibrary.Infrastructure.Observability.Traces;

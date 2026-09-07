@@ -1,6 +1,7 @@
 using CourseLibrary.Application.Abstractions.Repositories;
 using CourseLibrary.Domain.Entities;
-using CourseLibrary.Domain.Models;
+using CourseLibrary.Models;
+using CourseLibrary.Models.Course;
 
 namespace CourseLibrary.Infrastructure.Cosmos;
 

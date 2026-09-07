@@ -6,7 +6,7 @@ using CourseLibrary.Application.Operations.Courses;
 using CourseLibrary.Application.Operations.Courses.Search;
 using CourseLibrary.Application.Operations.Discussions;
 using CourseLibrary.Application.Abstractions.RequestContext;
-using CourseLibrary.Domain.Models;
+using CourseLibrary.Models;
 using MediatorForge.Abstractions;
 
 namespace CourseLibrary.Api.Endpoints.Courses.GetCourses;

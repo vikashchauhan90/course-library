@@ -1,4 +1,4 @@
-using CourseLibrary.Domain.Models;
+using CourseLibrary.Models;
 using MediatorForge.Abstractions;
 
 namespace CourseLibrary.Application.Operations.Courses.Search;

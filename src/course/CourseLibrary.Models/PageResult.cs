@@ -1,4 +1,4 @@
-﻿namespace CourseLibrary.Domain.Models;
+﻿namespace CourseLibrary.Models;
 
 public sealed record PageResult<T>(
     IReadOnlyList<T> Items,

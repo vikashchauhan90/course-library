@@ -1,5 +1,5 @@
 using CourseLibrary.Domain.Abstractions;
-using CourseLibrary.Domain.Models;
+using CourseLibrary.Models;
 using Microsoft.Azure.Cosmos;
 
 namespace CourseLibrary.Infrastructure.Cosmos;

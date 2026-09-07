@@ -15,6 +15,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\CourseLibrary.Domain\CourseLibrary.Domain.csproj" />
+    <ProjectReference Include="..\CourseLibrary.Models\CourseLibrary.Models.csproj" />
   </ItemGroup>
 
 </Project>

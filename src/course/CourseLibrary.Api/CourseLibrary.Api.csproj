@@ -12,6 +12,7 @@
 		<ProjectReference Include="..\CourseLibrary.Application\CourseLibrary.Application.csproj" />
 		<ProjectReference Include="..\CourseLibrary.Domain\CourseLibrary.Domain.csproj" />
 		<ProjectReference Include="..\CourseLibrary.Infrastructure\CourseLibrary.Infrastructure.csproj" />
+		<ProjectReference Include="..\CourseLibrary.Models\CourseLibrary.Models.csproj" />
 	</ItemGroup>
 
 	<ItemGroup>

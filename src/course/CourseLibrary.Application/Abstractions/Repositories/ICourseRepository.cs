@@ -1,5 +1,6 @@
 using CourseLibrary.Domain.Entities;
-using CourseLibrary.Domain.Models;
+using CourseLibrary.Models;
+using CourseLibrary.Models.Course;
 
 namespace CourseLibrary.Application.Abstractions.Repositories;
 
