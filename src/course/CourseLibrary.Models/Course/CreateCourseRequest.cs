@@ -1,4 +1,4 @@
-namespace CourseLibrary.Api.Endpoints.Courses.CreateCourse;
+﻿namespace CourseLibrary.Models.Course;
 
 public sealed record CreateCourseRequest(
     string Title,

@@ -4,6 +4,7 @@ using CourseLibrary.Api.Configuration;
 using CourseLibrary.Application.Abstractions.RequestContext;
 using CourseLibrary.Application.Operations.Courses;
 using CourseLibrary.Application.Operations.Courses.Create;
+using CourseLibrary.Models.Course;
 using MediatorForge.Abstractions;
 
 namespace CourseLibrary.Api.Endpoints.Courses.CreateCourse;

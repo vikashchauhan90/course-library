@@ -1,4 +1,5 @@
 using CourseLibrary.Application.Operations.Courses.Create;
+using CourseLibrary.Models.Course;
 
 namespace CourseLibrary.Api.Endpoints.Courses.CreateCourse;
 
