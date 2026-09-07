@@ -24,7 +24,7 @@ public sealed class HomeController(ICourseApiClient courseApiClient) : Controlle
         return View(new CourseLookupViewModel
         {
             CourseId = courseId,
-            Course = course,
+            Course = course.Data,
             NotFound = course is null
         });
     }
@@ -35,8 +35,13 @@ public sealed class HomeController(ICourseApiClient courseApiClient) : Controlle
     {
         try
         {
-            var page = await courseApiClient.SearchAsync(q, cancellationToken: cancellationToken);
-            return View(new CourseSearchViewModel(q, page.Items));
+            var criteria = new CourseSearchCriteria(
+                q,
+                AuthorId: null,
+                IncludeDeleted: false,
+                IncludeRetired: false);
+            var page = await courseApiClient.SearchAsync(criteria, cancellationToken: cancellationToken);
+            return View(new CourseSearchViewModel(q, page.Data.Items.Select(item => item.Data).ToArray()));
         }
         catch (CourseApiException exception) when (exception.StatusCode == System.Net.HttpStatusCode.Unauthorized)
         {
@@ -55,7 +60,7 @@ public sealed class HomeController(ICourseApiClient courseApiClient) : Controlle
         try
         {
             var page = await courseApiClient.GetMineAsync(cancellationToken: cancellationToken);
-            return View(page.Items);
+            return View(page.Data.Items.Select(item => item.Data).ToArray());
         }
         catch (CourseApiException exception) when (exception.StatusCode == System.Net.HttpStatusCode.Unauthorized)
         {
@@ -74,7 +79,12 @@ public sealed class HomeController(ICourseApiClient courseApiClient) : Controlle
     {
         if (!ModelState.IsValid) return View(model);
         await courseApiClient.CreateAsync(
-            new CreateCourseRequest(model.Title, model.Description), cancellationToken);
+            new CreateCourseRequest(
+                model.Title,
+                model.Description,
+                User.Identity?.Name ?? string.Empty,
+                User.Identity?.Name ?? string.Empty),
+            cancellationToken);
         return RedirectToAction(nameof(Mine));
     }
 
@@ -83,12 +93,12 @@ public sealed class HomeController(ICourseApiClient courseApiClient) : Controlle
     public async Task<IActionResult> Edit(string courseId, CancellationToken cancellationToken)
     {
         var course = await courseApiClient.GetCourseAsync(courseId, cancellationToken);
-        if (course is null) return NotFound();
+        if (course.Data is null) return NotFound();
         return View(new CourseFormViewModel
         {
-            CourseId = course.Id,
-            Title = course.Title ?? string.Empty,
-            Description = course.Description ?? string.Empty
+            CourseId = course.Data.Id,
+            Title = course.Data.Title,
+            Description = course.Data.Description
         });
     }
 

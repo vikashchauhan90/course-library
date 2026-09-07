@@ -40,7 +40,7 @@ public sealed class GetCoursesEndpoint : ICarterModule
                         : 10; // Default page size
 
                     string? pageToken = httpContext.Request.Query["pageToken"];
-                    string? searchTerm = httpContext.Request.Query["q"];
+                    string? searchTerm = httpContext.Request.Query["name"];
                     bool mine = bool.TryParse(httpContext.Request.Query["mine"], out var mineValue) && mineValue;
                     bool includeDeleted = bool.TryParse(httpContext.Request.Query["includeDeleted"], out var deletedValue) && deletedValue;
                     bool includeRetired = bool.TryParse(httpContext.Request.Query["includeRetired"], out var retiredValue) && retiredValue;

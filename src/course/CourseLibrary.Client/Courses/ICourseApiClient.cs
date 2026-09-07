@@ -10,7 +10,7 @@ public interface ICourseApiClient
         string courseId,
         CancellationToken cancellationToken = default);
     Task<IResource<PageResult<IResource<CourseDetails>>>> SearchAsync(
-        string? query,
+        CourseSearchCriteria? query,
         int pageSize = 20,
         string? continuationToken = null,
         CancellationToken cancellationToken = default);

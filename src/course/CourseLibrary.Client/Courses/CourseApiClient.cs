@@ -3,6 +3,7 @@ using CourseLibrary.Client.Security;
 using CourseLibrary.Models;
 using CourseLibrary.Models.Course;
 using Hal.Core;
+using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 using System.Net.Http.Headers;
@@ -25,18 +26,18 @@ internal sealed class CourseApiClient(
             operation: "get-course",
             cancellationToken);
 
-    public Task<PageResult<CourseDetails>> SearchAsync(
-        string? query,
+    public Task<IResource<PageResult<IResource<CourseDetails>>>> SearchAsync(
+        CourseSearchCriteria? criteria,
         int pageSize = 20,
         string? continuationToken = null,
         CancellationToken cancellationToken = default) =>
         SendPageAsync(
             HttpMethod.Get,
-            $"api/v1/courses/?q={Uri.EscapeDataString(query?.Trim() ?? string.Empty)}&pageSize={pageSize}&pageToken={Uri.EscapeDataString(continuationToken ?? string.Empty)}",
+            BuildSearchPath(criteria, pageSize, continuationToken),
             operation: "search-courses",
             cancellationToken);
 
-    public Task<PageResult<CourseDetails>> GetMineAsync(
+    public Task<IResource<PageResult<IResource<CourseDetails>>>> GetMineAsync(
         int pageSize = 20,
         string? continuationToken = null,
         CancellationToken cancellationToken = default) =>
@@ -46,7 +47,35 @@ internal sealed class CourseApiClient(
             operation: "get-my-courses",
             cancellationToken);
 
-    public async Task<CourseDetails> CreateAsync(CreateCourseRequest request, CancellationToken cancellationToken = default) =>
+
+private static string BuildSearchPath(
+    CourseSearchCriteria? criteria,
+    int pageSize,
+    string? continuationToken)
+{
+    var query = new QueryBuilder
+    {
+        { "pageSize", pageSize.ToString() },
+        { "pageToken", continuationToken ?? string.Empty }
+    };
+
+    if (!string.IsNullOrWhiteSpace(criteria?.SearchTerm))
+        query.Add("searchTerm", criteria.SearchTerm.Trim());
+
+    if (!string.IsNullOrWhiteSpace(criteria?.AuthorId))
+        query.Add("authorId", criteria.AuthorId);
+
+    if (criteria?.IncludeDeleted == true)
+        query.Add("includeDeleted", "true");
+
+    if (criteria?.IncludeRetired == true)
+        query.Add("includeRetired", "true");
+
+    return $"api/v1/courses/{query}";
+}
+
+
+public async Task<IResource<CourseDetails>> CreateAsync(CreateCourseRequest request, CancellationToken cancellationToken = default) =>
         await SendResourceAsync(
             HttpMethod.Post,
             "api/v1/courses/",
@@ -54,7 +83,7 @@ internal sealed class CourseApiClient(
             operation: "create-course",
             cancellationToken);
 
-    public async Task<CourseDetails> UpdateAsync(string courseId, UpdateCourseRequest request, CancellationToken cancellationToken = default) =>
+    public async Task<IResource<CourseDetails>> UpdateAsync(string courseId, UpdateCourseRequest request, CancellationToken cancellationToken = default) =>
         await SendResourceAsync(
             HttpMethod.Put,
             $"api/v1/courses/{Uri.EscapeDataString(courseId)}",
@@ -62,12 +91,12 @@ internal sealed class CourseApiClient(
             operation: "update-course",
             cancellationToken);
 
-    public async Task<CourseDetails> RetireAsync(string courseId, CancellationToken cancellationToken = default) =>
-        (await SendResourceAsync(
+    public async Task<IResource<CourseDetails>> RetireAsync(string courseId, CancellationToken cancellationToken = default) =>
+        await SendResourceAsync(
             HttpMethod.Post,
             $"api/v1/courses/{Uri.EscapeDataString(courseId)}/retire",
             operation: "retire-course",
-            cancellationToken))!;
+            cancellationToken);
 
     public async Task DeleteAsync(string courseId, CancellationToken cancellationToken = default)
     {
@@ -98,7 +127,7 @@ internal sealed class CourseApiClient(
         string path,
         string operation,
         CancellationToken cancellationToken) =>
-        (await SendAsync<IResource<CourseDetails>>(method, path, operation, cancellationToken));
+        (await SendAsync<HalDocument<CourseDetails>>(method, path, operation, cancellationToken)).ToResource();
 
     private async Task<IResource<CourseDetails>> SendResourceAsync(
         HttpMethod method,
@@ -106,17 +135,30 @@ internal sealed class CourseApiClient(
         object content,
         string operation,
         CancellationToken cancellationToken) =>
-        (await SendAsync<IResource<CourseDetails>>(method, path, content, operation, cancellationToken));
+        (await SendAsync<HalDocument<CourseDetails>>(method, path, content, operation, cancellationToken)).ToResource();
 
-    private async Task<PageResult<CourseDetails>> SendPageAsync(
+    private async Task<IResource<PageResult<IResource<CourseDetails>>>> SendPageAsync(
         HttpMethod method,
         string path,
         string operation,
         CancellationToken cancellationToken)
     {
-        var resource = await SendAsync<HalResource<PageResult<HalResource<CourseDetails>>>>(method, path, operation, cancellationToken);
-        var response = resource.ToModel(JsonOptions);
-        return response.Map(item => item.ToModel(JsonOptions));
+        var document = await SendAsync<HalDocument<PageResult<HalDocument<CourseDetails>>>>(method, path, operation, cancellationToken);
+        if (document.Data is null)
+            throw new JsonException("The HAL response did not contain a page payload.");
+
+        var items = document.Data.Items
+            .Select(item => item.ToResource())
+            .ToList();
+        var page = new PageResult<IResource<CourseDetails>>(
+            items,
+            document.Data.ContinuationToken,
+            document.Data.HasMore);
+        return new HalDocument<PageResult<IResource<CourseDetails>>>
+        {
+            Data = page,
+            Links = document.Links
+        }.ToResource();
     }
 
     private async Task<T> SendAsync<T>(
