@@ -1,43 +1,74 @@
 using CourseLibrary.Application.Abstractions.Repositories;
 using CourseLibrary.Application.Abstractions.RequestContext;
 using CourseLibrary.Domain.Abstractions;
-using CourseLibrary.Domain.Entities;
 using CourseLibrary.Domain.Events;
+using CourseLibrary.Models.Course;
 using MediatorForge.Abstractions;
+using Microsoft.Extensions.Logging;
+using DomainErrors = CourseLibrary.Domain.Exceptions;
 
 namespace CourseLibrary.Application.Operations.Courses.Retire;
 
 public sealed class RetireCourseCommandHandler(
     ICourseRepository repository,
     IRequestContext requestContext,
-    IEventDispatcher eventDispatcher)
+    IEventDispatcher eventDispatcher,
+    ILogger<RetireCourseCommandHandler> logger)
     : IHandler<RetireCourseCommand, CourseResponse?>
 {
     public async Task<CourseResponse?> HandleAsync(RetireCourseCommand command, CancellationToken ct)
     {
-        var current = await repository.GetByIdAsync(command.CourseId, ct);
-        if (current is null)
+        logger.RetiringCourse(command.CourseId);
+        var userId = requestContext.UserId
+            ?? throw new DomainErrors.UnauthorizedException();
+
+
+        var course = await repository.GetByIdAsync(command.CourseId, ct);
+        if (course is null)
+        {
+            logger.CourseNotFoundForRetirement(command.CourseId);
             return null;
+        }
 
-        if (!string.Equals(current.AuthorId, command.AuthorId, StringComparison.Ordinal))
-            throw new UnauthorizedAccessException();
+        if (!string.Equals(course.AuthorId, userId, StringComparison.Ordinal))
+        {
+            logger.LogWarning(
+                "User '{UserId}' attempted to delete course '{CourseId}' without proper authorization.",
+                userId,
+                command.CourseId);
+            throw new DomainErrors.UnauthorizedAccessException();
 
-        if (current.RetiredAt is not null)
-            return CourseMapper.ToResponse(current);
+
+        }
+
+        if (course.RetiredAt is not null)
+        {
+            logger.LogWarning(
+                "User '{UserId}' attempted to retire course '{CourseId}' which is already retired.",
+                userId,
+                command.CourseId);
+
+            return CourseMapper.ToResponse(course);
+        }
 
         var retiredAt = DateTimeOffset.UtcNow;
-        var retired = current with { RetiredAt = retiredAt, UpdatedAt = retiredAt };
+        var retired = course with { RetiredAt = retiredAt, UpdatedAt = retiredAt };
         await repository.UpsertAsync(retired, ct);
-        await eventDispatcher.PublishAsync(
-            new CourseRetiredEvent(
-                retired.Id,
-                Guid.NewGuid().ToString(),
-                requestContext.UserId ?? "unknown",
-                retiredAt,
-                [
-                    new() { Action = AuditAction.Updated, Name = nameof(retired.RetiredAt), Value = retired.RetiredAt },
+
+        var courseEvent = new CourseEvent
+        {
+            EventId = Guid.NewGuid().ToString(),
+            CourseId = course.Id,
+            ActorId = requestContext.UserId ?? "unknown",
+            OccurredAt = retiredAt,
+            EventType = CourseEventType.Retired,
+            ChangedProperties = [
+                   new() { Action = AuditAction.Add, Name = nameof(retired.RetiredAt), Value = retired.RetiredAt },
                     new() { Action = AuditAction.Updated, Name = nameof(retired.UpdatedAt), Value = retired.UpdatedAt }
-                ]),
+               ],
+        };
+        await eventDispatcher.PublishAsync(
+            courseEvent,
             ct);
 
         return CourseMapper.ToResponse(retired);

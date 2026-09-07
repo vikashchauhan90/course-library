@@ -6,50 +6,10 @@
         "Queues": [],
         "Topics": [
           {
-            "Name": "AuthorCreated",
+            "Name": "CourseEvent",
             "Subscriptions": [
               {
-                "Name": "CreateAuthorConsumer"
-              }
-            ]
-          },
-          {
-            "Name": "AuthorDeleted",
-            "Subscriptions": [
-              {
-                "Name": "DeleteAuthorConsumer"
-              }
-            ]
-          },
-          {
-            "Name": "AuthorUpdated",
-            "Subscriptions": [
-              {
-                "Name": "UpdateAuthorConsumer"
-              }
-            ]
-          },
-          {
-            "Name": "CourseCreated",
-            "Subscriptions": [
-              {
-                "Name": "CreateCourseConsumer"
-              }
-            ]
-          },
-          {
-            "Name": "CourseDeleted",
-            "Subscriptions": [
-              {
-                "Name": "DeleteCourseConsumer"
-              }
-            ]
-          },
-          {
-            "Name": "CourseUpdated",
-            "Subscriptions": [
-              {
-                "Name": "UpdateCourseConsumer"
+                "Name": "CourseEventConsumer"
               }
             ]
           }

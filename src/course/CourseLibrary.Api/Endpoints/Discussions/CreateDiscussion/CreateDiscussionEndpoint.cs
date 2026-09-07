@@ -4,6 +4,7 @@ using CourseLibrary.Api.Endpoints.Discussions.CreateDiscussion;
 using CourseLibrary.Application.Operations.Discussions;
 using CourseLibrary.Application.Operations.Discussions.Create;
 using CourseLibrary.Domain.Entities;
+using CourseLibrary.Models.Course;
 using MediatorForge.Abstractions;
 
 namespace CourseLibrary.Api.Endpoints.Discussions.CreateDiscussion;

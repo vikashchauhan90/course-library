@@ -1,5 +1,5 @@
+using CourseLibrary.Models.Course;
 using MediatorForge.Abstractions;
-using CourseLibrary.Application.Operations.Courses;
 
 namespace CourseLibrary.Application.Operations.Courses.Get;
 

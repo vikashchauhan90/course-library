@@ -1,3 +1,4 @@
+using CourseLibrary.Models.Course;
 using MediatorForge.Abstractions;
 
 namespace CourseLibrary.Application.Operations.Courses.Update;
@@ -5,7 +6,5 @@ namespace CourseLibrary.Application.Operations.Courses.Update;
 public sealed record UpdateCourseCommand(
     string Id,
     string Title,
-    string Description,
-    string AuthorId,
-    string? AuthorName)
-    : ICommand<CourseResponse>;
+    string Description)
+    : ICommand<CourseResponse?>;

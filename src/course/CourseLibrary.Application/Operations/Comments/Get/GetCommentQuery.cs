@@ -1,3 +1,4 @@
+using CourseLibrary.Models.Course;
 using MediatorForge.Abstractions;
 
 namespace CourseLibrary.Application.Operations.Comments.Get;

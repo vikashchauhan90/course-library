@@ -1,7 +1,7 @@
 using MediatorForge.Abstractions;
 using Microsoft.Extensions.Logging;
 using CourseLibrary.Application.Abstractions.Repositories;
-using CourseLibrary.Application.Operations.Comments;
+using CourseLibrary.Models.Course;
 
 namespace CourseLibrary.Application.Operations.Comments.Create;
 

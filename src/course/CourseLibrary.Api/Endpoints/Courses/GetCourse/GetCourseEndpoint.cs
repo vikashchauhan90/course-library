@@ -5,6 +5,7 @@ using CourseLibrary.Application.Operations.Courses.Get;
 using CourseLibrary.Api.Endpoints.Courses;
 using Asp.Versioning;
 using MediatorForge.Abstractions;
+using CourseLibrary.Models.Course;
 
 namespace CourseLibrary.Api.Endpoints.Courses.GetCourse;
 

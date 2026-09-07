@@ -3,6 +3,7 @@ using CourseLibrary.Application.Abstractions.RequestContext;
 using CourseLibrary.Domain.Abstractions;
 using CourseLibrary.Domain.Entities;
 using CourseLibrary.Domain.Events;
+using CourseLibrary.Models.Course;
 using MediatorForge.Abstractions;
 using Microsoft.Extensions.Logging;
 
@@ -12,7 +13,7 @@ public sealed class CreateCourseCommandHandler(
     ICourseRepository repository,
     IRequestContext requestContext,
     ILogger<CreateCourseCommandHandler> logger,
-    IEventDispatcher eventDispatcher) 
+    IEventDispatcher eventDispatcher)
     : IHandler<CreateCourseCommand, CourseResponse>
 {
     public async Task<CourseResponse> HandleAsync(CreateCourseCommand command, CancellationToken ct)
@@ -34,14 +35,19 @@ public sealed class CreateCourseCommandHandler(
 
         await repository.UpsertAsync(course, ct);
 
+        var courseEvent = new CourseEvent
+        {
+            EventId = Guid.NewGuid().ToString(),
+            CourseId = course.Id,
+            ActorId = requestContext.UserId ?? "unknown",
+            OccurredAt = now,
+            EventType = CourseEventType.Created,
+            ChangedProperties = CreateAuditEntries(course),
+        };
+
         // Publish course created event for downstream consumers
         await eventDispatcher.PublishAsync(
-            new CourseCreatedEvent(
-                course.Id,
-                Guid.NewGuid().ToString(),
-                requestContext.UserId ?? "unknown",
-                course.CreatedAt,
-                CreateAuditEntries(course)),
+            courseEvent,
             ct);
 
         return CourseMapper.ToResponse(course);
@@ -49,11 +55,11 @@ public sealed class CreateCourseCommandHandler(
 
     private static IReadOnlyList<AuditEntry> CreateAuditEntries(Course course) =>
     [
-        new() { Action = AuditAction.Created, Name = nameof(course.Title), Value = course.Title },
-        new() { Action = AuditAction.Created, Name = nameof(course.Description), Value = course.Description },
-        new() { Action = AuditAction.Created, Name = nameof(course.AuthorId), Value = course.AuthorId },
-        new() { Action = AuditAction.Created, Name = nameof(course.AuthorName), Value = course.AuthorName },
-        new() { Action = AuditAction.Created, Name = nameof(course.CreatedAt), Value = course.CreatedAt },
-        new() { Action = AuditAction.Created, Name = nameof(course.UpdatedAt), Value = course.UpdatedAt }
+        new() { Action = AuditAction.Add, Name = nameof(course.Title), Value = course.Title },
+        new() { Action = AuditAction.Add, Name = nameof(course.Description), Value = course.Description },
+        new() { Action = AuditAction.Add, Name = nameof(course.AuthorId), Value = course.AuthorId },
+        new() { Action = AuditAction.Add, Name = nameof(course.AuthorName), Value = course.AuthorName },
+        new() { Action = AuditAction.Add, Name = nameof(course.CreatedAt), Value = course.CreatedAt },
+        new() { Action = AuditAction.Add, Name = nameof(course.UpdatedAt), Value = course.UpdatedAt }
     ];
 }

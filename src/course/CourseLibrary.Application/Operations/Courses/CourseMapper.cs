@@ -1,6 +1,7 @@
 using CourseLibrary.Domain.Entities;
 using CourseLibrary.Application.Operations.Comments;
 using CourseLibrary.Application.Operations.Discussions;
+using CourseLibrary.Models.Course;
 
 namespace CourseLibrary.Application.Operations.Courses;
 

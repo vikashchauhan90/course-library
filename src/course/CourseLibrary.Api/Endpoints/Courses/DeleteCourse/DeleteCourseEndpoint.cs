@@ -30,7 +30,7 @@ public sealed class DeleteCourseEndpoint : ICarterModule
 
                 logger.DeletingCourse(courseId);
 
-                var command = DeleteCourseMapper.ToCommand(courseId, requestContext.UserId);
+                var command = DeleteCourseMapper.ToCommand(courseId);
 
                 var deleted = await dispatcher.SendAsync<DeleteCourseCommand, bool>(
                     command,

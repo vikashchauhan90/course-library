@@ -3,20 +3,20 @@ using CourseLibrary.Domain.Events;
 using MediatorForge.Abstractions;
 using Microsoft.Extensions.Logging;
 
-namespace CourseLibrary.Application.Operations.Courses.Delete;
+namespace CourseLibrary.Application.Operations.Courses.Events;
 
-public sealed class CourseDeletedEventHandler(
+public sealed class CourseEventHandler(
     IEventPublisher eventPublisher,
-    ILogger<CourseDeletedEventHandler> logger) 
-    : IEventNotificationHandler<CourseDeletedEvent>
+    ILogger<CourseEventHandler> logger) 
+    : IEventNotificationHandler<CourseEvent>
 {
 
     public async Task HandleAsync(
-        IEventNotification<CourseDeletedEvent> notification,
+        IEventNotification<CourseEvent> notification,
         CancellationToken ct)
     {
         var ev = notification.Event;
-        logger.CourseDeletedEvent(ev.CourseId);
+        logger.CourseEvent(ev.CourseId, ev.EventType);
         await eventPublisher.PublishAsync(ev, ct);
     }
 }

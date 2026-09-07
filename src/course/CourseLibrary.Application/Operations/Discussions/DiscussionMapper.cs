@@ -1,4 +1,5 @@
 using CourseLibrary.Domain.Entities;
+using CourseLibrary.Models.Course;
 
 namespace CourseLibrary.Application.Operations.Discussions;
 

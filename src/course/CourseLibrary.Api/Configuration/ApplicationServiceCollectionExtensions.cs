@@ -1,6 +1,7 @@
 ﻿using CourseLibrary.Application.Behaviors;
 using CourseLibrary.Application.Operations.Comments.Create;
 using CourseLibrary.Application.Operations.Courses.Create;
+using CourseLibrary.Application.Operations.Courses.Events;
 using CourseLibrary.Application.Operations.Discussions.Create;
 using FluentValidation;
 using MediatorForge;
@@ -27,7 +28,7 @@ public static class ApplicationServiceCollectionExtensions
         services.AddValidatorsFromAssemblyContaining<UpdateCourseValidator>(includeInternalTypes: true);
 
         // Register event handlers from the application assembly
-        services.AddEventHandlersFromAssemblyContaining<CourseCreatedEventHandler>();
+        services.AddEventHandlersFromAssemblyContaining<CourseEventHandler>();
 
         return services;
     }

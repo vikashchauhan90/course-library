@@ -6,6 +6,7 @@ using CourseLibrary.Application.Operations.Courses;
 using CourseLibrary.Application.Operations.Courses.Retire;
 using CourseLibrary.Api.Endpoints.Courses;
 using MediatorForge.Abstractions;
+using CourseLibrary.Models.Course;
 
 namespace CourseLibrary.Api.Endpoints.Courses.RetireCourse;
 
@@ -30,7 +31,7 @@ public sealed class RetireCourseEndpoint : ICarterModule
                         return Results.Forbid();
 
                     var course = await dispatcher.SendAsync<RetireCourseCommand, CourseResponse?>(
-                        new RetireCourseCommand(courseId, requestContext.UserId),
+                        new RetireCourseCommand(courseId),
                         httpContext.RequestAborted);
 
                     if (course is null)

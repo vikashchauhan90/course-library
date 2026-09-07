@@ -10,15 +10,20 @@ using Microsoft.DurableTask.Client;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 
-namespace CourseLibrary.EventConsumer.Consumers.Courses.CreateCourse;
+namespace CourseLibrary.EventConsumer.Consumers.Courses;
 
-internal sealed class CreateCourseConsumer(ISerializerFactory serializerFactory, ILogger<CreateCourseConsumer> logger)
+internal sealed class CourseEventConsumer(
+    ISerializerFactory serializerFactory,
+    ILogger<CourseEventConsumer> logger)
 {
-    private readonly ISerializer<CourseCreatedEvent> serializer = serializerFactory.Create<CourseCreatedEvent>(SerializerType.MessagePack);
+    private readonly ISerializer<CourseEvent> serializer = serializerFactory.Create<CourseEvent>(SerializerType.MessagePack);
 
-    [Function(nameof(CreateCourseConsumer))]
+    [Function(nameof(CourseEventConsumer))]
     public async Task RunAsync(
-        [ServiceBusTrigger("CourseCreated", "CreateCourseConsumer", Connection = "ServiceBusConnection")] ServiceBusReceivedMessage message,
+        [ServiceBusTrigger(
+        "CourseEvent",
+        "CourseEventConsumer",
+        Connection = "ServiceBusConnection")] ServiceBusReceivedMessage message,
         [DurableClient] DurableTaskClient durableTaskClient,
         CancellationToken cancellationToken)
     {
@@ -28,40 +33,42 @@ internal sealed class CreateCourseConsumer(ISerializerFactory serializerFactory,
         try
         {
             activity?.SetTag("messaging.system", "servicebus");
-            activity?.SetTag("messaging.destination", "CourseCreated");
             activity?.SetTag("messaging.message_id", message.MessageId);
             activity?.SetTag("messaging.delivery_count", message.DeliveryCount);
 
             var courseEvent = serializer.Deserialize(message.Body.ToArray());
             if (courseEvent is null)
             {
-                Meters.DeserializationFailures.Add(1, new TagList { { "event_type", "CourseCreated" } });
+                Meters.DeserializationFailures.Add(1, new TagList { { "event_type", "CourseEvent" } });
                 activity?.SetStatus(ActivityStatusCode.Error, "Invalid event payload");
-                logger.LogWarning("Received invalid CourseCreated message {MessageId}.", message.MessageId);
+                logger.LogWarning("Received invalid CourseEvent message {MessageId}.", message.MessageId);
                 return;
             }
 
-            Meters.RecordMessageConsumed("CourseCreated", message.MessageId, "CourseCreated");
+            var courseEventType = courseEvent.EventType.ToString();
+
+            activity?.SetTag("messaging.destination", courseEventType);
+            Meters.RecordMessageConsumed("CourseEvent", message.MessageId, courseEventType);
             var instanceId = $"course-created-{message.MessageId}";
             if (await durableTaskClient.GetInstanceAsync(instanceId, cancellationToken) is not null)
             {
-                Meters.DuplicateMessagesDetected.Add(1, new TagList { { "event_type", "CourseCreated" } });
-                logger.LogWarning("CourseCreated message {MessageId} was already scheduled.", message.MessageId);
+                Meters.DuplicateMessagesDetected.Add(1, new TagList { { "event_type", "CourseEvent" } });
+                logger.LogWarning("CourseEvent message {MessageId} was already scheduled.", message.MessageId);
                 return;
             }
 
             await durableTaskClient.ScheduleNewOrchestrationInstanceAsync(
-                nameof(CreateCourseOrchestrator), courseEvent,
+                nameof(CourseEventOrchestrator), courseEvent,
                 new StartOrchestrationOptions { InstanceId = instanceId }, cancellationToken);
-            Meters.RecordOrchestrationStarted(nameof(CreateCourseOrchestrator), instanceId);
+            Meters.RecordOrchestrationStarted(nameof(CourseEventOrchestrator), instanceId);
             activity?.SetStatus(ActivityStatusCode.Ok);
-            Meters.RecordMessageProcessed("CourseCreated", message.MessageId, "CourseCreated", Stopwatch.GetElapsedTime(started).TotalMilliseconds);
+            Meters.RecordMessageProcessed("CourseEvent", message.MessageId, courseEventType, Stopwatch.GetElapsedTime(started).TotalMilliseconds);
         }
         catch (Exception exception)
         {
             activity?.SetStatus(ActivityStatusCode.Error, exception.GetType().Name);
-            Meters.RecordMessageFailed("CourseCreated", message.MessageId, "CourseCreated", exception);
-            logger.LogError(exception, "Failed to process CourseCreated message {MessageId}.", message.MessageId);
+            Meters.RecordMessageFailed("CourseEvent", message.MessageId, "CourseEvent", exception);
+            logger.LogError(exception, "Failed to process CourseEvent message {MessageId}.", message.MessageId);
             throw;
         }
     }

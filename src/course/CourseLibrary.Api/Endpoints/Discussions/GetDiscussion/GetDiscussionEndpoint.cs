@@ -3,6 +3,7 @@ using CourseLibrary.Api.Configuration;
 using CourseLibrary.Api.Endpoints.Discussions.GetDiscussion;
 using CourseLibrary.Application.Operations.Discussions;
 using CourseLibrary.Application.Operations.Discussions.Get;
+using CourseLibrary.Models.Course;
 using MediatorForge.Abstractions;
 
 namespace CourseLibrary.Api.Endpoints.Discussions.GetDiscussion;

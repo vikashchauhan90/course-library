@@ -3,6 +3,7 @@ using CourseLibrary.Api.Configuration;
 using CourseLibrary.Api.Endpoints.Comments.GetComment;
 using CourseLibrary.Application.Operations.Comments;
 using CourseLibrary.Application.Operations.Comments.Get;
+using CourseLibrary.Models.Course;
 using MediatorForge.Abstractions;
 
 namespace CourseLibrary.Api.Endpoints.Comments.GetComment;

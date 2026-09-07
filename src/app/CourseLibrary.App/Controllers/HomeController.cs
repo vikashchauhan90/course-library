@@ -145,13 +145,13 @@ public sealed class HomeController(ICourseApiClient courseApiClient) : Controlle
 public sealed class CourseLookupViewModel
 {
     public string? CourseId { get; init; }
-    public CourseDetails? Course { get; init; }
+    public CourseResponse? Course { get; init; }
     public bool NotFound { get; init; }
 }
 
 public sealed record CourseSearchViewModel(
     string? Query,
-    IReadOnlyList<CourseDetails> Courses,
+    IReadOnlyList<CourseResponse> Courses,
     string? Error = null);
 
 public sealed class CourseFormViewModel

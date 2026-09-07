@@ -19,14 +19,14 @@ internal sealed class CourseApiClient(
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
-    public async Task<IResource<CourseDetails>> GetCourseAsync(string courseId, CancellationToken cancellationToken = default) =>
+    public async Task<IResource<CourseResponse>> GetCourseAsync(string courseId, CancellationToken cancellationToken = default) =>
         await SendResourceAsync(
             HttpMethod.Get,
             $"api/v1/courses/{Uri.EscapeDataString(courseId)}",
             operation: "get-course",
             cancellationToken);
 
-    public Task<IResource<PageResult<IResource<CourseDetails>>>> SearchAsync(
+    public Task<IResource<PageResult<IResource<CourseResponse>>>> SearchAsync(
         CourseSearchCriteria? criteria,
         int pageSize = 20,
         string? continuationToken = null,
@@ -37,7 +37,7 @@ internal sealed class CourseApiClient(
             operation: "search-courses",
             cancellationToken);
 
-    public Task<IResource<PageResult<IResource<CourseDetails>>>> GetMineAsync(
+    public Task<IResource<PageResult<IResource<CourseResponse>>>> GetMineAsync(
         int pageSize = 20,
         string? continuationToken = null,
         CancellationToken cancellationToken = default) =>
@@ -75,7 +75,7 @@ private static string BuildSearchPath(
 }
 
 
-public async Task<IResource<CourseDetails>> CreateAsync(CreateCourseRequest request, CancellationToken cancellationToken = default) =>
+public async Task<IResource<CourseResponse>> CreateAsync(CreateCourseRequest request, CancellationToken cancellationToken = default) =>
         await SendResourceAsync(
             HttpMethod.Post,
             "api/v1/courses/",
@@ -83,7 +83,7 @@ public async Task<IResource<CourseDetails>> CreateAsync(CreateCourseRequest requ
             operation: "create-course",
             cancellationToken);
 
-    public async Task<IResource<CourseDetails>> UpdateAsync(string courseId, UpdateCourseRequest request, CancellationToken cancellationToken = default) =>
+    public async Task<IResource<CourseResponse>> UpdateAsync(string courseId, UpdateCourseRequest request, CancellationToken cancellationToken = default) =>
         await SendResourceAsync(
             HttpMethod.Put,
             $"api/v1/courses/{Uri.EscapeDataString(courseId)}",
@@ -91,7 +91,7 @@ public async Task<IResource<CourseDetails>> CreateAsync(CreateCourseRequest requ
             operation: "update-course",
             cancellationToken);
 
-    public async Task<IResource<CourseDetails>> RetireAsync(string courseId, CancellationToken cancellationToken = default) =>
+    public async Task<IResource<CourseResponse>> RetireAsync(string courseId, CancellationToken cancellationToken = default) =>
         await SendResourceAsync(
             HttpMethod.Post,
             $"api/v1/courses/{Uri.EscapeDataString(courseId)}/retire",
@@ -122,39 +122,39 @@ public async Task<IResource<CourseDetails>> CreateAsync(CreateCourseRequest requ
         CancellationToken cancellationToken) =>
         SendAsync<T>(method, path, JsonContent.Create(content, options: JsonOptions), operation, cancellationToken);
 
-    private async Task<IResource<CourseDetails>> SendResourceAsync(
+    private async Task<IResource<CourseResponse>> SendResourceAsync(
         HttpMethod method,
         string path,
         string operation,
         CancellationToken cancellationToken) =>
-        (await SendAsync<HalDocument<CourseDetails>>(method, path, operation, cancellationToken)).ToResource();
+        (await SendAsync<HalDocument<CourseResponse>>(method, path, operation, cancellationToken)).ToResource();
 
-    private async Task<IResource<CourseDetails>> SendResourceAsync(
+    private async Task<IResource<CourseResponse>> SendResourceAsync(
         HttpMethod method,
         string path,
         object content,
         string operation,
         CancellationToken cancellationToken) =>
-        (await SendAsync<HalDocument<CourseDetails>>(method, path, content, operation, cancellationToken)).ToResource();
+        (await SendAsync<HalDocument<CourseResponse>>(method, path, content, operation, cancellationToken)).ToResource();
 
-    private async Task<IResource<PageResult<IResource<CourseDetails>>>> SendPageAsync(
+    private async Task<IResource<PageResult<IResource<CourseResponse>>>> SendPageAsync(
         HttpMethod method,
         string path,
         string operation,
         CancellationToken cancellationToken)
     {
-        var document = await SendAsync<HalDocument<PageResult<HalDocument<CourseDetails>>>>(method, path, operation, cancellationToken);
+        var document = await SendAsync<HalDocument<PageResult<HalDocument<CourseResponse>>>>(method, path, operation, cancellationToken);
         if (document.Data is null)
             throw new JsonException("The HAL response did not contain a page payload.");
 
         var items = document.Data.Items
             .Select(item => item.ToResource())
             .ToList();
-        var page = new PageResult<IResource<CourseDetails>>(
+        var page = new PageResult<IResource<CourseResponse>>(
             items,
             document.Data.ContinuationToken,
             document.Data.HasMore);
-        return new HalDocument<PageResult<IResource<CourseDetails>>>
+        return new HalDocument<PageResult<IResource<CourseResponse>>>
         {
             Data = page,
             Links = document.Links

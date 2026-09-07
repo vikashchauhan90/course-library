@@ -1,5 +1,5 @@
 ﻿using CourseLibrary.Application.Behaviors;
-using CourseLibrary.Application.Operations.Courses.Create;
+using CourseLibrary.Application.Operations.Courses.Audit;
 using CourseLibrary.Application.Operations.Courses.Delete;
 using CourseLibrary.Application.Operations.Courses.Update;
 using MediatorForge;
@@ -20,9 +20,7 @@ public static class ApplicationServiceCollectionExtensions
         services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ExceptionHandlingBehavior<,>));
         services.AddTransient(typeof(IPipelineBehavior<,>), typeof(PerformanceBehavior<,>));
 
-        services.AddTransient<IHandler<CreateCourseAuditCommand, Unit>, CreateCourseAuditHandler>();
-        services.AddTransient<IHandler<UpdateCourseAuditCommand, Unit>, UpdateCourseAuditHandler>();
-        services.AddTransient<IHandler<DeleteCourseAuditCommand, Unit>, DeleteCourseAuditHandler>();
+        services.AddTransient<IHandler<CourseAuditEventCommand, Unit>, CourseAuditEventCommandHandler>();
 
         return services;
     }

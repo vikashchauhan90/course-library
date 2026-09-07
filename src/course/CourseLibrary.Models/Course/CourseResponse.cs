@@ -1,11 +1,5 @@
-namespace CourseLibrary.Application.Operations.Courses;
+﻿namespace CourseLibrary.Models.Course;
 
-using CourseLibrary.Application.Operations.Comments;
-using CourseLibrary.Application.Operations.Discussions;
-
-/// <summary>
-/// Response model for Course operations.
-/// </summary>
 public sealed record CourseResponse(
     string Id,
     string Title,

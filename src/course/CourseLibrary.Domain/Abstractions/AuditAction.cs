@@ -2,7 +2,7 @@ namespace CourseLibrary.Domain.Abstractions;
 
 public enum AuditAction
 {
-    Created,
+    Add,
     Updated,
     Deleted
 }

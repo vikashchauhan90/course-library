@@ -1,49 +1,69 @@
 using CourseLibrary.Application.Abstractions.Repositories;
 using CourseLibrary.Application.Abstractions.RequestContext;
-using CourseLibrary.Domain.Events;
 using CourseLibrary.Domain.Abstractions;
 using CourseLibrary.Domain.Entities;
+using CourseLibrary.Domain.Events;
+using CourseLibrary.Models.Course;
 using MediatorForge.Abstractions;
 using Microsoft.Extensions.Logging;
+using DomainErrors = CourseLibrary.Domain.Exceptions;
 
 namespace CourseLibrary.Application.Operations.Courses.Update;
 
 public sealed class UpdateCourseCommandHandler(
     ICourseRepository repository,
     IRequestContext requestContext,
-    ILogger<UpdateCourseCommandHandler> logger,
-    IEventDispatcher eventDispatcher)
-    : IHandler<UpdateCourseCommand, CourseResponse>
+    IEventDispatcher eventDispatcher,
+    ILogger<UpdateCourseCommandHandler> logger
+    )
+    : IHandler<UpdateCourseCommand, CourseResponse?>
 {
-    public async Task<CourseResponse> HandleAsync(UpdateCourseCommand command, CancellationToken ct)
+    public async Task<CourseResponse?> HandleAsync(UpdateCourseCommand command, CancellationToken ct)
     {
         logger.UpdatingCourse(command.Id);
-        var existing = await repository.GetByIdAsync(command.Id, ct);
-        if (existing is null)
+
+        var userId = requestContext.UserId
+            ?? throw new DomainErrors.UnauthorizedException();
+
+        var course = await repository.GetByIdAsync(command.Id, ct);
+        if (course is null)
         {
-            throw new KeyNotFoundException($"Course '{command.Id}' not found");
+            logger.LogWarning(
+                "Course '{CourseId}' not found for update.",
+                command.Id);
+
+            return null;
         }
 
-        if (!string.Equals(existing.AuthorId, command.AuthorId, StringComparison.Ordinal))
-            throw new UnauthorizedAccessException();
+        if (!string.Equals(course.AuthorId, userId, StringComparison.Ordinal))
+        {
+            logger.LogWarning(
+                "User '{UserId}' attempted to update course '{CourseId}' without proper authorization.",
+                userId,
+                command.Id);
+            throw new DomainErrors.UnauthorizedAccessException();
+        }
 
-        var updated = existing with
+        var updated = course with
         {
             Title = command.Title,
             Description = command.Description,
-            AuthorName = command.AuthorName ?? existing.AuthorName,
-            AuthorId = command.AuthorId,
             UpdatedAt = DateTime.UtcNow
         };
 
         await repository.UpsertAsync(updated, ct);
+
+        var courseEvent = new CourseEvent
+        {
+            EventId = Guid.NewGuid().ToString(),
+            CourseId = updated.Id,
+            ActorId = requestContext.UserId ?? "unknown",
+            OccurredAt = updated.UpdatedAt,
+            EventType = CourseEventType.Updated,
+            ChangedProperties = GetChangedProperties(course, updated),
+        };
         await eventDispatcher.PublishAsync(
-            new CourseUpdatedEvent(
-                updated.Id,
-                Guid.NewGuid().ToString(),
-                requestContext.UserId ?? "unknown",
-                updated.UpdatedAt,
-                GetChangedProperties(existing, updated)),
+            courseEvent,
             ct);
         return CourseMapper.ToResponse(updated);
     }

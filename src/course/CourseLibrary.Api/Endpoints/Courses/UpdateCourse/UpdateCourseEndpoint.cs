@@ -36,12 +36,16 @@ public sealed class UpdateCourseEndpoint : ICarterModule
                 if (string.IsNullOrWhiteSpace(requestContext.UserId))
                     return Results.Forbid();
 
-                var command = UpdateCourseMapper.ToCommand(courseId, requestContext.UserId, request);
+                var command = UpdateCourseMapper.ToCommand(courseId, request);
 
-                var course = await dispatcher.SendAsync<UpdateCourseCommand, CourseResponse>(
+                var course = await dispatcher.SendAsync<UpdateCourseCommand, CourseResponse?>(
                     command,
                     ct);
 
+                if (course is null)
+                {
+                    return Results.NotFound();
+                }
                 logger.CourseUpdated(courseId);
                 var feature = httpContext.Features.Get<IApiVersioningFeature>();
                 var apiVersion = feature?.RequestedApiVersion?.ToString() ?? "1";

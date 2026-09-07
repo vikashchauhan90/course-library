@@ -3,9 +3,7 @@ using CourseLibrary.Api.Endpoints.Courses.GetCourse;
 using CourseLibrary.Api.Endpoints.Courses.GetCourses;
 using CourseLibrary.Api.Endpoints.Courses.RetireCourse;
 using CourseLibrary.Api.Endpoints.Courses.UpdateCourse;
-using CourseLibrary.Application.Operations.Courses;
 using CourseLibrary.Models;
-using CourseLibrary.Models.Course;
 using Hal.Core;
 using Hal.Core.Builders;
 
@@ -13,13 +11,12 @@ namespace CourseLibrary.Api.Endpoints.Courses;
 
 public class CourseHelper
 {
-    public static IResource<CourseDetails> GetCourseResponse(
+    public static IResource<Models.Course.CourseResponse> GetCourseResponse(
         LinkGenerator linkGenerator,
-        CourseResponse course,
+        Models.Course.CourseResponse course,
         string version = "1")
     {
-        var details = ToDetails(course);
-        return new ResourceBuilder<CourseDetails>(details)
+        return new ResourceBuilder<Models.Course.CourseResponse>(course)
                        .AddLink(
                            "self",
                            linkGenerator.GetPathByName(
@@ -53,16 +50,16 @@ public class CourseHelper
                        .Build();
     }
 
-    public static IResource<IResource<CourseDetails>[]> GetCoursesResponse(
+    public static IResource<IResource<Models.Course.CourseResponse>[]> GetCoursesResponse(
    LinkGenerator linkGenerator,
-   IEnumerable<CourseResponse> courses,
+   IEnumerable<Models.Course.CourseResponse> courses,
    string version = "1")
     {
         var resources = courses
             .Select(course => GetCourseResponse(linkGenerator, course, version))
             .ToArray();
 
-        return new ResourceBuilder<IResource<CourseDetails>[]>(resources)
+        return new ResourceBuilder<IResource<Models.Course.CourseResponse>[]>(resources)
             .AddLink(
                 "self",
                 linkGenerator.GetPathByName(
@@ -72,13 +69,13 @@ public class CourseHelper
             .Build();
     }
 
-    public static IResource<PageResult<IResource<CourseDetails>>> GetCoursesResponse(
+    public static IResource<PageResult<IResource<Models.Course.CourseResponse>>> GetCoursesResponse(
     LinkGenerator linkGenerator,
-    PageResult<CourseResponse> page,
+    PageResult<Models.Course.CourseResponse> page,
     string version = "1")
     {
         var response = page.Map(course => GetCourseResponse(linkGenerator, course, version));
-        return new ResourceBuilder<PageResult<IResource<CourseDetails>>>(response)
+        return new ResourceBuilder<PageResult<IResource<Models.Course.CourseResponse>>>(response)
             .AddLink(
                 "self",
                 linkGenerator.GetPathByName(
@@ -87,7 +84,7 @@ public class CourseHelper
                 HttpVerbs.Get)
             .Build();
     }
-    private static CourseDetails ToDetails(CourseResponse course)
+    private static Models.Course.CourseResponse ToDetails(Models.Course.CourseResponse course)
         => new(
                 course.Id,
                 course.Title,
@@ -98,7 +95,7 @@ public class CourseHelper
                 course.UpdatedAt,
                 course.RetiredAt,
                 course.DeletedAt,
-                course.Comments.Select(comment => new CommentDetails(
+                course.Comments.Select(comment => new Models.Course.CommentResponse(
                     comment.Id,
                     comment.CourseId,
                     comment.AuthorId,
@@ -106,7 +103,7 @@ public class CourseHelper
                     comment.ParentCommentId,
                     comment.CreatedAt,
                     comment.UpdatedAt)).ToList(),
-            course.Discussions.Select(discussion => new DiscussionDetails(
+            course.Discussions.Select(discussion => new Models.Course.DiscussionResponse(
                     discussion.Id,
                     discussion.CourseId,
                     discussion.Title,

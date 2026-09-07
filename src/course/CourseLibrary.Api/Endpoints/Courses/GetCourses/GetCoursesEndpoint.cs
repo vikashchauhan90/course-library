@@ -8,6 +8,7 @@ using CourseLibrary.Application.Operations.Discussions;
 using CourseLibrary.Application.Abstractions.RequestContext;
 using CourseLibrary.Models;
 using MediatorForge.Abstractions;
+using CourseLibrary.Models.Course;
 
 namespace CourseLibrary.Api.Endpoints.Courses.GetCourses;
 

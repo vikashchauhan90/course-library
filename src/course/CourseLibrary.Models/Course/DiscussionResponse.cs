@@ -1,6 +1,6 @@
 ﻿namespace CourseLibrary.Models.Course;
 
-public sealed record DiscussionDetails(
+public sealed record DiscussionResponse(
     string Id,
     string CourseId,
     string Title,

@@ -1,4 +1,5 @@
 using CourseLibrary.Domain;
+using CourseLibrary.Domain.Events;
 using Microsoft.Extensions.Logging;
 
 namespace CourseLibrary.Application.Operations.Courses;
@@ -23,21 +24,20 @@ internal static partial class CourseOperationLogs
     [LoggerMessage(EventId = EventIds.Courses.DeleteCourse + 21, Level = LogLevel.Warning, Message = "Course {CourseId} was not found for deletion")]
     public static partial void CourseNotFoundForDeletion(this ILogger logger, string courseId);
 
-    [LoggerMessage(EventId = EventIds.Courses.CreateCourse + 22, Level = LogLevel.Information, Message = "Course {CourseId} created")]
-    public static partial void CourseCreatedEvent(this ILogger logger, string courseId);
+    [LoggerMessage(EventId = EventIds.Courses.DeleteCourse + 22, Level = LogLevel.Information, Message = "Retiring course {CourseId}")]
+    public static partial void RetiringCourse(this ILogger logger, string courseId);
 
-    [LoggerMessage(EventId = EventIds.Courses.UpdateCourse + 22, Level = LogLevel.Information, Message = "Course {CourseId} updated")]
-    public static partial void CourseUpdatedEvent(this ILogger logger, string courseId);
+    [LoggerMessage(EventId = EventIds.Courses.DeleteCourse + 23, Level = LogLevel.Warning, Message = "Course {CourseId} was not found for retirement")]
+    public static partial void CourseNotFoundForRetirement(this ILogger logger, string courseId);
 
-    [LoggerMessage(EventId = EventIds.Courses.DeleteCourse + 22, Level = LogLevel.Information, Message = "Course {CourseId} deleted")]
-    public static partial void CourseDeletedEvent(this ILogger logger, string courseId);
+    [LoggerMessage(EventId = EventIds.Courses.CreateCourse + 24, Level = LogLevel.Information, Message = "Course {CourseId} and {Action}")]
+    public static partial void CourseEvent(this ILogger logger, string courseId, CourseEventType action);
 
-    [LoggerMessage(EventId = EventIds.Courses.CreateCourse + 23, Level = LogLevel.Information, Message = "Creating course audit entry for {CourseId}")]
-    public static partial void CreatingCourseAudit(this ILogger logger, string courseId);
+    [LoggerMessage(EventId = EventIds.Courses.CreateCourse + 25, Level = LogLevel.Information, Message = "Creating course audit entry for {CourseId} and {Action}")]
+    public static partial void CreatingCourseAudit(this ILogger logger, string courseId, CourseEventType Action);
 
-    [LoggerMessage(EventId = EventIds.Courses.UpdateCourse + 23, Level = LogLevel.Information, Message = "Creating course update audit entry for {CourseId}")]
-    public static partial void CreatingCourseUpdateAudit(this ILogger logger, string courseId);
+    [LoggerMessage(EventId = EventIds.Courses.CreateCourse + 25, Level = LogLevel.Information, Message = "Add course audit entry for {CourseId} and {Action}")]
+    public static partial void CreatedCourseAudit(this ILogger logger, string courseId, CourseEventType Action);
 
-    [LoggerMessage(EventId = EventIds.Courses.DeleteCourse + 23, Level = LogLevel.Information, Message = "Creating course delete audit entry for {CourseId}")]
-    public static partial void CreatingCourseDeleteAudit(this ILogger logger, string courseId);
+
 }

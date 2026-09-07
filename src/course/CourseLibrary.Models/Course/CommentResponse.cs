@@ -1,8 +1,5 @@
-namespace CourseLibrary.Application.Operations.Comments;
+﻿namespace CourseLibrary.Models.Course;
 
-/// <summary>
-/// Response model for Comment operations.
-/// </summary>
 public sealed record CommentResponse(
     string Id,
     string CourseId,

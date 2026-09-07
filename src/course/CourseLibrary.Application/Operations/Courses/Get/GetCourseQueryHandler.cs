@@ -1,35 +1,38 @@
-using MediatorForge.Abstractions;
 using CourseLibrary.Application.Abstractions.Repositories;
 using CourseLibrary.Application.Operations.Comments;
-using CourseLibrary.Application.Operations.Courses;
 using CourseLibrary.Application.Operations.Discussions;
+using CourseLibrary.Models.Course;
+using MediatorForge.Abstractions;
+using Microsoft.Extensions.Logging;
 
 namespace CourseLibrary.Application.Operations.Courses.Get;
 
-public sealed class GetCourseQueryHandler : IHandler<GetCourseQuery, CourseResponse?>
-{
-    private readonly ICourseRepository _repository;
-    private readonly ICommentRepository _commentRepository;
-    private readonly IDiscussionRepository _discussionRepository;
-
-    public GetCourseQueryHandler(
-        ICourseRepository repository,
+public sealed class GetCourseQueryHandler(
+        ICourseRepository courseRepository,
         ICommentRepository commentRepository,
-        IDiscussionRepository discussionRepository)
-    {
-        _repository = repository;
-        _commentRepository = commentRepository;
-        _discussionRepository = discussionRepository;
-    }
+        IDiscussionRepository discussionRepository,
+        ILogger<GetCourseQueryHandler> logger) 
+    : IHandler<GetCourseQuery, CourseResponse?>
+{
 
     public async Task<CourseResponse?> HandleAsync(GetCourseQuery query, CancellationToken ct)
     {
-        var course = await _repository.GetByIdAsync(query.CourseId, ct);
-        if (course is null)
-            return null;
+        logger.LogDebug(
+            "Retrieving course '{CourseId}' with comments and discussions.",
+            query.CourseId);
 
-        var commentsTask = _commentRepository.GetByCourseAsync(course.Id, ct);
-        var discussionsTask = _discussionRepository.GetByCourseAsync(course.Id, ct);
+        var course = await courseRepository.GetByIdAsync(query.CourseId, ct);
+        if (course is null)
+        {
+            logger.LogWarning(
+               "Course '{CourseId}' not found.",
+               query.CourseId);
+
+            return null;
+        }
+
+        var commentsTask = commentRepository.GetByCourseAsync(course.Id, ct);
+        var discussionsTask = discussionRepository.GetByCourseAsync(course.Id, ct);
         await Task.WhenAll(commentsTask, discussionsTask);
 
         return CourseMapper.ToResponse(

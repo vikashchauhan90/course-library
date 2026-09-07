@@ -8,12 +8,12 @@ namespace CourseLibrary.Api.Endpoints.Discussions;
 
 internal static class DiscussionHalHelper
 {
-    public static IResource<DiscussionDetails> ToResource(
+    public static IResource<Models.Course.DiscussionResponse> ToResource(
         LinkGenerator linkGenerator,
-        DiscussionResponse discussion,
+        Models.Course.DiscussionResponse discussion,
         string version = "1")
     {
-            var details = new DiscussionDetails(
+            var details = new Models.Course.DiscussionResponse(
                 discussion.Id,
                 discussion.CourseId,
                 discussion.Title,
@@ -21,7 +21,7 @@ internal static class DiscussionHalHelper
                 discussion.CreatedAt,
                 discussion.UpdatedAt);
 
-            return new ResourceBuilder<DiscussionDetails>(details)
+            return new ResourceBuilder<Models.Course.DiscussionResponse>(details)
             .AddLink(
                 "self",
                 linkGenerator.GetPathByName(

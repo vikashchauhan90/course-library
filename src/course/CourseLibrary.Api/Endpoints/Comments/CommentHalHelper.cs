@@ -8,12 +8,12 @@ namespace CourseLibrary.Api.Endpoints.Comments;
 
 internal static class CommentHalHelper
 {
-    public static IResource<CommentDetails> ToResource(
+    public static IResource<Models.Course.CommentResponse> ToResource(
         LinkGenerator linkGenerator,
-        CommentResponse comment,
+        Models.Course.CommentResponse comment,
         string version = "1")
     {
-            var details = new CommentDetails(
+            var details = new Models.Course.CommentResponse(
                 comment.Id,
                 comment.CourseId,
                 comment.AuthorId,
@@ -22,7 +22,7 @@ internal static class CommentHalHelper
                 comment.CreatedAt,
                 comment.UpdatedAt);
 
-            return new ResourceBuilder<CommentDetails>(details)
+            return new ResourceBuilder<Models.Course.CommentResponse>(details)
             .AddLink(
                 "self",
                 linkGenerator.GetPathByName(
