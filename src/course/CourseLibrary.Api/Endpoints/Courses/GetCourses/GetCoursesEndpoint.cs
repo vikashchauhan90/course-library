@@ -51,36 +51,12 @@ public sealed class GetCoursesEndpoint : ICarterModule
                         httpContext.RequestAborted);
                     logger.GettingAllCourses();
 
-                    var responses = await Task.WhenAll(page.Items.Select(course =>
-                        ToResponseAsync(course, commentRepository, discussionRepository, httpContext.RequestAborted)));
-
-                    var responsePage = new PageResult<CourseResponse>(
-                        responses,
-                        page.ContinuationToken,
-                        page.HasMore);
-                    logger.CoursesRetrieved(responsePage.Items.Count);
-                    return Results.Ok(CourseHelper.GetCoursesResponse(linkGenerator, responsePage));
+                    logger.CoursesRetrieved(page.Items.Count);
+                    return Results.Ok(CourseHelper.GetCoursesResponse(linkGenerator, page));
                 })
             .WithName(RouteName)
             .HasApiVersion(1.0);
 
 
-    }
-
-    private static async Task<CourseResponse> ToResponseAsync(
-        CourseResponse course,
-        ICommentRepository commentRepository,
-        IDiscussionRepository discussionRepository,
-        CancellationToken cancellationToken)
-    {
-        var commentsTask = commentRepository.GetByCourseAsync(course.Id, cancellationToken);
-        var discussionsTask = discussionRepository.GetByCourseAsync(course.Id, cancellationToken);
-        await Task.WhenAll(commentsTask, discussionsTask);
-
-        return course with
-        {
-            Comments = CommentMapper.ToResponses(await commentsTask),
-            Discussions = DiscussionMapper.ToResponses(await discussionsTask)
-        };
     }
 }

@@ -1,12 +1,13 @@
+using CourseLibrary.Client.Observability;
+using CourseLibrary.Client.Security;
+using CourseLibrary.Models;
+using CourseLibrary.Models.Course;
+using Hal.Core;
+using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
-using CourseLibrary.Client.Observability;
-using CourseLibrary.Client.Security;
-using Microsoft.Extensions.Logging;
-using CourseLibrary.Models;
-using CourseLibrary.Models.Course;
 
 namespace CourseLibrary.Client.Courses;
 
@@ -17,7 +18,7 @@ internal sealed class CourseApiClient(
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
-    public async Task<CourseDetails?> GetCourseAsync(string courseId, CancellationToken cancellationToken = default) =>
+    public async Task<IResource<CourseDetails>> GetCourseAsync(string courseId, CancellationToken cancellationToken = default) =>
         await SendResourceAsync(
             HttpMethod.Get,
             $"api/v1/courses/{Uri.EscapeDataString(courseId)}",
@@ -92,20 +93,20 @@ internal sealed class CourseApiClient(
         CancellationToken cancellationToken) =>
         SendAsync<T>(method, path, JsonContent.Create(content, options: JsonOptions), operation, cancellationToken);
 
-    private async Task<CourseDetails?> SendResourceAsync(
+    private async Task<IResource<CourseDetails>> SendResourceAsync(
         HttpMethod method,
         string path,
         string operation,
         CancellationToken cancellationToken) =>
-        (await SendAsync<HalResource<CourseDetails>>(method, path, operation, cancellationToken))?.ToModel(JsonOptions);
+        (await SendAsync<IResource<CourseDetails>>(method, path, operation, cancellationToken));
 
-    private async Task<CourseDetails> SendResourceAsync(
+    private async Task<IResource<CourseDetails>> SendResourceAsync(
         HttpMethod method,
         string path,
         object content,
         string operation,
         CancellationToken cancellationToken) =>
-        (await SendAsync<HalResource<CourseDetails>>(method, path, content, operation, cancellationToken)).ToModel(JsonOptions);
+        (await SendAsync<IResource<CourseDetails>>(method, path, content, operation, cancellationToken));
 
     private async Task<PageResult<CourseDetails>> SendPageAsync(
         HttpMethod method,

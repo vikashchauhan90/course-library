@@ -2,4 +2,6 @@
 
 public sealed record CreateCourseRequest(
     string Title,
-    string Description);
+    string Description,
+    string AuthorId,
+    string AuthorName);

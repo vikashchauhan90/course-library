@@ -37,7 +37,7 @@ public sealed class CreateCourseEndpoint : ICarterModule
                 if (string.IsNullOrWhiteSpace(actorId))
                     return Results.Unauthorized();
 
-                var command = CreateCourseMapper.ToCommand(request, actorId);
+                var command = CreateCourseMapper.ToCommand(request);
 
                 var course = await dispatcher.SendAsync<CreateCourseCommand, CourseResponse>(
                     command,
