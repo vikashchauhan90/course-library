@@ -18,6 +18,7 @@ public static class EventIds
         public const int GetCourses = 2200;
         public const int UpdateCourse = 2300;
         public const int DeleteCourse = 2400;
+        public const int RetireCourse = 2500;
     }
 
     public static class Infrastructure

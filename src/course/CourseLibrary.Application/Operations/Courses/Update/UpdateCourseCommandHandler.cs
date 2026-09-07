@@ -18,11 +18,14 @@ public sealed class UpdateCourseCommandHandler(
     public async Task<CourseResponse> HandleAsync(UpdateCourseCommand command, CancellationToken ct)
     {
         logger.UpdatingCourse(command.Id);
-        var existing = await repository.GetByIdAsync(command.Id, command.AuthorId, ct);
+        var existing = await repository.GetByIdAsync(command.Id, ct);
         if (existing is null)
         {
             throw new KeyNotFoundException($"Course '{command.Id}' not found");
         }
+
+        if (!string.Equals(existing.AuthorId, command.AuthorId, StringComparison.Ordinal))
+            throw new UnauthorizedAccessException();
 
         var updated = existing with
         {

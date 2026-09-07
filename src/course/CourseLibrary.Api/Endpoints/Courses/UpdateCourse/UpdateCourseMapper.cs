@@ -1,4 +1,5 @@
 using CourseLibrary.Application.Operations.Courses.Update;
+using CourseLibrary.Models.Course;
 
 namespace CourseLibrary.Api.Endpoints.Courses.UpdateCourse;
 

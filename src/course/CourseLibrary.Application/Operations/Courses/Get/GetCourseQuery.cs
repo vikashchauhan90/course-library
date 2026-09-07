@@ -3,4 +3,4 @@ using CourseLibrary.Application.Operations.Courses;
 
 namespace CourseLibrary.Application.Operations.Courses.Get;
 
-public sealed record GetCourseQuery(string CourseId, string PartitionKey) : IQuery<CourseResponse?>;
+public sealed record GetCourseQuery(string CourseId) : IQuery<CourseResponse?>;

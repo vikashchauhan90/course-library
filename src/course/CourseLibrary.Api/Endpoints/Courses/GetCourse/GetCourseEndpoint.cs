@@ -17,20 +17,19 @@ public sealed class GetCourseEndpoint : ICarterModule
             .WithTags("Courses");
 
         group.MapGet(
-            "/{courseId}/{partitionKey}",
+            "/{courseId}",
             async (
                 HttpContext httpContext,
                 IDispatcher dispatcher,
                 LinkGenerator linkGenerator,
                 string courseId,
-                string partitionKey,
                 ILogger<GetCourseEndpoint> logger) =>
             {
                 var ct = httpContext.RequestAborted;
 
                 logger.GettingCourse(courseId);
 
-                var query = GetCourseMapper.ToQuery(courseId, partitionKey);
+                var query = GetCourseMapper.ToQuery(courseId);
 
                 var course = await dispatcher.QueryAsync<GetCourseQuery, CourseResponse?>(
                     query,

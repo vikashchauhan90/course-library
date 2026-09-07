@@ -17,8 +17,10 @@ public sealed class DeleteCourseCommandHandler(
     public async Task<bool> HandleAsync(DeleteCourseCommand command, CancellationToken ct)
     {
         logger.DeletingCourse(command.CourseId);
-        var course = await repository.GetByIdAsync(command.CourseId, command.PartitionKey, ct);
+        var course = await repository.GetByIdAsync(command.CourseId, ct);
         if (course is null) { logger.CourseNotFoundForDeletion(command.CourseId); return false; }
+        if (!string.Equals(course.AuthorId, command.AuthorId, StringComparison.Ordinal))
+            throw new UnauthorizedAccessException();
         var deletedAt = DateTimeOffset.UtcNow;
         var deleted = course with { DeletedAt = deletedAt, UpdatedAt = deletedAt };
         await repository.UpsertAsync(deleted, ct);

@@ -24,10 +24,9 @@
                 <h2>@course.Title</h2>
                 <p>@course.Description</p>
                 <div class="card-actions">
-                    <a asp-action="Edit" asp-route-courseId="@course.Id" asp-route-partitionKey="@course.AuthorId">Edit</a>
+                    <a asp-action="Edit" asp-route-courseId="@course.Id">Edit</a>
                     <form method="post" asp-action="Delete">
                         <input type="hidden" name="courseId" value="@course.Id" />
-                        <input type="hidden" name="partitionKey" value="@course.AuthorId" />
                         <button class="link-button" type="submit">Delete</button>
                     </form>
                 </div>

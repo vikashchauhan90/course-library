@@ -15,16 +15,15 @@ public sealed class HomeController(ICourseApiClient courseApiClient) : Controlle
 
     [Authorize]
     [HttpGet]
-    public async Task<IActionResult> Course(string? courseId, string? partitionKey, CancellationToken cancellationToken)
+    public async Task<IActionResult> Course(string? courseId, CancellationToken cancellationToken)
     {
-        if (string.IsNullOrWhiteSpace(courseId) || string.IsNullOrWhiteSpace(partitionKey))
+        if (string.IsNullOrWhiteSpace(courseId))
             return View(new CourseLookupViewModel());
 
-        var course = await courseApiClient.GetCourseAsync(courseId, partitionKey, cancellationToken);
+        var course = await courseApiClient.GetCourseAsync(courseId, cancellationToken);
         return View(new CourseLookupViewModel
         {
             CourseId = courseId,
-            PartitionKey = partitionKey,
             Course = course,
             NotFound = course is null
         });
@@ -75,20 +74,19 @@ public sealed class HomeController(ICourseApiClient courseApiClient) : Controlle
     {
         if (!ModelState.IsValid) return View(model);
         await courseApiClient.CreateAsync(
-            new CourseWriteRequest(model.Title, model.Description), cancellationToken);
+            new CreateCourseRequest(model.Title, model.Description), cancellationToken);
         return RedirectToAction(nameof(Mine));
     }
 
     [Authorize]
     [HttpGet]
-    public async Task<IActionResult> Edit(string courseId, string partitionKey, CancellationToken cancellationToken)
+    public async Task<IActionResult> Edit(string courseId, CancellationToken cancellationToken)
     {
-        var course = await courseApiClient.GetCourseAsync(courseId, partitionKey, cancellationToken);
+        var course = await courseApiClient.GetCourseAsync(courseId, cancellationToken);
         if (course is null) return NotFound();
         return View(new CourseFormViewModel
         {
             CourseId = course.Id,
-            PartitionKey = partitionKey,
             Title = course.Title ?? string.Empty,
             Description = course.Description ?? string.Empty
         });
@@ -102,8 +100,7 @@ public sealed class HomeController(ICourseApiClient courseApiClient) : Controlle
         if (!ModelState.IsValid) return View(model);
         await courseApiClient.UpdateAsync(
             model.CourseId!,
-            model.PartitionKey!,
-            new CourseWriteRequest(model.Title, model.Description),
+            new UpdateCourseRequest(model.Title, model.Description),
             cancellationToken);
         return RedirectToAction(nameof(Mine));
     }
@@ -111,9 +108,9 @@ public sealed class HomeController(ICourseApiClient courseApiClient) : Controlle
     [Authorize]
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Delete(string courseId, string partitionKey, CancellationToken cancellationToken)
+    public async Task<IActionResult> Delete(string courseId, CancellationToken cancellationToken)
     {
-        await courseApiClient.DeleteAsync(courseId, partitionKey, cancellationToken);
+        await courseApiClient.DeleteAsync(courseId, cancellationToken);
         return RedirectToAction(nameof(Mine));
     }
 
@@ -138,7 +135,6 @@ public sealed class HomeController(ICourseApiClient courseApiClient) : Controlle
 public sealed class CourseLookupViewModel
 {
     public string? CourseId { get; init; }
-    public string? PartitionKey { get; init; }
     public CourseDetails? Course { get; init; }
     public bool NotFound { get; init; }
 }

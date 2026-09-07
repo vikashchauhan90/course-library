@@ -5,6 +5,7 @@ using CourseLibrary.Application.Operations.Courses.Update;
 using CourseLibrary.Api.Endpoints.Courses;
 using Asp.Versioning;
 using CourseLibrary.Application.Abstractions.RequestContext;
+using CourseLibrary.Models.Course;
 using MediatorForge.Abstractions;
 
 namespace CourseLibrary.Api.Endpoints.Courses.UpdateCourse;
@@ -18,13 +19,12 @@ public sealed class UpdateCourseEndpoint : ICarterModule
             .WithTags("Courses");
 
         group.MapPut(
-            "/{courseId}/{partitionKey}",
+            "/{courseId}",
             async (
                 HttpContext httpContext,
                 IDispatcher dispatcher,
                 LinkGenerator linkGenerator,
                 string courseId,
-                string partitionKey,
                 UpdateCourseRequest request,
                 IRequestContext requestContext,
                 ILogger<UpdateCourseEndpoint> logger) =>
@@ -33,16 +33,10 @@ public sealed class UpdateCourseEndpoint : ICarterModule
 
                 logger.UpdatingCourse(courseId);
 
-                if (string.IsNullOrWhiteSpace(requestContext.UserId) ||
-                    !string.Equals(requestContext.UserId, partitionKey, StringComparison.Ordinal))
+                if (string.IsNullOrWhiteSpace(requestContext.UserId))
                     return Results.Forbid();
 
-                var command = new UpdateCourseCommand(
-                    courseId,
-                    request.Title,
-                    request.Description,
-                    partitionKey,
-                    null);
+                var command = UpdateCourseMapper.ToCommand(courseId, requestContext.UserId, request);
 
                 var course = await dispatcher.SendAsync<UpdateCourseCommand, CourseResponse>(
                     command,

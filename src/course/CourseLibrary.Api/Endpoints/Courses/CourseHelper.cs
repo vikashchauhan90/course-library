@@ -1,6 +1,7 @@
 ﻿using CourseLibrary.Api.Endpoints.Courses.DeleteCourse;
 using CourseLibrary.Api.Endpoints.Courses.GetCourse;
 using CourseLibrary.Api.Endpoints.Courses.GetCourses;
+using CourseLibrary.Api.Endpoints.Courses.RetireCourse;
 using CourseLibrary.Api.Endpoints.Courses.UpdateCourse;
 using CourseLibrary.Application.Operations.Courses;
 using CourseLibrary.Models;
@@ -23,7 +24,7 @@ public class CourseHelper
                            "self",
                            linkGenerator.GetPathByName(
                                GetCourseEndpoint.RouteName,
-                               values: new { version = version, courseId = course.Id, partitionKey = course.AuthorId })!,
+                               values: new { version = version, courseId = course.Id })!,
                            HttpVerbs.Get)
                        .AddLink(
                            "collection",
@@ -35,14 +36,20 @@ public class CourseHelper
                            "update",
                            linkGenerator.GetPathByName(
                                UpdateCourseEndpoint.RouteName,
-                               values: new { version = version, courseId = course.Id, partitionKey = course.AuthorId })!,
+                               values: new { version = version, courseId = course.Id })!,
                            HttpVerbs.Put)
                          .AddLink(
                            "delete",
                            linkGenerator.GetPathByName(
                                DeleteCourseEndpoint.RouteName,
-                               values: new { version = version, courseId = course.Id, partitionKey = course.AuthorId })!,
+                               values: new { version = version, courseId = course.Id })!,
                            HttpVerbs.Delete)
+                         .AddLink(
+                           "retire",
+                           linkGenerator.GetPathByName(
+                               RetireCourseEndpoint.RouteName,
+                               values: new { version = version, courseId = course.Id })!,
+                           HttpVerbs.Post)
                        .Build();
     }
 

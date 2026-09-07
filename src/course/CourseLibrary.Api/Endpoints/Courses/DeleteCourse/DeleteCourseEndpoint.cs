@@ -15,24 +15,22 @@ public sealed class DeleteCourseEndpoint : ICarterModule
             .WithTags("Courses");
 
         group.MapDelete(
-            "/{courseId}/{partitionKey}",
+            "/{courseId}",
             async (
                 HttpContext httpContext,
                 IDispatcher dispatcher,
                 string courseId,
-                string partitionKey,
                 IRequestContext requestContext,
                 ILogger<DeleteCourseEndpoint> logger) =>
             {
                 var ct = httpContext.RequestAborted;
 
-                if (string.IsNullOrWhiteSpace(requestContext.UserId) ||
-                    !string.Equals(requestContext.UserId, partitionKey, StringComparison.Ordinal))
+                if (string.IsNullOrWhiteSpace(requestContext.UserId))
                     return Results.Forbid();
 
                 logger.DeletingCourse(courseId);
 
-                var command = DeleteCourseMapper.ToCommand(courseId, partitionKey);
+                var command = DeleteCourseMapper.ToCommand(courseId, requestContext.UserId);
 
                 var deleted = await dispatcher.SendAsync<DeleteCourseCommand, bool>(
                     command,

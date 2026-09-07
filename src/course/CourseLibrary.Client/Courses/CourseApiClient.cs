@@ -17,10 +17,10 @@ internal sealed class CourseApiClient(
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
-    public Task<CourseDetails?> GetCourseAsync(string courseId, string partitionKey, CancellationToken cancellationToken = default) =>
-        SendAsync<CourseDetails?>(
+    public async Task<CourseDetails?> GetCourseAsync(string courseId, CancellationToken cancellationToken = default) =>
+        await SendResourceAsync(
             HttpMethod.Get,
-            $"api/v1/courses/{Uri.EscapeDataString(courseId)}/{Uri.EscapeDataString(partitionKey)}",
+            $"api/v1/courses/{Uri.EscapeDataString(courseId)}",
             operation: "get-course",
             cancellationToken);
 
@@ -29,7 +29,7 @@ internal sealed class CourseApiClient(
         int pageSize = 20,
         string? continuationToken = null,
         CancellationToken cancellationToken = default) =>
-        SendAsync<PageResult<CourseDetails>>(
+        SendPageAsync(
             HttpMethod.Get,
             $"api/v1/courses/?q={Uri.EscapeDataString(query?.Trim() ?? string.Empty)}&pageSize={pageSize}&pageToken={Uri.EscapeDataString(continuationToken ?? string.Empty)}",
             operation: "search-courses",
@@ -39,33 +39,40 @@ internal sealed class CourseApiClient(
         int pageSize = 20,
         string? continuationToken = null,
         CancellationToken cancellationToken = default) =>
-        SendAsync<PageResult<CourseDetails>>(
+        SendPageAsync(
             HttpMethod.Get,
             $"api/v1/courses/?mine=true&pageSize={pageSize}&pageToken={Uri.EscapeDataString(continuationToken ?? string.Empty)}",
             operation: "get-my-courses",
             cancellationToken);
 
-    public Task<CourseDetails> CreateAsync(CourseWriteRequest request, CancellationToken cancellationToken = default) =>
-        SendAsync<CourseDetails>(
+    public async Task<CourseDetails> CreateAsync(CreateCourseRequest request, CancellationToken cancellationToken = default) =>
+        await SendResourceAsync(
             HttpMethod.Post,
             "api/v1/courses/",
             request,
             operation: "create-course",
             cancellationToken);
 
-    public Task<CourseDetails> UpdateAsync(string courseId, string partitionKey, CourseWriteRequest request, CancellationToken cancellationToken = default) =>
-        SendAsync<CourseDetails>(
+    public async Task<CourseDetails> UpdateAsync(string courseId, UpdateCourseRequest request, CancellationToken cancellationToken = default) =>
+        await SendResourceAsync(
             HttpMethod.Put,
-            $"api/v1/courses/{Uri.EscapeDataString(courseId)}/{Uri.EscapeDataString(partitionKey)}",
+            $"api/v1/courses/{Uri.EscapeDataString(courseId)}",
             request,
             operation: "update-course",
             cancellationToken);
 
-    public async Task DeleteAsync(string courseId, string partitionKey, CancellationToken cancellationToken = default)
+    public async Task<CourseDetails> RetireAsync(string courseId, CancellationToken cancellationToken = default) =>
+        (await SendResourceAsync(
+            HttpMethod.Post,
+            $"api/v1/courses/{Uri.EscapeDataString(courseId)}/retire",
+            operation: "retire-course",
+            cancellationToken))!;
+
+    public async Task DeleteAsync(string courseId, CancellationToken cancellationToken = default)
     {
         await SendAsync<object>(
             HttpMethod.Delete,
-            $"api/v1/courses/{Uri.EscapeDataString(courseId)}/{Uri.EscapeDataString(partitionKey)}",
+            $"api/v1/courses/{Uri.EscapeDataString(courseId)}",
             operation: "delete-course",
             cancellationToken);
     }
@@ -84,6 +91,32 @@ internal sealed class CourseApiClient(
         string operation,
         CancellationToken cancellationToken) =>
         SendAsync<T>(method, path, JsonContent.Create(content, options: JsonOptions), operation, cancellationToken);
+
+    private async Task<CourseDetails?> SendResourceAsync(
+        HttpMethod method,
+        string path,
+        string operation,
+        CancellationToken cancellationToken) =>
+        (await SendAsync<HalResource<CourseDetails>>(method, path, operation, cancellationToken))?.ToModel(JsonOptions);
+
+    private async Task<CourseDetails> SendResourceAsync(
+        HttpMethod method,
+        string path,
+        object content,
+        string operation,
+        CancellationToken cancellationToken) =>
+        (await SendAsync<HalResource<CourseDetails>>(method, path, content, operation, cancellationToken)).ToModel(JsonOptions);
+
+    private async Task<PageResult<CourseDetails>> SendPageAsync(
+        HttpMethod method,
+        string path,
+        string operation,
+        CancellationToken cancellationToken)
+    {
+        var resource = await SendAsync<HalResource<PageResult<HalResource<CourseDetails>>>>(method, path, operation, cancellationToken);
+        var response = resource.ToModel(JsonOptions);
+        return response.Map(item => item.ToModel(JsonOptions));
+    }
 
     private async Task<T> SendAsync<T>(
         HttpMethod method,

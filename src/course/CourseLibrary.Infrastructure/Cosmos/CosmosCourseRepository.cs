@@ -14,8 +14,15 @@ public sealed class CosmosCourseRepository : ICourseRepository
         _repository = repository;
     }
 
-    public Task<Course?> GetByIdAsync(string courseId, string partitionKey, CancellationToken cancellationToken = default)
-        => _repository.GetByIdAsync(courseId, partitionKey, cancellationToken);
+    public async Task<Course?> GetByIdAsync(string courseId, CancellationToken cancellationToken = default)
+    {
+        var query = new Microsoft.Azure.Cosmos.QueryDefinition(
+            "SELECT TOP 1 * FROM c WHERE c.id = @courseId")
+            .WithParameter("@courseId", courseId);
+
+        return (await _repository.QueryAsync(query, cancellationToken: cancellationToken))
+            .SingleOrDefault();
+    }
 
     public Task<PageResult<Course>> GetByAuthorAsync(
         string authorId,

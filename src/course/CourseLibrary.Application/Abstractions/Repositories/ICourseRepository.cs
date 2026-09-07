@@ -6,7 +6,7 @@ namespace CourseLibrary.Application.Abstractions.Repositories;
 
 public interface ICourseRepository
 {
-    Task<Course?> GetByIdAsync(string courseId, string partitionKey, CancellationToken cancellationToken = default);
+    Task<Course?> GetByIdAsync(string courseId, CancellationToken cancellationToken = default);
     Task<PageResult<Course>> GetByAuthorAsync(
         string authorId,
         int pageSize,

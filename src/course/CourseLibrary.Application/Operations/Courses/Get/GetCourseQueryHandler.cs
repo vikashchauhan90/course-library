@@ -24,7 +24,7 @@ public sealed class GetCourseQueryHandler : IHandler<GetCourseQuery, CourseRespo
 
     public async Task<CourseResponse?> HandleAsync(GetCourseQuery query, CancellationToken ct)
     {
-        var course = await _repository.GetByIdAsync(query.CourseId, query.PartitionKey, ct);
+        var course = await _repository.GetByIdAsync(query.CourseId, ct);
         if (course is null)
             return null;
 
