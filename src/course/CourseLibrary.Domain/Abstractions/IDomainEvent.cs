@@ -3,6 +3,8 @@
 public interface IDomainEvent
 {
     string EventId { get; }
+    string ActorId { get; }
     DateTimeOffset OccurredAt { get; }
-    string EventType => GetType().Name;
+    IReadOnlyList<AuditEntry> ChangedProperties { get; }
+    string EventType => GetType().Name;    
 }

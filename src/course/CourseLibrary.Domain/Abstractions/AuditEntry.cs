@@ -1,7 +1,6 @@
-﻿using CourseLibrary.Domain.Abstractions;
-using System.Text.Json.Serialization;
+﻿using System.Text.Json.Serialization;
 
-namespace CourseLibrary.Domain.Entities;
+namespace CourseLibrary.Domain.Abstractions;
 
 public class AuditEntry
 {

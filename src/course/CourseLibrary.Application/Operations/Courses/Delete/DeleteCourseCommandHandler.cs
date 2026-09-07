@@ -1,6 +1,7 @@
 using CourseLibrary.Application.Abstractions.Repositories;
 using CourseLibrary.Application.Abstractions.RequestContext;
 using CourseLibrary.Domain.Events;
+using CourseLibrary.Domain.Abstractions;
 using MediatorForge.Abstractions;
 using Microsoft.Extensions.Logging;
 
@@ -25,18 +26,13 @@ public sealed class DeleteCourseCommandHandler(
       await eventDispatcher.PublishAsync(
             new CourseDeletedEvent(
                 command.CourseId,
-                course.AuthorId,
-                course.AuthorName,
-                course.Title,
-                course.Description,
                 Guid.NewGuid().ToString(),
                 requestContext.UserId ?? "unknown",
                 deletedAt,
-                deleted.CreatedAt,
-                deleted.UpdatedAt,
-                deleted.RetiredAt,
-                deleted.DeletedAt,
-                [nameof(deleted.DeletedAt)]),
+                [
+                    new() { Action = AuditAction.Deleted, Name = nameof(deleted.DeletedAt), Value = deleted.DeletedAt },
+                    new() { Action = AuditAction.Deleted, Name = nameof(deleted.UpdatedAt), Value = deleted.UpdatedAt }
+                ]),
             ct);
         return true;
     }

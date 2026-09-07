@@ -1,5 +1,6 @@
 using CourseLibrary.Application.Abstractions.Repositories;
 using CourseLibrary.Application.Abstractions.RequestContext;
+using CourseLibrary.Domain.Abstractions;
 using CourseLibrary.Domain.Entities;
 using CourseLibrary.Domain.Events;
 using MediatorForge.Abstractions;
@@ -37,20 +38,22 @@ public sealed class CreateCourseCommandHandler(
         await eventDispatcher.PublishAsync(
             new CourseCreatedEvent(
                 course.Id,
-                course.AuthorId,
-                course.Title,
-                course.Description,
-                course.AuthorName,
                 Guid.NewGuid().ToString(),
                 requestContext.UserId ?? "unknown",
                 course.CreatedAt,
-                course.CreatedAt,
-                course.UpdatedAt,
-                course.RetiredAt,
-                course.DeletedAt,
-                ["created"]),
+                CreateAuditEntries(course)),
             ct);
 
         return CourseMapper.ToResponse(course);
     }
+
+    private static IReadOnlyList<AuditEntry> CreateAuditEntries(Course course) =>
+    [
+        new() { Action = AuditAction.Created, Name = nameof(course.Title), Value = course.Title },
+        new() { Action = AuditAction.Created, Name = nameof(course.Description), Value = course.Description },
+        new() { Action = AuditAction.Created, Name = nameof(course.AuthorId), Value = course.AuthorId },
+        new() { Action = AuditAction.Created, Name = nameof(course.AuthorName), Value = course.AuthorName },
+        new() { Action = AuditAction.Created, Name = nameof(course.CreatedAt), Value = course.CreatedAt },
+        new() { Action = AuditAction.Created, Name = nameof(course.UpdatedAt), Value = course.UpdatedAt }
+    ];
 }

@@ -12,6 +12,7 @@ public sealed record CourseAuditEntry : ICosmosPartitioned
     [JsonConverter(typeof(JsonStringEnumConverter))]
     public required AuditAction Action { get; init; }
     public string? EventId { get; init; }
+    public DateTimeOffset OccurredAt { get; init; } = DateTimeOffset.UtcNow;
     public IReadOnlyList<AuditEntry>? ChangedProperties { get; init; }
     public string? ActorId { get; init; }
     public string PartitionKeyValue => CourseId;
