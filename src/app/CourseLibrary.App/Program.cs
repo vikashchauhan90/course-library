@@ -14,6 +14,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllersWithViews();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IAccessTokenProvider, HttpContextAccessTokenProvider>();
+builder.Services.AddScoped<ICommonHeadersProvider, HttpContextCommonHeadersProvider>();
 builder.Services.AddCourseLibraryClients(builder.Configuration);
 builder.Services.AddOpenTelemetry()
     .ConfigureResource(resource => resource.AddService("CourseLibrary.App"))

@@ -21,13 +21,24 @@ public sealed class HomeController(ICourseApiClient courseApiClient) : Controlle
         if (string.IsNullOrWhiteSpace(courseId))
             return View(new CourseLookupViewModel());
 
-        var course = await courseApiClient.GetCourseAsync(courseId, cancellationToken);
-        return View(new CourseLookupViewModel
+        try
         {
-            CourseId = courseId,
-            Course = course.Data,
-            NotFound = course is null
-        });
+            var course = await courseApiClient.GetCourseAsync(courseId, cancellationToken);
+            return View(new CourseLookupViewModel
+            {
+                CourseId = courseId,
+                Course = course.Data,
+                NotFound = course.Data is null
+            });
+        }
+        catch (CourseApiException exception) when (exception.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            return View(new CourseLookupViewModel
+            {
+                CourseId = courseId,
+                NotFound = true
+            });
+        }
     }
 
     [Authorize]
