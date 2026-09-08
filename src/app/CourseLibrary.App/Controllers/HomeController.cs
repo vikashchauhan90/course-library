@@ -1,11 +1,12 @@
-using Microsoft.AspNetCore.Authorization;
+using CourseLibrary.Client;
+using CourseLibrary.Client.Courses;
+using CourseLibrary.Models.Course;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using CourseLibrary.Client.Courses;
-using CourseLibrary.Models.Course;
-using CourseLibrary.Client;
+using System.Security.Claims;
 
 namespace CourseLibrary.App.Controllers;
 
@@ -49,7 +50,7 @@ public sealed class HomeController(ICourseApiClient courseApiClient) : Controlle
         {
             var criteria = new CourseSearchCriteria(
                 q,
-                AuthorId: null, // TODO: Add support for searching by author ID if needed
+                AuthorId: null,
                 IncludeDeleted: false,
                 IncludeRetired: false);
             var page = await courseApiClient.SearchAsync(criteria, cancellationToken: cancellationToken);
@@ -71,9 +72,10 @@ public sealed class HomeController(ICourseApiClient courseApiClient) : Controlle
     {
         try
         {
+            var userId = User.FindFirstValue("sub");
             var criteria = new CourseSearchCriteria(
                 null,
-                AuthorId: null,
+                AuthorId: userId,
                 IncludeDeleted: false,
                 IncludeRetired: false);
             var page = await courseApiClient.SearchAsync(criteria, cancellationToken: cancellationToken);
