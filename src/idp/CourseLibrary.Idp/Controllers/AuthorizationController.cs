@@ -16,6 +16,7 @@ namespace CourseLibrary.Idp.Controllers;
 public sealed class AuthorizationController(
     UserManager<ApplicationUser> userManager,
     SignInManager<ApplicationUser> signInManager,
+    RoleManager<ApplicationRole> roleManager,
     IOpenIddictApplicationManager applicationManager) : Controller
 {
     [HttpGet("connect/authorize")]
@@ -97,10 +98,33 @@ public sealed class AuthorizationController(
     private async Task<ClaimsIdentity> CreateUserIdentityAsync(ApplicationUser user, IEnumerable<string> requestedScopes)
     {
         var identity = new ClaimsIdentity(OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
+        var roles = await userManager.GetRolesAsync(user);
         identity.SetClaim(Claims.Subject, user.Id);
         identity.SetClaim(Claims.Name, user.UserName);
         identity.SetClaim(Claims.Email, user.Email);
-        identity.SetClaims(Claims.Role, (await userManager.GetRolesAsync(user)).ToImmutableArray());
+        identity.SetClaims(Claims.Role, roles.ToImmutableArray());
+
+        foreach (var role in roles)
+        {
+            var roleEntity = await roleManager.FindByNameAsync(role);
+            if (roleEntity is null)
+                continue;
+
+            var roleClaims = await roleManager.GetClaimsAsync(roleEntity);
+            foreach (var permission in roleClaims.Where(
+                         claim => claim.Type.Equals(
+                             "permission",
+                             StringComparison.OrdinalIgnoreCase)))
+            {
+                identity.AddClaim(new Claim("permission", permission.Value));
+            }
+
+            if (role.Equals("Administrator", StringComparison.OrdinalIgnoreCase))
+            {
+                identity.AddClaim(new Claim("permission", "*.all"));
+            }
+        }
+
         identity.SetScopes(requestedScopes);
         identity.SetResources("course-library-api");
         SetDestinations(identity);
