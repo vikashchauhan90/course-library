@@ -1,4 +1,5 @@
 using CourseLibrary.Idp.Domain.Entities;
+using CourseLibrary.Idp.Authorization;
 using CourseLibrary.Idp.Models.Admin;
 using CourseLibrary.Idp.Models;
 using CourseLibrary.Idp.Infrastructure.Persistence;
@@ -46,7 +47,30 @@ public sealed class AdminController(
                 await scopeManager.GetDisplayNameAsync(scope), string.Join(", ", resources)));
         }
 
-        return View(new AdminIndexViewModel { Users = userItems, Clients = clients, Scopes = scopes });
+        var roles = new List<AdminRoleItem>();
+        foreach (var role in await roleManager.Roles.OrderBy(x => x.Name).ToListAsync())
+        {
+            var claims = await roleManager.GetClaimsAsync(role);
+            roles.Add(new AdminRoleItem(
+                role.Name ?? string.Empty,
+                claims
+                    .Where(claim => claim.Type.Equals(
+                        PermissionCatalog.ClaimType,
+                        StringComparison.OrdinalIgnoreCase))
+                    .Select(claim => claim.Value)
+                    .ToHashSet(StringComparer.OrdinalIgnoreCase)));
+        }
+
+        return View(new AdminIndexViewModel
+        {
+            Users = userItems,
+            Roles = roles,
+            Permissions = PermissionCatalog.Definitions
+                .Select(permission => new AdminPermissionItem(permission.Value, permission.DisplayName))
+                .ToList(),
+            Clients = clients,
+            Scopes = scopes
+        });
     }
 
     [HttpGet("users/create")]
@@ -131,7 +155,20 @@ public sealed class AdminController(
     {
         var user = await userManager.FindByIdAsync(id);
         if (user is null) return NotFound();
-        return View(new EditUserViewModel { Id = user.Id, FullName = user.FullName, Email = user.Email ?? string.Empty, IsAdministrator = await userManager.IsInRoleAsync(user, "Administrator"), IsLocked = user.LockoutEnd > DateTimeOffset.UtcNow });
+        return View(new EditUserViewModel
+        {
+            Id = user.Id,
+            FullName = user.FullName,
+            Email = user.Email ?? string.Empty,
+            IsAdministrator = await userManager.IsInRoleAsync(user, PermissionCatalog.AdministratorRole),
+            IsLocked = user.LockoutEnd > DateTimeOffset.UtcNow,
+            AvailableRoles = await roleManager.Roles
+                .Where(role => role.Name != null)
+                .OrderBy(role => role.Name)
+                .Select(role => role.Name!)
+                .ToListAsync(),
+            SelectedRoles = (await userManager.GetRolesAsync(user)).ToList()
+        });
     }
 
     [HttpPost("users/{id}/edit")]
@@ -145,13 +182,69 @@ public sealed class AdminController(
         var result = await userManager.UpdateAsync(user);
         if (result.Succeeded)
         {
-            var isAdmin = await userManager.IsInRoleAsync(user, "Administrator");
-            if (model.IsAdministrator && !isAdmin) result = await userManager.AddToRoleAsync(user, "Administrator");
-            if (!model.IsAdministrator && isAdmin && user.Id != userManager.GetUserId(User)) result = await userManager.RemoveFromRoleAsync(user, "Administrator");
+            var currentRoles = await userManager.GetRolesAsync(user);
+            var availableRoles = await roleManager.Roles
+                .Where(role => role.Name != null)
+                .Select(role => role.Name!)
+                .ToListAsync();
+            var selectedRoles = model.SelectedRoles
+                .Intersect(availableRoles, StringComparer.OrdinalIgnoreCase)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            if (user.Id == userManager.GetUserId(User))
+                selectedRoles.Add(PermissionCatalog.AdministratorRole);
+
+            var rolesToRemove = currentRoles
+                .Where(role => !selectedRoles.Contains(role))
+                .ToList();
+            var rolesToAdd = selectedRoles
+                .Where(role => !currentRoles.Contains(role, StringComparer.OrdinalIgnoreCase))
+                .ToList();
+
+            if (rolesToRemove.Count > 0)
+                result = await userManager.RemoveFromRolesAsync(user, rolesToRemove);
+            if (result.Succeeded && rolesToAdd.Count > 0)
+                result = await userManager.AddToRolesAsync(user, rolesToAdd);
         }
         if (!result.Succeeded) { AddErrors(result); return View(model); }
         await userManager.SetLockoutEndDateAsync(user, model.IsLocked ? DateTimeOffset.MaxValue : null);
         logger.LogInformation("Administrator {AdministratorId} edited user {UserId}.", userManager.GetUserId(User), user.Id);
+        return RedirectToAction(nameof(Index));
+    }
+
+    [HttpGet("roles/create")]
+    public IActionResult CreateRole() => View(new CreateRoleViewModel());
+
+    [HttpPost("roles/create")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> CreateRole(CreateRoleViewModel model)
+    {
+        if (!ModelState.IsValid) return View(model);
+
+        var normalizedName = model.Name.Trim();
+        if (await roleManager.RoleExistsAsync(normalizedName))
+        {
+            ModelState.AddModelError(nameof(model.Name), "That role already exists.");
+            return View(model);
+        }
+
+        var result = await roleManager.CreateAsync(new ApplicationRole
+        {
+            Name = normalizedName,
+            NormalizedName = normalizedName.ToUpperInvariant(),
+            CreatedAt = DateTimeOffset.UtcNow
+        });
+        if (!result.Succeeded)
+        {
+            AddErrors(result);
+            return View(model);
+        }
+
+        logger.LogInformation(
+            "Administrator {AdministratorId} created role {RoleName}.",
+            userManager.GetUserId(User),
+            normalizedName);
+        TempData["Success"] = "Role created.";
         return RedirectToAction(nameof(Index));
     }
 
@@ -312,11 +405,79 @@ public sealed class AdminController(
     {
         var role = await roleManager.FindByNameAsync(roleName);
         if (role is null) return NotFound();
+
+        if (!PermissionCatalog.TryNormalize(permission, out var normalizedPermission))
+        {
+            TempData["Error"] = "Unknown permission.";
+            return RedirectToAction(nameof(Index));
+        }
+
         var existing = await roleManager.GetClaimsAsync(role);
-        var claim = existing.SingleOrDefault(x => x.Type == "permission" && x.Value == permission);
-        if (enabled && claim is null) await roleManager.AddClaimAsync(role, new System.Security.Claims.Claim("permission", permission));
-        if (!enabled && claim is not null) await roleManager.RemoveClaimAsync(role, claim);
+        var claim = existing.SingleOrDefault(x =>
+            x.Type.Equals(PermissionCatalog.ClaimType, StringComparison.OrdinalIgnoreCase)
+            && x.Value.Equals(normalizedPermission, StringComparison.OrdinalIgnoreCase));
+
+        IdentityResult result;
+        if (enabled && claim is null)
+        {
+            result = await roleManager.AddClaimAsync(
+                role,
+                new System.Security.Claims.Claim(
+                    PermissionCatalog.ClaimType,
+                    normalizedPermission));
+        }
+        else if (!enabled && claim is not null)
+        {
+            result = await roleManager.RemoveClaimAsync(role, claim);
+        }
+        else
+        {
+            return RedirectToAction(nameof(Index));
+        }
+
+        if (!result.Succeeded)
+        {
+            AddErrors(result);
+            return View(nameof(Index), await BuildIndexViewModelAsync());
+        }
+
+        logger.LogInformation(
+            "Administrator {AdministratorId} changed permission {Permission} for role {RoleName} to {Enabled}.",
+            userManager.GetUserId(User),
+            normalizedPermission,
+            roleName,
+            enabled);
         return RedirectToAction(nameof(Index));
+    }
+
+    private async Task<AdminIndexViewModel> BuildIndexViewModelAsync()
+    {
+        var users = await userManager.Users.OrderBy(x => x.UserName).Take(100).ToListAsync();
+        var userItems = new List<AdminUserItem>(users.Count);
+        foreach (var user in users)
+            userItems.Add(new(user.Id, user.UserName ?? user.Id, user.Email ?? string.Empty,
+                user.LockoutEnd > DateTimeOffset.UtcNow, await userManager.IsInRoleAsync(user, PermissionCatalog.AdministratorRole)));
+
+        var roles = new List<AdminRoleItem>();
+        foreach (var role in await roleManager.Roles.OrderBy(x => x.Name).ToListAsync())
+        {
+            var claims = await roleManager.GetClaimsAsync(role);
+            roles.Add(new AdminRoleItem(
+                role.Name ?? string.Empty,
+                claims.Where(claim => claim.Type.Equals(PermissionCatalog.ClaimType, StringComparison.OrdinalIgnoreCase))
+                    .Select(claim => claim.Value).ToHashSet(StringComparer.OrdinalIgnoreCase)));
+        }
+
+        return new AdminIndexViewModel
+        {
+            Users = userItems,
+            Roles = roles,
+            Permissions = PermissionCatalog.Definitions
+                .Select(permission => new AdminPermissionItem(permission.Value, permission.DisplayName))
+                .ToList(),
+            Clients = [],
+            Scopes = []
+        };
     }
 
     [HttpGet("scopes/create")]

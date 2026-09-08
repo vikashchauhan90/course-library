@@ -1,4 +1,5 @@
 using CourseLibrary.Idp.Domain.Entities;
+using CourseLibrary.Idp.Authorization;
 using CourseLibrary.Idp.Models;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
@@ -71,7 +72,27 @@ public sealed class AuthorizationController(
             var result = await HttpContext.AuthenticateAsync(OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
             if (result.Principal is null)
                 return Forbid(OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
-            return SignIn(result.Principal!, OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
+
+            if (request.IsRefreshTokenGrantType())
+            {
+                var subject = result.Principal.FindFirstValue(Claims.Subject);
+                var user = string.IsNullOrWhiteSpace(subject)
+                    ? null
+                    : await userManager.FindByIdAsync(subject);
+                if (user is null)
+                    return Forbid(OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
+
+                var identity = await CreateUserIdentityAsync(
+                    user,
+                    result.Principal.GetScopes());
+                return SignIn(
+                    new ClaimsPrincipal(identity),
+                    OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
+            }
+
+            return SignIn(
+                result.Principal,
+                OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
         }
 
         return Forbid(OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
@@ -84,7 +105,8 @@ public sealed class AuthorizationController(
         var user = await userManager.GetUserAsync(User);
         if (user is null) return Challenge(OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme);
         var roles = await userManager.GetRolesAsync(user);
-        return Ok(new { sub = user.Id, name = user.UserName, email = user.Email, role = roles });
+        var permissions = await GetPermissionsAsync(roles);
+        return Ok(new { sub = user.Id, name = user.UserName, email = user.Email, role = roles, permissions });
     }
 
     [HttpGet("connect/logout")]
@@ -104,6 +126,22 @@ public sealed class AuthorizationController(
         identity.SetClaim(Claims.Email, user.Email);
         identity.SetClaims(Claims.Role, roles.ToImmutableArray());
 
+        foreach (var permission in await GetPermissionsAsync(roles))
+        {
+            identity.AddClaim(new Claim(PermissionCatalog.ClaimType, permission));
+        }
+
+        identity.SetScopes(requestedScopes);
+        identity.SetResources("course-library-api");
+        SetDestinations(identity);
+        return identity;
+    }
+
+    private async Task<IReadOnlySet<string>> GetPermissionsAsync(
+        IEnumerable<string> roles)
+    {
+        var permissions = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
         foreach (var role in roles)
         {
             var roleEntity = await roleManager.FindByNameAsync(role);
@@ -111,24 +149,28 @@ public sealed class AuthorizationController(
                 continue;
 
             var roleClaims = await roleManager.GetClaimsAsync(roleEntity);
-            foreach (var permission in roleClaims.Where(
-                         claim => claim.Type.Equals(
-                             "permission",
+            foreach (var permission in roleClaims.Where(claim =>
+                         claim.Type.Equals(
+                             PermissionCatalog.ClaimType,
                              StringComparison.OrdinalIgnoreCase)))
             {
-                identity.AddClaim(new Claim("permission", permission.Value));
+                if (PermissionCatalog.TryNormalize(
+                        permission.Value,
+                        out var normalizedPermission))
+                {
+                    permissions.Add(normalizedPermission);
+                }
             }
 
-            if (role.Equals("Administrator", StringComparison.OrdinalIgnoreCase))
+            if (role.Equals(
+                    PermissionCatalog.AdministratorRole,
+                    StringComparison.OrdinalIgnoreCase))
             {
-                identity.AddClaim(new Claim("permission", "*.all"));
+                permissions.Add("*.all");
             }
         }
 
-        identity.SetScopes(requestedScopes);
-        identity.SetResources("course-library-api");
-        SetDestinations(identity);
-        return identity;
+        return permissions;
     }
 
     private static void SetDestinations(ClaimsIdentity identity)

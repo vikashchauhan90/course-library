@@ -9,4 +9,6 @@ public sealed class EditUserViewModel
     [Required, EmailAddress] public string Email { get; set; } = string.Empty;
     public bool IsAdministrator { get; set; }
     public bool IsLocked { get; set; }
+    public IReadOnlyList<string> AvailableRoles { get; set; } = [];
+    public List<string> SelectedRoles { get; set; } = [];
 }
