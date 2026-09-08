@@ -1,5 +1,5 @@
 using CourseLibrary.Idp.Domain.Entities;
-using CourseLibrary.Idp.Authorization;
+using CourseLibrary.Idp.Domain.Authorization;
 using CourseLibrary.Idp.Models.Admin;
 using CourseLibrary.Idp.Models;
 using CourseLibrary.Idp.Infrastructure.Persistence;
@@ -50,15 +50,13 @@ public sealed class AdminController(
         var roles = new List<AdminRoleItem>();
         foreach (var role in await roleManager.Roles.OrderBy(x => x.Name).ToListAsync())
         {
-            var claims = await roleManager.GetClaimsAsync(role);
+            var rolePermissions = await dbContext.RolePermissions
+                .Where(assignment => assignment.RoleId == role.Id)
+                .Select(assignment => assignment.PermissionId)
+                .ToHashSetAsync();
             roles.Add(new AdminRoleItem(
                 role.Name ?? string.Empty,
-                claims
-                    .Where(claim => claim.Type.Equals(
-                        PermissionCatalog.ClaimType,
-                        StringComparison.OrdinalIgnoreCase))
-                    .Select(claim => claim.Value)
-                    .ToHashSet(StringComparer.OrdinalIgnoreCase)));
+                rolePermissions));
         }
 
         return View(new AdminIndexViewModel
@@ -66,7 +64,7 @@ public sealed class AdminController(
             Users = userItems,
             Roles = roles,
             Permissions = PermissionCatalog.Definitions
-                .Select(permission => new AdminPermissionItem(permission.Value, permission.DisplayName))
+                .Select(permission => new AdminPermissionItem(permission.Code, permission.DisplayName))
                 .ToList(),
             Clients = clients,
             Scopes = scopes
@@ -412,34 +410,29 @@ public sealed class AdminController(
             return RedirectToAction(nameof(Index));
         }
 
-        var existing = await roleManager.GetClaimsAsync(role);
-        var claim = existing.SingleOrDefault(x =>
-            x.Type.Equals(PermissionCatalog.ClaimType, StringComparison.OrdinalIgnoreCase)
-            && x.Value.Equals(normalizedPermission, StringComparison.OrdinalIgnoreCase));
-
-        IdentityResult result;
-        if (enabled && claim is null)
+        var dbPermission = await dbContext.Permissions.FindAsync(normalizedPermission);
+        if (dbPermission is null)
         {
-            result = await roleManager.AddClaimAsync(
-                role,
-                new System.Security.Claims.Claim(
-                    PermissionCatalog.ClaimType,
-                    normalizedPermission));
-        }
-        else if (!enabled && claim is not null)
-        {
-            result = await roleManager.RemoveClaimAsync(role, claim);
-        }
-        else
-        {
+            TempData["Error"] = "Permission is not configured.";
             return RedirectToAction(nameof(Index));
         }
 
-        if (!result.Succeeded)
+        var assignment = await dbContext.RolePermissions.FindAsync(role.Id, dbPermission.Id);
+        if (enabled && assignment is null)
         {
-            AddErrors(result);
-            return View(nameof(Index), await BuildIndexViewModelAsync());
+            dbContext.RolePermissions.Add(new RolePermission
+            {
+                RoleId = role.Id,
+                PermissionId = dbPermission.Id
+            });
         }
+        else if (!enabled && assignment is not null)
+        {
+            dbContext.RolePermissions.Remove(assignment);
+        }
+        else return RedirectToAction(nameof(Index));
+
+        await dbContext.SaveChangesAsync();
 
         logger.LogInformation(
             "Administrator {AdministratorId} changed permission {Permission} for role {RoleName} to {Enabled}.",
@@ -461,11 +454,13 @@ public sealed class AdminController(
         var roles = new List<AdminRoleItem>();
         foreach (var role in await roleManager.Roles.OrderBy(x => x.Name).ToListAsync())
         {
-            var claims = await roleManager.GetClaimsAsync(role);
+            var rolePermissions = await dbContext.RolePermissions
+                .Where(assignment => assignment.RoleId == role.Id)
+                .Select(assignment => assignment.PermissionId)
+                .ToHashSetAsync();
             roles.Add(new AdminRoleItem(
                 role.Name ?? string.Empty,
-                claims.Where(claim => claim.Type.Equals(PermissionCatalog.ClaimType, StringComparison.OrdinalIgnoreCase))
-                    .Select(claim => claim.Value).ToHashSet(StringComparer.OrdinalIgnoreCase)));
+                rolePermissions));
         }
 
         return new AdminIndexViewModel
@@ -473,7 +468,7 @@ public sealed class AdminController(
             Users = userItems,
             Roles = roles,
             Permissions = PermissionCatalog.Definitions
-                .Select(permission => new AdminPermissionItem(permission.Value, permission.DisplayName))
+                .Select(permission => new AdminPermissionItem(permission.Code, permission.DisplayName))
                 .ToList(),
             Clients = [],
             Scopes = []

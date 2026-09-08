@@ -10,6 +10,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
 
     public DbSet<UserInvitation> UserInvitations => Set<UserInvitation>();
     public DbSet<OpenIddictToken> OpenIddictTokens => Set<OpenIddictToken>();
+    public DbSet<Permission> Permissions => Set<Permission>();
+    public DbSet<RolePermission> RolePermissions => Set<RolePermission>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

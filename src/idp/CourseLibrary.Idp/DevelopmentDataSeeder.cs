@@ -20,6 +20,8 @@ public static class DevelopmentDataSeeder
             await dbContext.Database.MigrateAsync();
         }
 
+        await AuthorizationDataSeeder.SeedAsync(serviceProvider);
+
         if (!configuration.GetValue<bool>("Database:SeedDevelopmentUser"))
             return;
 

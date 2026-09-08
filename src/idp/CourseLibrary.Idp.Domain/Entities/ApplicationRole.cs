@@ -8,4 +8,6 @@ public class ApplicationRole : IdentityRole, IEntity<string>, IEntityAudit, IEnt
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset? UpdatedAt { get; set; }
     public DateTimeOffset? DeletedAt { get; set; }
+
+    public ICollection<RolePermission> RolePermissions { get; set; } = [];
 }

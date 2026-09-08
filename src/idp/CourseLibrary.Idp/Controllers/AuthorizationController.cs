@@ -1,10 +1,12 @@
 using CourseLibrary.Idp.Domain.Entities;
-using CourseLibrary.Idp.Authorization;
+using CourseLibrary.Idp.Domain.Authorization;
+using CourseLibrary.Idp.Infrastructure.Persistence;
 using CourseLibrary.Idp.Models;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using OpenIddict.Abstractions;
 using OpenIddict.Server.AspNetCore;
 using OpenIddict.Validation.AspNetCore;
@@ -17,7 +19,7 @@ namespace CourseLibrary.Idp.Controllers;
 public sealed class AuthorizationController(
     UserManager<ApplicationUser> userManager,
     SignInManager<ApplicationUser> signInManager,
-    RoleManager<ApplicationRole> roleManager,
+    ApplicationDbContext dbContext,
     IOpenIddictApplicationManager applicationManager) : Controller
 {
     [HttpGet("connect/authorize")]
@@ -140,37 +142,22 @@ public sealed class AuthorizationController(
     private async Task<IReadOnlySet<string>> GetPermissionsAsync(
         IEnumerable<string> roles)
     {
-        var permissions = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var roleNames = roles.ToList();
+        var permissions = await dbContext.RolePermissions
+            .AsNoTracking()
+            .Where(assignment => roleNames.Contains(assignment.Role.Name!))
+            .Select(assignment => assignment.PermissionId)
+            .ToListAsync();
 
-        foreach (var role in roles)
+        var result = permissions.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        if (roleNames.Any(role => role.Equals(
+                PermissionCatalog.AdministratorRole,
+                StringComparison.OrdinalIgnoreCase)))
         {
-            var roleEntity = await roleManager.FindByNameAsync(role);
-            if (roleEntity is null)
-                continue;
-
-            var roleClaims = await roleManager.GetClaimsAsync(roleEntity);
-            foreach (var permission in roleClaims.Where(claim =>
-                         claim.Type.Equals(
-                             PermissionCatalog.ClaimType,
-                             StringComparison.OrdinalIgnoreCase)))
-            {
-                if (PermissionCatalog.TryNormalize(
-                        permission.Value,
-                        out var normalizedPermission))
-                {
-                    permissions.Add(normalizedPermission);
-                }
-            }
-
-            if (role.Equals(
-                    PermissionCatalog.AdministratorRole,
-                    StringComparison.OrdinalIgnoreCase))
-            {
-                permissions.Add("*.all");
-            }
+            result.Add("*.all");
         }
 
-        return permissions;
+        return result;
     }
 
     private static void SetDestinations(ClaimsIdentity identity)
