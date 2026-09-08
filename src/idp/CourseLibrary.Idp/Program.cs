@@ -58,9 +58,15 @@ builder.Services.AddIdentity<ApplicationUser, ApplicationRole>(options =>
     .AddEntityFrameworkStores<ApplicationDbContext>()
     .AddDefaultTokenProviders();
 
+builder.Services.Configure<PasswordHasherOptions>(options =>
+{
+    options.CompatibilityMode = PasswordHasherCompatibilityMode.IdentityV3;
+});
+
 builder.Services.ConfigureApplicationCookie(options =>
 {
     options.LoginPath = "/account/login";
+    options.AccessDeniedPath = "/home/status/403";
     options.LogoutPath = "/account/logout";
     options.Cookie.Name = "__Host-CourseLibrary.Idp";
     options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
@@ -280,6 +286,7 @@ if (!app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
+app.UseStatusCodePagesWithReExecute("/home/status/{0}");
 app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();

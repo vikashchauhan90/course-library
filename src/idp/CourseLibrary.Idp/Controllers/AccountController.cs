@@ -4,6 +4,7 @@ using CourseLibrary.Idp.Abstractions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using QRCoder;
 using Microsoft.AspNetCore.Authentication;
 using System.Security.Claims;
 
@@ -345,6 +346,22 @@ public sealed class AccountController(SignInManager<ApplicationUser> signInManag
         var key = await userManager.GetAuthenticatorKeyAsync(user);
         if (string.IsNullOrEmpty(key)) { await userManager.ResetAuthenticatorKeyAsync(user); key = await userManager.GetAuthenticatorKeyAsync(user); }
         return View(new EnableAuthenticatorViewModel { SharedKey = FormatKey(key!), AuthenticatorUri = CreateUri(user.Email ?? user.UserName ?? user.Id, key!) });
+    }
+
+    [HttpGet("account/authenticator/qr")]
+    [Authorize]
+    public async Task<IActionResult> AuthenticatorQr()
+    {
+        var user = await userManager.GetUserAsync(User) ?? throw new InvalidOperationException("User not found.");
+        var key = await userManager.GetAuthenticatorKeyAsync(user);
+        if (string.IsNullOrWhiteSpace(key))
+            return NotFound();
+
+        var uri = CreateUri(user.Email ?? user.UserName ?? user.Id, key);
+        using var generator = new QRCodeGenerator();
+        using var qrCode = generator.CreateQrCode(uri, QRCodeGenerator.ECCLevel.Q);
+        var png = new PngByteQRCode(qrCode).GetGraphic(8);
+        return File(png, "image/png");
     }
 
     [HttpPost("account/authenticator")]

@@ -1,2 +1,17 @@
 <h1>Something went wrong</h1>
 <p>The request could not be completed. Please try again later.</p>
+@model ErrorPageViewModel
+<div class="error-shell">
+	<div class="error-card">
+		<div class="error-code">@Model.StatusCode</div>
+		<div class="eyebrow">Course Library</div>
+		<h1>@Model.Title</h1>
+		<p class="error-summary">@Model.Summary</p>
+		<p class="text-secondary">@Model.Detail</p>
+		<div class="error-actions">
+			<a class="btn btn-primary" href="@Model.ActionUrl">@Model.ActionText</a>
+			<a class="btn btn-outline-secondary" href="javascript:history.back()">Go back</a>
+		</div>
+		<p class="error-trace">Reference: <code>@Model.TraceId</code></p>
+	</div>
+</div>

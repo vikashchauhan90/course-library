@@ -1,5 +1,20 @@
 @model EnableAuthenticatorViewModel
-<h1>Authenticator app</h1>
-@if (TempData["RecoveryCodes"] is string recoveryCodes) { <section><h2>Recovery codes</h2><code>@recoveryCodes</code><p>Store these offline. They are shown only once.</p></section> }
-<p>Add this account to an RFC 6238-compatible authenticator app by scanning/entering the following setup URI or key.</p><p>Key: <code>@Model.SharedKey</code></p><p>URI: <code>@Model.AuthenticatorUri</code></p>
-<form method="post"><div asp-validation-summary="ModelOnly"></div><input asp-for="SharedKey" type="hidden" /><input asp-for="AuthenticatorUri" type="hidden" /><label asp-for="Code">Authenticator code</label><input asp-for="Code" autocomplete="one-time-code" /><button type="submit">Enable authenticator</button></form>
+<div class="auth-shell"><div class="auth-card two-factor-card"><div class="card-body">
+	<div class="eyebrow">Account security</div>
+	<h1>Set up your authenticator</h1>
+	<p class="text-secondary">Scan this code with your authenticator app, then enter the six-digit code it generates.</p>
+
+	@if (TempData["RecoveryCodes"] is string recoveryCodes)
+	{
+		<div class="recovery-panel" role="status"><h2>Save your recovery codes</h2><p>These codes can be used if you lose access to your authenticator. Store them somewhere private.</p><code>@recoveryCodes</code></div>
+	}
+
+	<div class="setup-grid">
+		<div class="qr-frame"><img src="@Url.Action("AuthenticatorQr", "Account")" alt="Authenticator setup QR code" width="240" height="240" /></div>
+		<div class="setup-copy"><h2>1. Scan the code</h2><p>Open Microsoft Authenticator, Google Authenticator, or another TOTP app and add a new account.</p><h2>2. Verify the code</h2><p>Enter the current code below to finish setup.</p></div>
+	</div>
+
+	<details class="manual-setup"><summary>Can’t scan? Enter the key manually</summary><code>@Model.SharedKey</code></details>
+
+	<form method="post" class="verify-form"><div asp-validation-summary="ModelOnly"></div><input asp-for="SharedKey" type="hidden" /><input asp-for="AuthenticatorUri" type="hidden" /><label asp-for="Code">Verification code</label><input asp-for="Code" autocomplete="one-time-code" inputmode="numeric" placeholder="000000" autofocus /><span asp-validation-for="Code"></span><button class="btn btn-primary w-100" type="submit">Enable authenticator</button></form>
+</div></div></div>

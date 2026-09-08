@@ -31,6 +31,7 @@ public static class DevelopmentDataSeeder
         var scopeManager = serviceProvider.GetRequiredService<IOpenIddictScopeManager>();
 
         await SeedAdministratorAsync(userManager, roleManager, configuration);
+        await AuthorizationDataSeeder.SeedAsync(serviceProvider);
         await SeedApiScopeAsync(scopeManager, configuration);
         await SeedWebApplicationAsync(applicationManager, configuration);
     }
@@ -69,6 +70,14 @@ public static class DevelopmentDataSeeder
             };
             var userResult = await userManager.CreateAsync(user, password);
             EnsureSuccess(userResult, "development administrator");
+        }
+
+        if (!user.EmailConfirmed)
+        {
+            user.EmailConfirmed = true;
+            EnsureSuccess(
+                await userManager.UpdateAsync(user),
+                "development administrator email verification");
         }
 
         if (!await userManager.IsInRoleAsync(user, roleName))
