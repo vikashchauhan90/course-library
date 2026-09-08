@@ -27,11 +27,16 @@ public sealed class OpenIddictApplicationConfiguration
             .HasMaxLength(64)
             .IsConcurrencyToken();
 
+        builder.Property(x => x.SecretCreatedAt);
+        builder.Property(x => x.SecretRotatedAt);
+        builder.Property(x => x.SecretExpiresAt);
+
         builder.HasIndex(x => x.ClientId)
             .IsUnique();
 
         builder.HasIndex(x => x.ConcurrencyStamp);
         builder.HasIndex(x => x.CreatedAt);
         builder.HasIndex(x => x.DeletedAt);
+        builder.HasIndex(x => x.SecretExpiresAt);
     }
 }

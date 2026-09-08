@@ -15,4 +15,7 @@ public sealed class OpenIddictApplication
     public DateTimeOffset? UpdatedAt { get; set; }
     public DateTimeOffset? DeletedAt { get; set; }
     public string? ConcurrencyStamp { get; set; }
+    public DateTimeOffset? SecretCreatedAt { get; set; }
+    public DateTimeOffset? SecretRotatedAt { get; set; }
+    public DateTimeOffset? SecretExpiresAt { get; set; }
 }

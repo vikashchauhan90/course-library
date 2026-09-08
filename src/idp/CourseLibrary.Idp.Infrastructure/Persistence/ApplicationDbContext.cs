@@ -12,6 +12,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
     public DbSet<OpenIddictToken> OpenIddictTokens => Set<OpenIddictToken>();
     public DbSet<Permission> Permissions => Set<Permission>();
     public DbSet<RolePermission> RolePermissions => Set<RolePermission>();
+    public DbSet<OpenIddictApplication> OpenIddictApplications => Set<OpenIddictApplication>();
+    public DbSet<OpenIddictScope> OpenIddictScopes => Set<OpenIddictScope>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

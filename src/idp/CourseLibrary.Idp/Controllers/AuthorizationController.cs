@@ -20,6 +20,7 @@ public sealed class AuthorizationController(
     UserManager<ApplicationUser> userManager,
     SignInManager<ApplicationUser> signInManager,
     ApplicationDbContext dbContext,
+    IOpenIddictScopeManager scopeManager,
     IOpenIddictApplicationManager applicationManager) : Controller
 {
     [HttpGet("connect/authorize")]
@@ -63,8 +64,9 @@ public sealed class AuthorizationController(
             var identity = new ClaimsIdentity(OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
             identity.SetClaim(Claims.Subject, $"{request.ClientId}@clients");
             identity.SetClaim(Claims.AuthorizedParty, request.ClientId);
-            identity.SetScopes(request.GetScopes());
-            identity.SetResources("course-library-api");
+            var scopes = request.GetScopes().ToArray();
+            identity.SetScopes(scopes);
+            identity.SetResources(await GetResourcesAsync(scopes));
             SetDestinations(identity);
             return SignIn(new ClaimsPrincipal(identity), OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
         }
@@ -133,10 +135,28 @@ public sealed class AuthorizationController(
             identity.AddClaim(new Claim(PermissionCatalog.ClaimType, permission));
         }
 
-        identity.SetScopes(requestedScopes);
-        identity.SetResources("course-library-api");
+        var scopes = requestedScopes.ToArray();
+        identity.SetScopes(scopes);
+        identity.SetResources(await GetResourcesAsync(scopes));
         SetDestinations(identity);
         return identity;
+    }
+
+    private async Task<IReadOnlyList<string>> GetResourcesAsync(
+        IEnumerable<string> scopes)
+    {
+        var resources = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var scopeName in scopes)
+        {
+            var scope = await scopeManager.FindByNameAsync(scopeName);
+            if (scope is null)
+                continue;
+
+            foreach (var resource in await scopeManager.GetResourcesAsync(scope))
+                resources.Add(resource);
+        }
+
+        return resources.ToList();
     }
 
     private async Task<IReadOnlySet<string>> GetPermissionsAsync(

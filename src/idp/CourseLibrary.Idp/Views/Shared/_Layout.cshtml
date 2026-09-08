@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+@inject IConfiguration Configuration
 <html lang="en">
 <head>
 	<meta charset="utf-8" />
@@ -14,7 +15,7 @@
 		<button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav" aria-label="Toggle navigation"><span class="navbar-toggler-icon"></span></button>
 		<div class="collapse navbar-collapse" id="mainNav">
 			<div class="navbar-nav me-auto">
-				@if (User.IsInRole("Administrator")) { <a class="nav-link" asp-controller="Admin" asp-action="Index">Administration</a> }
+				@if (User.Identity?.IsAuthenticated == true && (User.IsInRole("Administrator") || Configuration.GetValue<bool>("Security:DisableAdministratorAuthorizationForTesting"))) { <a class="nav-link" asp-controller="Admin" asp-action="Index">Administration</a> }
 				@if (User.Identity?.IsAuthenticated == true) { <a class="nav-link" asp-controller="Account" asp-action="Profile">Profile</a> }
 			</div>
 			<div class="d-flex align-items-center gap-3">

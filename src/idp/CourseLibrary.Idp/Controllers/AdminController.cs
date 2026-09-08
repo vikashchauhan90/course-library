@@ -23,52 +23,115 @@ public sealed class AdminController(
     ApplicationDbContext dbContext,
     ILogger<AdminController> logger,
     RoleManager<ApplicationRole> roleManager,
-    CourseLibrary.Idp.Abstractions.IEmailSender emailSender) : Controller
+    CourseLibrary.Idp.Abstractions.IEmailSender emailSender,
+    IConfiguration configuration) : Controller
 {
     [HttpGet("")]
     public async Task<IActionResult> Index()
     {
+        return View(new AdminOverviewViewModel(
+            await userManager.Users.CountAsync(),
+            await roleManager.Roles.CountAsync(),
+            await dbContext.OpenIddictApplications.CountAsync(),
+            await dbContext.OpenIddictScopes.CountAsync()));
+    }
+
+    [HttpGet("users")]
+    public async Task<IActionResult> Users()
+    {
         var users = await userManager.Users.OrderBy(x => x.UserName).Take(100).ToListAsync();
-        var userItems = new List<AdminUserItem>(users.Count);
+        var items = new List<AdminUserItem>(users.Count);
         foreach (var user in users)
-            userItems.Add(new(user.Id, user.UserName ?? user.Id, user.Email ?? string.Empty,
+            items.Add(new(user.Id, user.UserName ?? user.Id, user.Email ?? string.Empty,
                 user.LockoutEnd > DateTimeOffset.UtcNow, await userManager.IsInRoleAsync(user, "Administrator")));
+        return View(new AdminUsersViewModel(items));
+    }
 
-        var clients = new List<AdminClientItem>();
+    [HttpGet("roles")]
+    public async Task<IActionResult> Roles()
+    {
+        var roles = new List<AdminRoleItem>();
+        foreach (var role in await roleManager.Roles.OrderBy(x => x.Name).ToListAsync())
+        {
+            var permissions = await dbContext.RolePermissions
+                .Where(assignment => assignment.RoleId == role.Id)
+                .Select(assignment => assignment.PermissionId)
+                .ToHashSetAsync();
+            roles.Add(new(role.Name ?? string.Empty, permissions));
+        }
+        var permissionsCatalog = PermissionCatalog.Definitions
+            .Select(permission => new AdminPermissionItem(permission.Code, permission.DisplayName))
+            .ToList();
+        return View(new AdminRolesViewModel(roles, permissionsCatalog));
+    }
+
+    [HttpGet("clients")]
+    public async Task<IActionResult> Clients() => View(new AdminClientsViewModel(await GetClientItemsAsync()));
+
+    [HttpGet("scopes")]
+    public async Task<IActionResult> Scopes() => View(new AdminScopesViewModel(await GetScopeItemsAsync()));
+
+    private async Task<IReadOnlyList<AdminClientItem>> GetClientItemsAsync()
+    {
+        var now = DateTimeOffset.UtcNow;
+        var applications = await dbContext.OpenIddictApplications
+            .AsNoTracking()
+            .Where(application => application.DeletedAt == null)
+            .OrderBy(application => application.ClientId)
+            .ToListAsync();
+
+        var items = new List<AdminClientItem>(applications.Count);
         await foreach (var client in applicationManager.ListAsync())
-            clients.Add(new(await applicationManager.GetClientIdAsync(client) ?? string.Empty,
-                await applicationManager.GetDisplayNameAsync(client)));
+        {
+            var clientId = await applicationManager.GetClientIdAsync(client) ?? string.Empty;
+            var application = applications.SingleOrDefault(item => item.ClientId == clientId);
+            if (application is null)
+                continue;
 
+            var permissions = await applicationManager.GetPermissionsAsync(client);
+            var scopes = permissions
+                .Where(permission => permission.StartsWith(
+                    Permissions.Prefixes.Scope,
+                    StringComparison.Ordinal))
+                .Select(permission => permission[Permissions.Prefixes.Scope.Length..])
+                .OrderBy(scope => scope)
+                .ToList();
+
+            items.Add(new AdminClientItem(
+                clientId,
+                application.DisplayName,
+                application.CreatedAt,
+                application.SecretCreatedAt,
+                application.SecretRotatedAt,
+                application.SecretExpiresAt,
+                application.SecretExpiresAt != null && application.SecretExpiresAt <= now,
+                string.Join(", ", scopes)));
+        }
+
+        return items.OrderBy(item => item.ClientId).ToList();
+    }
+
+    private async Task<IReadOnlyList<AdminScopeItem>> GetScopeItemsAsync()
+    {
         var scopes = new List<AdminScopeItem>();
         await foreach (var scope in scopeManager.ListAsync())
         {
             var resources = await scopeManager.GetResourcesAsync(scope);
-            scopes.Add(new(await scopeManager.GetNameAsync(scope) ?? string.Empty,
-                await scopeManager.GetDisplayNameAsync(scope), string.Join(", ", resources)));
+            scopes.Add(new(
+                await scopeManager.GetNameAsync(scope) ?? string.Empty,
+                await scopeManager.GetDisplayNameAsync(scope),
+                string.Join(", ", resources)));
         }
+        return scopes.OrderBy(scope => scope.Name).ToList();
+    }
 
-        var roles = new List<AdminRoleItem>();
-        foreach (var role in await roleManager.Roles.OrderBy(x => x.Name).ToListAsync())
-        {
-            var rolePermissions = await dbContext.RolePermissions
-                .Where(assignment => assignment.RoleId == role.Id)
-                .Select(assignment => assignment.PermissionId)
-                .ToHashSetAsync();
-            roles.Add(new AdminRoleItem(
-                role.Name ?? string.Empty,
-                rolePermissions));
-        }
-
-        return View(new AdminIndexViewModel
-        {
-            Users = userItems,
-            Roles = roles,
-            Permissions = PermissionCatalog.Definitions
-                .Select(permission => new AdminPermissionItem(permission.Code, permission.DisplayName))
-                .ToList(),
-            Clients = clients,
-            Scopes = scopes
-        });
+    private DateTimeOffset GetSecretExpiry(DateTimeOffset createdAt)
+    {
+        var lifetimeDays = Math.Clamp(
+            configuration.GetValue("Security:ClientSecretLifetimeDays", 365),
+            1,
+            3650);
+        return createdAt.AddDays(lifetimeDays);
     }
 
     [HttpGet("users/create")]
@@ -299,25 +362,40 @@ public sealed class AdminController(
     }
 
     [HttpGet("clients/create")]
-    public IActionResult CreateClient() => View(new CreateClientViewModel());
+    public async Task<IActionResult> CreateClient() => View(await BuildCreateClientModelAsync());
 
     [HttpPost("clients/create")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> CreateClient(CreateClientViewModel model)
     {
+        model.ClientId = model.IsMachineClient
+            ? CreateMachineClientId()
+            : model.ClientId?.Trim();
+        model.AllowClientCredentials = model.IsMachineClient || model.AllowClientCredentials;
+
         Uri? redirectUri = null;
+        if (!model.IsMachineClient && string.IsNullOrWhiteSpace(model.ClientId))
+            ModelState.AddModelError(nameof(model.ClientId), "A client ID is required for browser applications.");
+        if (model.IsMachineClient && model.AllowAuthorizationCode)
+            ModelState.AddModelError(string.Empty, "Machine clients use client credentials only.");
         if (!model.AllowClientCredentials && !model.AllowAuthorizationCode)
             ModelState.AddModelError(string.Empty, "Select at least one grant type.");
         if (model.AllowAuthorizationCode && !Uri.TryCreate(model.RedirectUri, UriKind.Absolute, out redirectUri))
             ModelState.AddModelError(nameof(model.RedirectUri), "An absolute redirect URI is required for authorization code flow.");
-        if (!ModelState.IsValid) return View(model);
-        if (await applicationManager.FindByClientIdAsync(model.ClientId) is not null)
+        var validScopes = await GetScopeNamesAsync();
+        if (model.AllowedScopes.Any(scope => !validScopes.Contains(scope, StringComparer.OrdinalIgnoreCase)))
+            ModelState.AddModelError(nameof(model.AllowedScopes), "One or more selected scopes are not registered.");
+        if (model.IsMachineClient && model.AllowedScopes.Count == 0)
+            ModelState.AddModelError(nameof(model.AllowedScopes), "Select at least one audience scope for a machine client.");
+        if (!ModelState.IsValid) { model.AvailableScopes = await GetScopeOptionsAsync(); return View(model); }
+        if (await applicationManager.FindByClientIdAsync(model.ClientId!) is not null)
         { ModelState.AddModelError(nameof(model.ClientId), "That client ID already exists."); return View(model); }
 
         var secret = CreateSecret();
         var descriptor = new OpenIddictApplicationDescriptor { ClientId = model.ClientId, ClientSecret = secret, DisplayName = model.DisplayName };
         descriptor.Permissions.Add(Permissions.Endpoints.Token);
-        descriptor.Permissions.Add(Permissions.Prefixes.Scope + "course-library-api");
+        foreach (var scope in model.AllowedScopes.Distinct(StringComparer.OrdinalIgnoreCase))
+            descriptor.Permissions.Add(Permissions.Prefixes.Scope + scope);
         if (model.AllowClientCredentials) descriptor.Permissions.Add(Permissions.GrantTypes.ClientCredentials);
         if (model.AllowAuthorizationCode)
         {
@@ -328,11 +406,48 @@ public sealed class AdminController(
             descriptor.Requirements.Add(Requirements.Features.ProofKeyForCodeExchange);
         }
         await applicationManager.CreateAsync(descriptor);
+        var createdAt = DateTimeOffset.UtcNow;
+        var createdApplication = await dbContext.OpenIddictApplications
+            .SingleAsync(application => application.ClientId == model.ClientId);
+        createdApplication.SecretCreatedAt = createdAt;
+        createdApplication.SecretExpiresAt = GetSecretExpiry(createdAt);
+        await dbContext.SaveChangesAsync();
         logger.LogInformation("Administrator {AdministratorId} created OAuth client {ClientId}.", userManager.GetUserId(User), model.ClientId);
         TempData["ClientSecret"] = secret;
         TempData["Success"] = "Client created. Copy its secret now; it will not be displayed again.";
         return RedirectToAction(nameof(Index));
     }
+
+    private async Task<CreateClientViewModel> BuildCreateClientModelAsync()
+    {
+        return new CreateClientViewModel
+        {
+            AvailableScopes = await GetScopeOptionsAsync()
+        };
+    }
+
+    private async Task<IReadOnlyList<AdminScopeOption>> GetScopeOptionsAsync()
+    {
+        var options = new List<AdminScopeOption>();
+        await foreach (var scope in scopeManager.ListAsync())
+        {
+            options.Add(new AdminScopeOption(
+                await scopeManager.GetNameAsync(scope) ?? string.Empty,
+                await scopeManager.GetDisplayNameAsync(scope),
+                string.Join(", ", await scopeManager.GetResourcesAsync(scope))));
+        }
+        return options.OrderBy(option => option.Name).ToList();
+    }
+
+    private async Task<IReadOnlySet<string>> GetScopeNamesAsync()
+    {
+        return (await GetScopeOptionsAsync())
+            .Select(option => option.Name)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+    }
+
+    private static string CreateMachineClientId() =>
+        $"m2m_{Convert.ToHexString(RandomNumberGenerator.GetBytes(12)).ToLowerInvariant()}";
 
     [HttpPost("clients/{clientId}/rotate-secret")]
     [ValidateAntiForgeryToken]
@@ -345,6 +460,12 @@ public sealed class AdminController(
         var secret = CreateSecret();
         descriptor.ClientSecret = secret;
         await applicationManager.UpdateAsync(client, descriptor);
+        var rotatedAt = DateTimeOffset.UtcNow;
+        var application = await dbContext.OpenIddictApplications
+            .SingleAsync(item => item.ClientId == clientId);
+        application.SecretRotatedAt = rotatedAt;
+        application.SecretExpiresAt = GetSecretExpiry(rotatedAt);
+        await dbContext.SaveChangesAsync();
         logger.LogInformation("Administrator {AdministratorId} rotated the secret for OAuth client {ClientId}.", userManager.GetUserId(User), clientId);
         TempData["ClientSecret"] = secret;
         TempData["Success"] = "Client secret rotated. Copy the new value now; it will not be displayed again.";

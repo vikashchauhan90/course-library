@@ -13,10 +13,10 @@ public static class DevelopmentDataSeeder
     {
         using var scope = services.CreateScope();
         var serviceProvider = scope.ServiceProvider;
+        var dbContext = serviceProvider.GetRequiredService<ApplicationDbContext>();
 
         if (configuration.GetValue<bool>("Database:ApplyMigrationsOnStartup"))
         {
-            var dbContext = serviceProvider.GetRequiredService<ApplicationDbContext>();
             await dbContext.Database.MigrateAsync();
         }
 
@@ -33,7 +33,7 @@ public static class DevelopmentDataSeeder
         await SeedAdministratorAsync(userManager, roleManager, configuration);
         await AuthorizationDataSeeder.SeedAsync(serviceProvider);
         await SeedApiScopeAsync(scopeManager, configuration);
-        await SeedWebApplicationAsync(applicationManager, configuration);
+        await SeedWebApplicationAsync(applicationManager, dbContext, configuration);
     }
 
     private static async Task SeedAdministratorAsync(
@@ -106,12 +106,16 @@ public static class DevelopmentDataSeeder
 
     private static async Task SeedWebApplicationAsync(
         IOpenIddictApplicationManager applicationManager,
+        ApplicationDbContext dbContext,
         IConfiguration configuration)
     {
         var section = configuration.GetSection("OpenId:Clients:CourseLibraryApp");
         var clientId = Required(section, "ClientId");
         if (await applicationManager.FindByClientIdAsync(clientId) is not null)
+        {
+            await BackfillClientSecretMetadataAsync(dbContext, clientId, configuration);
             return;
+        }
 
         var descriptor = new OpenIddictApplicationDescriptor
         {
@@ -138,6 +142,26 @@ public static class DevelopmentDataSeeder
         descriptor.Requirements.Add(Requirements.Features.ProofKeyForCodeExchange);
 
         await applicationManager.CreateAsync(descriptor);
+        await BackfillClientSecretMetadataAsync(dbContext, clientId, configuration);
+    }
+
+    private static async Task BackfillClientSecretMetadataAsync(
+        ApplicationDbContext dbContext,
+        string clientId,
+        IConfiguration configuration)
+    {
+        var application = await dbContext.OpenIddictApplications
+            .SingleAsync(item => item.ClientId == clientId);
+        if (application.SecretCreatedAt is not null)
+            return;
+
+        var lifetimeDays = Math.Clamp(
+            configuration.GetValue("Security:ClientSecretLifetimeDays", 365),
+            1,
+            3650);
+        application.SecretCreatedAt = application.CreatedAt;
+        application.SecretExpiresAt = application.CreatedAt.AddDays(lifetimeDays);
+        await dbContext.SaveChangesAsync();
     }
 
     private static string Required(IConfiguration configuration, string key) =>
