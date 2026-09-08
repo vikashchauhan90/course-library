@@ -34,9 +34,8 @@ internal sealed class UserIdentityForwardingMiddleware
                     if (!string.IsNullOrWhiteSpace(subject))
                     {
                         context.Request.Headers["X-User-Id"] = subject;
+                        context.Request.Headers["X-Identity-Type"] = "User";
                     }
-
-                    context.Request.Headers["X-Identity-Type"] = "User";
                     break;
 
                 case TokenIdentityType.M2M:
@@ -44,9 +43,8 @@ internal sealed class UserIdentityForwardingMiddleware
                     if (!string.IsNullOrWhiteSpace(clientId))
                     {
                         context.Request.Headers["X-Client-Id"] = clientId;
+                        context.Request.Headers["X-Identity-Type"] = "M2M";
                     }
-
-                    context.Request.Headers["X-Identity-Type"] = "M2M";
                     break;
             }
         }

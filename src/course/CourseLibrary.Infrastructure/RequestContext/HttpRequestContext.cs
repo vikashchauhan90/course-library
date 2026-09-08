@@ -30,16 +30,14 @@ internal sealed class HttpRequestContext(
         ?? HttpContext?.Request.Headers["X-User-Id"].FirstOrDefault();
 
     public string? ClientId =>
-        HttpContext?.User.FindFirst("client_id")?.Value
-        ?? HttpContext?.Request.Headers["X-Client-Id"].FirstOrDefault();
+ HttpContext?.Request.Headers["X-Client-Id"].FirstOrDefault();
 
     public string? IdempotencyKey =>
         HttpContext?.Request.Headers[IdempotencyHeader.HeaderName]
             .FirstOrDefault();
 
     public bool IsAuthenticated =>
-        HttpContext?.User.Identity?.IsAuthenticated == true
-        || HttpContext?.Request.Headers["X-Identity-Type"].FirstOrDefault()
+ HttpContext?.Request.Headers["X-Identity-Type"].FirstOrDefault()
             is "User" or "M2M";
 
 }
