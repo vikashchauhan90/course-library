@@ -5,6 +5,8 @@ namespace CourseLibrary.Gateway.Configuration.Authentication;
 internal sealed class TokenIdentityService : ITokenIdentityService
 {
     private const string SubjectClaim = "sub";
+    private const string EmailClaim = "email";
+    private const string NameClaim = "name";
     private const string AuthorizedPartyClaim = "azp";
 
     // IdP-specific convention for M2M subjects:
@@ -46,6 +48,23 @@ internal sealed class TokenIdentityService : ITokenIdentityService
         ArgumentNullException.ThrowIfNull(principal);
 
         return principal.FindFirstValue(SubjectClaim);
+    }
+
+    public string? GetUserEmail(ClaimsPrincipal principal)
+    {
+        ArgumentNullException.ThrowIfNull(principal);
+
+        return principal.FindFirstValue(EmailClaim)
+            ?? principal.FindFirstValue(ClaimTypes.Email);
+    }
+
+    public string? GetUserName(ClaimsPrincipal principal)
+    {
+        ArgumentNullException.ThrowIfNull(principal);
+
+        return principal.FindFirstValue(NameClaim)
+            ?? principal.FindFirstValue(ClaimTypes.Name)
+            ?? principal.FindFirstValue(ClaimTypes.GivenName);
     }
 
     public string? GetClientId(ClaimsPrincipal principal)

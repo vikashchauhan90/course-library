@@ -12,5 +12,9 @@ public interface ITokenIdentityService
 
     string? GetSubjectId(ClaimsPrincipal principal);
 
+    string? GetUserEmail(ClaimsPrincipal principal);
+
+    string? GetUserName(ClaimsPrincipal principal);
+
     string? GetClientId(ClaimsPrincipal principal);
 }

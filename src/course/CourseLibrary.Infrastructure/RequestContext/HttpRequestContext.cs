@@ -29,6 +29,14 @@ internal sealed class HttpRequestContext(
         HttpContext?.User.FindFirst("sub")?.Value
         ?? HttpContext?.Request.Headers["X-User-Id"].FirstOrDefault();
 
+    public string? UserEmail =>
+        HttpContext?.User.FindFirst("email")?.Value
+        ?? HttpContext?.Request.Headers["X-User-Email"].FirstOrDefault();
+
+    public string? UserName =>
+        HttpContext?.User.FindFirst("name")?.Value
+        ?? HttpContext?.Request.Headers["X-User-Name"].FirstOrDefault();
+
     public string? ClientId =>
  HttpContext?.Request.Headers["X-Client-Id"].FirstOrDefault();
 

@@ -7,6 +7,8 @@ public interface IRequestContext
     string? TraceState { get; }
     string? CorrelationId { get; }
     string? UserId { get; }
+    string? UserEmail { get; }
+    string? UserName { get; }
     string? ClientId { get; }
     string? IdempotencyKey { get; }
     bool IsAuthenticated { get; }

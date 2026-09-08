@@ -21,6 +21,8 @@ internal sealed class UserIdentityForwardingMiddleware
         // Never trust identity headers supplied by the caller. The gateway is
         // the only component that may create these headers for downstream APIs.
         context.Request.Headers.Remove("X-User-Id");
+        context.Request.Headers.Remove("X-User-Email");
+        context.Request.Headers.Remove("X-User-Name");
         context.Request.Headers.Remove("X-Client-Id");
         context.Request.Headers.Remove("X-Identity-Type");
 
@@ -35,6 +37,8 @@ internal sealed class UserIdentityForwardingMiddleware
                     {
                         context.Request.Headers["X-User-Id"] = subject;
                         context.Request.Headers["X-Identity-Type"] = "User";
+                        AddIfPresent(context.Request.Headers, "X-User-Email", _tokenIdentityService.GetUserEmail(context.User));
+                        AddIfPresent(context.Request.Headers, "X-User-Name", _tokenIdentityService.GetUserName(context.User));
                     }
                     break;
 
@@ -50,6 +54,15 @@ internal sealed class UserIdentityForwardingMiddleware
         }
 
         await _next(context);
+    }
+
+    private static void AddIfPresent(
+        IHeaderDictionary headers,
+        string name,
+        string? value)
+    {
+        if (!string.IsNullOrWhiteSpace(value))
+            headers[name] = value;
     }
 }
 
