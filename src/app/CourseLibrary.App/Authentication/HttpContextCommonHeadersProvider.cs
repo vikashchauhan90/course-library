@@ -18,7 +18,9 @@ public sealed class HttpContextCommonHeadersProvider(
     {
         var request = httpContextAccessor.HttpContext?.Request;
         if (request is null)
+        {
             return new Dictionary<string, string>();
+        }
 
         return HeaderNames
             .Where(request.Headers.ContainsKey)

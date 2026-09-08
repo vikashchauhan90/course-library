@@ -1,13 +1,11 @@
 using CourseLibrary.App.Authentication;
+using CourseLibrary.App.Configuration.Observability;
 using CourseLibrary.Client.Configuration;
 using CourseLibrary.Client.Observability;
 using CourseLibrary.Client.Security;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
-using OpenTelemetry.Metrics;
-using OpenTelemetry.Resources;
-using OpenTelemetry.Trace;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -16,19 +14,7 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IAccessTokenProvider, HttpContextAccessTokenProvider>();
 builder.Services.AddScoped<ICommonHeadersProvider, HttpContextCommonHeadersProvider>();
 builder.Services.AddCourseLibraryClients(builder.Configuration);
-builder.Services.AddOpenTelemetry()
-    .ConfigureResource(resource => resource.AddService("CourseLibrary.App"))
-    .WithTracing(tracing => tracing
-        .AddAspNetCoreInstrumentation()
-        .AddHttpClientInstrumentation()
-        .AddSource(CourseApiDiagnostics.ActivitySourceName)
-        .AddConsoleExporter())
-    .WithMetrics(metrics => metrics
-        .AddAspNetCoreInstrumentation()
-        .AddHttpClientInstrumentation()
-        .AddRuntimeInstrumentation()
-        .AddMeter(CourseApiDiagnostics.MeterName)
-        .AddConsoleExporter());
+builder.AddObservability();
 
 builder.Services.AddAuthentication(options =>
 {

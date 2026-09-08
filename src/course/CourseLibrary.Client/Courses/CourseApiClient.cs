@@ -149,7 +149,7 @@ public async Task<IResource<CourseResponse>> CreateAsync(CreateCourseRequest req
 
             if (typeof(T) == typeof(object) || response.StatusCode == System.Net.HttpStatusCode.NoContent)
                 return default!;
-
+           
             return (await response.Content.ReadFromJsonAsync<T>(JsonOptions, cancellationToken))!;
         }
         catch (CourseApiException)
@@ -179,9 +179,11 @@ public async Task<IResource<CourseResponse>> CreateAsync(CreateCourseRequest req
     {
         var query = new QueryBuilder
     {
-        { "pageSize", pageSize.ToString() },
-        { "pageToken", continuationToken ?? string.Empty }
+        { "pageSize", pageSize.ToString() }
     };
+
+        if (!string.IsNullOrWhiteSpace(continuationToken))
+            query.Add("pageToken", continuationToken.Trim());
 
         if (!string.IsNullOrWhiteSpace(criteria?.SearchTerm))
             query.Add("searchTerm", criteria.SearchTerm.Trim());

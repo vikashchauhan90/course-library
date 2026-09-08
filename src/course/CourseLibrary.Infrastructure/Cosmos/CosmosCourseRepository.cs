@@ -45,7 +45,7 @@ public sealed class CosmosCourseRepository : ICourseRepository
     public Task<PageResult<Course>> SearchAsync(
         CourseSearchCriteria criteria,
         int pageSize,
-        string? continuationToken,
+        string? continuationToken = null,
         CancellationToken cancellationToken = default)
     {
         var predicates = new List<string>();
@@ -81,7 +81,7 @@ public sealed class CosmosCourseRepository : ICourseRepository
 
         return _repository.QueryPageAsync(
             queryDefinition,
-            continuationToken: continuationToken,
+            continuationToken: !string.IsNullOrWhiteSpace(continuationToken) ? continuationToken : null,
             pageSize: pageSize,
             cancellationToken: cancellationToken);
     }
