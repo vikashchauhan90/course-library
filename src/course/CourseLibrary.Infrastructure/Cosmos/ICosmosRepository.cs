@@ -1,11 +1,10 @@
-using CourseLibrary.Domain.Abstractions;
 using CourseLibrary.Models;
 using Microsoft.Azure.Cosmos;
 
 namespace CourseLibrary.Infrastructure.Cosmos;
 
 public interface ICosmosRepository<TDocument>
-    where TDocument : class, IEntity
+    where TDocument : class
 {
     Task<TDocument?> GetByIdAsync(
         string id,

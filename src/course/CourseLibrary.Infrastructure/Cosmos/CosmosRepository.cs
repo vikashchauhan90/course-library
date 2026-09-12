@@ -1,4 +1,3 @@
-using CourseLibrary.Domain.Abstractions;
 using CourseLibrary.Infrastructure.Configuration.Cosmos;
 using CourseLibrary.Infrastructure.Cosmos.Configurations;
 using CourseLibrary.Infrastructure.Cosmos.Extensions;
@@ -15,7 +14,7 @@ namespace CourseLibrary.Infrastructure.Cosmos;
 
 public class CosmosRepository<TDocument>
     : ICosmosRepository<TDocument>
-    where TDocument : class, IEntity
+    where TDocument : class
 {
     private readonly Lazy<Container> _container;
     private readonly ILogger<CosmosRepository<TDocument>> _logger;
@@ -28,12 +27,19 @@ public class CosmosRepository<TDocument>
         ICosmosDocumentConfiguration<TDocument> configuration,
         ILogger<CosmosRepository<TDocument>> logger)
     {
-        ArgumentNullException.ThrowIfNull(configuration);
-        ArgumentNullException.ThrowIfNull(configuration?.ContainerName);
         ArgumentNullException.ThrowIfNull(client);
         ArgumentNullException.ThrowIfNull(options);
+        ArgumentNullException.ThrowIfNull(configuration);
         ArgumentNullException.ThrowIfNull(logger);
-        ArgumentNullException.ThrowIfNull(options.Value);
+
+        ArgumentException.ThrowIfNullOrWhiteSpace(
+            options.Value.DatabaseName);
+
+        ArgumentException.ThrowIfNullOrWhiteSpace(
+            configuration.ContainerName);
+
+        ArgumentException.ThrowIfNullOrWhiteSpace(
+            configuration.PartitionKeyPath);
 
         _configuration = configuration;
         _options = options.Value;
