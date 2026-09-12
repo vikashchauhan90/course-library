@@ -13,7 +13,6 @@ namespace CourseLibrary.Infrastructure.Messaging.ServiceBus;
 internal sealed class ServiceBusEventPublisher(
     ServiceBusClient client,
     IRequestContext requestContext,
-    IEventRouter router,
     ISerializerFactory serializerFactory,
     ILogger<ServiceBusEventPublisher> logger)
     : IEventPublisher
@@ -24,6 +23,7 @@ internal sealed class ServiceBusEventPublisher(
 
 
     public async Task PublishAsync<TEvent>(
+        string queueOrTopicName,
       TEvent @event,
       CancellationToken cancellationToken = default)
       where TEvent : IDomainEvent
@@ -36,16 +36,12 @@ internal sealed class ServiceBusEventPublisher(
         {
             var propagationActivity = activity ?? Activity.Current;
             var eventType = typeof(TEvent).Name;
-            var destination = router.GetDestination<TEvent>();
-            var messageChannelType = router.GetChannelType<TEvent>();
             var serialized = _serializer.Serialize(@event);
 
             // Set tags
             activity?.SetTag("event.type", eventType);
             activity?.SetTag("event.id", @event.EventId);
             activity?.SetTag("event.occurredAt", @event.OccurredAt.ToUnixTimeMilliseconds());
-            activity?.SetTag("message.channelType", messageChannelType.ToString());
-            activity?.SetTag("message.destination", destination);
             activity?.SetTag("request.correlationId", requestContext.CorrelationId);
             activity?.SetTag("request.userId", requestContext.UserId);
             activity?.SetTag("request.traceId", propagationActivity?.TraceId.ToString());
@@ -65,8 +61,7 @@ internal sealed class ServiceBusEventPublisher(
                 [ServiceBusTraceContext.EventId] = @event.EventId.ToString(),
                 [ServiceBusTraceContext.EventOccurredAt] = @event.OccurredAt.ToUnixTimeMilliseconds(),
                 [ServiceBusTraceContext.EventType] = eventType,
-                [ServiceBusTraceContext.MessageChannelType] = messageChannelType.ToString(),
-                [ServiceBusTraceContext.Destination] = destination,
+                [ServiceBusTraceContext.Destination] = queueOrTopicName,
                 [ServiceBusTraceContext.UserId] = requestContext.UserId,
                 [ServiceBusTraceContext.Source] = nameof(ServiceBusEventPublisher),
             }
@@ -86,7 +81,7 @@ internal sealed class ServiceBusEventPublisher(
                     @event.EventId, serialized.Length);
             }
 
-            await using var sender = client.CreateSender(destination);
+            await using var sender = client.CreateSender(queueOrTopicName);
 
             var sendStartTime = Stopwatch.GetTimestamp();
 
@@ -98,7 +93,7 @@ internal sealed class ServiceBusEventPublisher(
             activity?.SetTag("message.status", "sent");
             activity?.SetTag("message.sentAt", DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
             activity?.SetTag("message.sentBy", nameof(ServiceBusEventPublisher));
-            activity?.SetTag("message.sentTo", destination);
+            activity?.SetTag("message.sentTo", queueOrTopicName);
             activity?.SetTag("message.sentByService", nameof(ServiceBusClient));
             activity?.SetTag("message.sentByServiceVersion",
                 client.GetType().Assembly.GetName().Version?.ToString() ?? "unknown");
@@ -109,7 +104,7 @@ internal sealed class ServiceBusEventPublisher(
 
             logger.LogInformation(
                 "Published integration event {EventType} with EventId {EventId} to {Destination} in {Duration}ms.",
-                eventType, @event.EventId, destination,
+                eventType, @event.EventId, queueOrTopicName,
                 (Stopwatch.GetElapsedTime(sendStartTime).TotalMilliseconds));
         }
         catch (Exception ex)

@@ -30,7 +30,6 @@ public static class ServiceBusExtensions
                 options.ConnectionString);
         });
 
-        services.AddScoped<IEventRouter, EventRouter>();
         services.AddScoped<IEventPublisher, ServiceBusEventPublisher>();
 
         return services;

@@ -3,7 +3,6 @@ using System.Text.Json.Serialization;
 
 namespace CourseLibrary.Domain.Events;
 
-[EventRouting("CourseEvent", MessageChannelType.Topic)]
 public sealed class CourseEvent : AuditableDomainEvent
 {
     public required string CourseId { get; init; }

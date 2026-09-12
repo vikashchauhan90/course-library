@@ -14,7 +14,6 @@ public static class ServiceBusTraceContext
     public const string EventType = "Type";
     public const string EventOccurredAt = "OccurredAt";
     public const string Destination = "Destination";
-    public const string MessageChannelType = "MessageChannelType";
     public const string UserId = "UserId";
     public const string Source = "source";
     public static readonly TextMapPropagator Propagator =
