@@ -1,4 +1,7 @@
-﻿using Azure.Storage.Blobs;
+﻿using Azure.Data.Tables;
+using Azure.Storage.Blobs;
+using CourseLibrary.Application.Abstractions.Messaging;
+using CourseLibrary.Infrastructure.Messaging.AzureTable;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -27,6 +30,18 @@ public static class AzureStorageExtensions
 
             return new BlobServiceClient(options.ConnectionString);
         });
+
+
+        services.AddSingleton<TableServiceClient>(sp =>
+        {
+            var options = sp
+                .GetRequiredService<IOptions<AzureStorageOptions>>()
+                .Value;
+
+            return new TableServiceClient(options.ConnectionString);
+        });
+
+        services.AddSingleton<IDqlMessageStore, AzureTableDqlMessageStore>();
 
         return services;
     }
