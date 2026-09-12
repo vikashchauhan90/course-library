@@ -9,5 +9,6 @@ internal class OrchestrationContext<T>
     public string OrchestrationName { get; init; } = default!;
     public DateTimeOffset StartTime { get; init; } = default!;
     public bool IsReplaying { get; init; } = default!;
-    public ActivityContext? ParentContext { get; init; }
+    public string? ParentTraceParent { get; init; }
+    public string? ParentTraceState { get; init; }
 }

@@ -10,6 +10,33 @@ internal class ActivitySources
     public static readonly ActivitySource EventConsumer =
         new(Name);
 
+
+    public static Activity? StartActivity(
+    string name,
+    ActivityKind kind,
+    string? parentTraceParent,
+    string? parentTraceState = null)
+    {
+        if (string.IsNullOrWhiteSpace(parentTraceParent))
+        {
+            return EventConsumer.StartActivity(name, kind);
+        }
+
+        if (!ActivityContext.TryParse(
+                parentTraceParent,
+                parentTraceState,
+                isRemote: true,
+                out var parentContext))
+        {
+            return EventConsumer.StartActivity(name, kind);
+        }
+
+        return EventConsumer.StartActivity(
+            name,
+            kind,
+            parentContext);
+    }
+
     public static Activity? StartActivity(
     string name,
     ActivityKind kind,

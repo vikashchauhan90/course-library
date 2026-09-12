@@ -4,7 +4,6 @@ using CourseLibrary.Application.Abstractions.RequestContext;
 using CourseLibrary.Application.Abstractions.Serialization;
 using CourseLibrary.Application.Abstractions.Serializers;
 using CourseLibrary.Domain.Abstractions;
-using CourseLibrary.Infrastructure.Observability.Metrics;
 using CourseLibrary.Infrastructure.Observability.Traces;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
@@ -63,12 +62,13 @@ internal sealed class ServiceBusEventPublisher(
                 CorrelationId = requestContext.CorrelationId,
                 ApplicationProperties =
             {
-                ["EventId"] = @event.EventId.ToString(),
-                ["OccurredAt"] = @event.OccurredAt.ToUnixTimeMilliseconds(),
-                ["EventType"] = eventType,
-                ["MessageChannelType"] = messageChannelType.ToString(),
-                ["Destination"] = destination,
-                ["UserId"] = requestContext.UserId
+                [ServiceBusTraceContext.EventId] = @event.EventId.ToString(),
+                [ServiceBusTraceContext.EventOccurredAt] = @event.OccurredAt.ToUnixTimeMilliseconds(),
+                [ServiceBusTraceContext.EventType] = eventType,
+                [ServiceBusTraceContext.MessageChannelType] = messageChannelType.ToString(),
+                [ServiceBusTraceContext.Destination] = destination,
+                [ServiceBusTraceContext.UserId] = requestContext.UserId,
+                [ServiceBusTraceContext.Source] = nameof(ServiceBusEventPublisher),
             }
             };
 

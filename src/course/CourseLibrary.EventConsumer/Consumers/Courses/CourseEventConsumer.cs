@@ -5,6 +5,7 @@ using CourseLibrary.Domain.Events;
 using CourseLibrary.EventConsumer.Configuration.Observability.Metrics;
 using CourseLibrary.EventConsumer.Configuration.Observability.Traces;
 using CourseLibrary.EventConsumer.Core;
+using InfraTraces = CourseLibrary.Infrastructure.Observability.Traces;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.DurableTask;
 using Microsoft.DurableTask.Client;
@@ -31,7 +32,7 @@ internal sealed class CourseEventConsumer(
     {
         var started = Stopwatch.GetTimestamp();
         var propagationContext =
-            Infrastructure.Observability.Traces.ServiceBusTraceContext.Extract(message);
+            InfraTraces.ServiceBusTraceContext.Extract(message);
 
         using var activity = ActivitySources.StartActivity(
             "course.event.process",
@@ -97,7 +98,10 @@ internal sealed class CourseEventConsumer(
             var orchestrationInput = new OrchestrationInput<CourseEvent>
             {
                 Event = courseEvent,
-                ParentContext = propagationContext.ActivityContext
+                ParentTraceParent =
+                InfraTraces.ServiceBusTraceContext.GetTraceParent(message),
+                ParentTraceState =
+                InfraTraces.ServiceBusTraceContext.GetTraceState(message)
             };
 
             await durableTaskClient.ScheduleNewOrchestrationInstanceAsync(

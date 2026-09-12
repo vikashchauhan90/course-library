@@ -36,7 +36,8 @@ internal sealed class CourseEventOrchestrator
                 OrchestrationName = nameof(CourseEventOrchestrator),
                 StartTime = context.CurrentUtcDateTime,
                 IsReplaying = context.IsReplaying,
-                ParentContext = orchestrationInput.ParentContext
+                ParentTraceParent = orchestrationInput.ParentTraceParent,
+                ParentTraceState = orchestrationInput.ParentTraceState
             };
 
         var parentActivityId =
