@@ -49,30 +49,25 @@ public static class ServiceBusTraceContext
 
     public static PropagationContext Extract(ServiceBusReceivedMessage message)
     {
-        ArgumentNullException.ThrowIfNull(message, nameof(message));
-        var carrier = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var kvp in message.ApplicationProperties)
+        ArgumentNullException.ThrowIfNull(message);
+
+        var carrier = new Dictionary<string, string>(
+            StringComparer.OrdinalIgnoreCase);
+
+        foreach (var property in message.ApplicationProperties)
         {
-            if (kvp.Value is string value)
+            if (property.Value is string value)
             {
-                carrier[kvp.Key] = value;
+                carrier[property.Key] = value;
             }
         }
+
         return Propagators.DefaultTextMapPropagator.Extract(
             default,
             carrier,
             static (properties, key) =>
-            {
-                // Case-insensitive lookup
-                var actualKey = properties.Keys.FirstOrDefault(
-                    k => string.Equals(k, key, StringComparison.OrdinalIgnoreCase));
-
-                if (actualKey != null && properties.TryGetValue(actualKey, out var value))
-                {
-                    return new[] { value };
-                }
-
-                return Array.Empty<string>();
-            });
+                properties.TryGetValue(key, out var value)
+                    ? [value]
+                    : []);
     }
 }

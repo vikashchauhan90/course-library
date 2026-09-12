@@ -4,6 +4,7 @@ using CourseLibrary.Application.Abstractions.Serializers;
 using CourseLibrary.Domain.Events;
 using CourseLibrary.EventConsumer.Configuration.Observability.Metrics;
 using CourseLibrary.EventConsumer.Configuration.Observability.Traces;
+using CourseLibrary.EventConsumer.Core;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.DurableTask;
 using Microsoft.DurableTask.Client;
@@ -23,13 +24,19 @@ internal sealed class CourseEventConsumer(
         [ServiceBusTrigger(
         "CourseEvent",
         "CourseEventConsumer",
-        Connection = "ServiceBusConnection")] ServiceBusReceivedMessage message,
+        Connection = "ServiceBusConnection", AutoCompleteMessages = false)] ServiceBusReceivedMessage message,
+        ServiceBusMessageActions messageActions,
         [DurableClient] DurableTaskClient durableTaskClient,
         CancellationToken cancellationToken)
     {
         var started = Stopwatch.GetTimestamp();
-        var propagationContext = CourseLibrary.Infrastructure.Observability.Traces.ServiceBusTraceContext.Extract(message);
-        using var activity = ActivitySources.EventConsumer.StartActivity("course.event.process", ActivityKind.Consumer, propagationContext.ActivityContext);
+        var propagationContext =
+            Infrastructure.Observability.Traces.ServiceBusTraceContext.Extract(message);
+
+        using var activity = ActivitySources.StartActivity(
+            "course.event.process",
+            ActivityKind.Consumer,
+            propagationContext.ActivityContext);
         try
         {
             activity?.SetTag("messaging.system", "servicebus");
@@ -50,19 +57,72 @@ internal sealed class CourseEventConsumer(
             activity?.SetTag("messaging.destination", courseEventType);
             Meters.RecordMessageConsumed("CourseEvent", message.MessageId, courseEventType);
             var instanceId = $"course-created-{message.MessageId}";
-            if (await durableTaskClient.GetInstanceAsync(instanceId, cancellationToken) is not null)
+
+            var existingInstance =
+                await durableTaskClient.GetInstanceAsync(
+                    instanceId,
+                    cancellationToken);
+
+            if (OrchestrationState.IsActiveInstance(existingInstance))
             {
-                Meters.DuplicateMessagesDetected.Add(1, new TagList { { "event_type", "CourseEvent" } });
-                logger.LogWarning("CourseEvent message {MessageId} was already scheduled.", message.MessageId);
+                Meters.DuplicateMessagesDetected.Add(
+                            1,
+                            new TagList {
+                                { "event_type", "CourseEvent" },
+                                { "instance_id", instanceId },
+                                { "status", existingInstance?.RuntimeStatus.ToString() }
+                            });
+
+                logger.LogWarning(
+                    "CourseEvent message {MessageId} already has active orchestration {InstanceId} with status {Status}.",
+                    message.MessageId,
+                    instanceId,
+                    existingInstance?.RuntimeStatus);
+
                 return;
             }
+            if (OrchestrationState.IsStaleInstance(existingInstance))
+            {
+                logger.LogInformation(
+                           "CourseEvent orchestration {InstanceId} is stale with status {Status}. Purging before starting a new instance.",
+                           instanceId,
+                           existingInstance?.RuntimeStatus);
+
+                await durableTaskClient.PurgeInstanceAsync(
+                    instanceId,
+                    cancellationToken);
+            }
+
+
+            var orchestrationInput = new OrchestrationInput<CourseEvent>
+            {
+                Event = courseEvent,
+                ParentContext = propagationContext.ActivityContext
+            };
 
             await durableTaskClient.ScheduleNewOrchestrationInstanceAsync(
-                nameof(CourseEventOrchestrator), courseEvent,
-                new StartOrchestrationOptions { InstanceId = instanceId }, cancellationToken);
-            Meters.RecordOrchestrationStarted(nameof(CourseEventOrchestrator), instanceId);
+                nameof(CourseEventOrchestrator),
+                orchestrationInput,
+                new StartOrchestrationOptions
+                {
+                    InstanceId = instanceId,
+                    StartAt = DateTimeOffset.UtcNow,
+                },
+                cancellationToken);
+
+            Meters.RecordOrchestrationStarted(
+                nameof(CourseEventOrchestrator),
+                instanceId);
+
             activity?.SetStatus(ActivityStatusCode.Ok);
-            Meters.RecordMessageProcessed("CourseEvent", message.MessageId, courseEventType, Stopwatch.GetElapsedTime(started).TotalMilliseconds);
+
+            Meters.RecordMessageProcessed(
+                "CourseEvent",
+                message.MessageId,
+                courseEventType,
+                Stopwatch.GetElapsedTime(started).TotalMilliseconds);
+
+            await messageActions.CompleteMessageAsync(message, cancellationToken);
         }
         catch (Exception exception)
         {
