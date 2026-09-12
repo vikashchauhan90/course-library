@@ -1,48 +1,49 @@
 using CourseLibrary.Domain.Abstractions;
-using CourseLibrary.Models;
 using CourseLibrary.Infrastructure.Configuration.Cosmos;
+using CourseLibrary.Infrastructure.Cosmos.Configurations;
 using CourseLibrary.Infrastructure.Cosmos.Extensions;
 using CourseLibrary.Infrastructure.Observability.Traces;
+using CourseLibrary.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.Diagnostics;
 using System.Net;
-using System.Reflection;
 
 namespace CourseLibrary.Infrastructure.Cosmos;
 
 public class CosmosRepository<TDocument>
     : ICosmosRepository<TDocument>
-    where TDocument : ICosmosPartitioned
+    where TDocument : class, IEntity
 {
     private readonly Lazy<Container> _container;
     private readonly ILogger<CosmosRepository<TDocument>> _logger;
-    private readonly string ContainerName;
+    private readonly ICosmosDocumentConfiguration<TDocument> _configuration;
+    private readonly CosmosOptions _options;
+    private readonly CosmosClient _client;
     public CosmosRepository(
         CosmosClient client,
         IOptions<CosmosOptions> options,
+        ICosmosDocumentConfiguration<TDocument> configuration,
         ILogger<CosmosRepository<TDocument>> logger)
     {
+        ArgumentNullException.ThrowIfNull(configuration);
+        ArgumentNullException.ThrowIfNull(configuration?.ContainerName);
         ArgumentNullException.ThrowIfNull(client);
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(logger);
         ArgumentNullException.ThrowIfNull(options.Value);
 
-        var containerName =
-        typeof(TDocument)
-            .GetCustomAttribute<CosmosContainerAttribute>()
-            ?.ContainerName
-        ?? throw new InvalidOperationException(
-            $"Cosmos container attribute is missing for document type '{typeof(TDocument).Name}'.");
-
-        ContainerName = containerName;
+        _configuration = configuration;
+        _options = options.Value;
+        _client = client;
         _logger = logger;
+
         _container = new Lazy<Container>(
-            () => client.GetContainer(
-                options.Value.DatabaseName,
-                containerName),
+            () => _client.GetContainer(
+                _options.DatabaseName,
+                _configuration.ContainerName),
             LazyThreadSafetyMode.ExecutionAndPublication);
     }
 
@@ -65,7 +66,7 @@ public class CosmosRepository<TDocument>
 
         activity.SetCosmosOperation(
             "ReadItem",
-            ContainerName,
+            _configuration.ContainerName,
             Container.Database.Id);
 
         try
@@ -89,7 +90,7 @@ public class CosmosRepository<TDocument>
 
             _logger.DocumentNotFound(
                  "ReadItem",
-                 ContainerName,
+                 _configuration.ContainerName,
                  id);
 
 
@@ -121,7 +122,7 @@ public class CosmosRepository<TDocument>
 
         activity.SetCosmosOperation(
             "Query",
-            ContainerName,
+            _configuration.ContainerName,
             Container.Database.Id);
 
         try
@@ -194,7 +195,7 @@ public class CosmosRepository<TDocument>
 
         activity.SetCosmosOperation(
             "Cosmos.QueryPage",
-            ContainerName,
+            _configuration.ContainerName,
             Container.Database.Id);
 
         activity?.SetTag(
@@ -270,8 +271,9 @@ public class CosmosRepository<TDocument>
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(item);
-        ArgumentException.ThrowIfNullOrWhiteSpace(
-            item.PartitionKeyValue);
+        var partitionKey = _configuration.GetPartitionKey(item);
+        ArgumentException.ThrowIfNullOrWhiteSpace(partitionKey);
+
 
 
         using var activity =
@@ -281,7 +283,7 @@ public class CosmosRepository<TDocument>
 
         activity.SetCosmosOperation(
             "UpsertItem",
-            ContainerName,
+            _configuration.ContainerName,
             Container.Database.Id);
 
         try
@@ -290,7 +292,7 @@ public class CosmosRepository<TDocument>
             await Container.UpsertItemAsync(
                 item,
                 new PartitionKey(
-                    item.PartitionKeyValue),
+                    partitionKey),
                 cancellationToken: cancellationToken);
 
             activity.RecordSuccess(
@@ -323,7 +325,7 @@ public class CosmosRepository<TDocument>
 
         activity.SetCosmosOperation(
             "DeleteItem",
-            ContainerName,
+            _configuration.ContainerName,
             Container.Database.Id);
 
         try
@@ -348,7 +350,7 @@ public class CosmosRepository<TDocument>
 
             _logger.DocumentNotFound(
                  "DeleteItem",
-                 ContainerName,
+                 _configuration.ContainerName,
                  id);
 
             return false;
@@ -374,7 +376,7 @@ public class CosmosRepository<TDocument>
         {
             _logger.OperationError(
                 operation,
-                ContainerName,
+                _configuration.ContainerName,
                 statusCode,
                 exception.ActivityId,
                 exception.RequestCharge,
@@ -385,7 +387,7 @@ public class CosmosRepository<TDocument>
 
         _logger.OperationWarning(
             operation,
-            ContainerName,
+            _configuration.ContainerName,
             statusCode,
             exception.ActivityId,
             exception.RequestCharge,

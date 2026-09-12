@@ -5,7 +5,7 @@ using Microsoft.Azure.Cosmos;
 namespace CourseLibrary.Infrastructure.Cosmos;
 
 public interface ICosmosRepository<TDocument>
-    where TDocument : ICosmosPartitioned
+    where TDocument : class, IEntity
 {
     Task<TDocument?> GetByIdAsync(
         string id,

@@ -1,9 +1,9 @@
+
 using CourseLibrary.Domain.Abstractions;
 
 namespace CourseLibrary.Domain.Entities;
 
-[CosmosContainer("comments")]
-public sealed record Comment : ICosmosPartitioned
+public sealed record Comment: IEntity
 {
     public required string Id { get; init; }
     public required string CourseId { get; init; }
@@ -12,6 +12,4 @@ public sealed record Comment : ICosmosPartitioned
     public string? ParentCommentId { get; init; }
     public required DateTimeOffset CreatedAt { get; init; }
     public required DateTimeOffset UpdatedAt { get; init; }
-
-    public string PartitionKeyValue => CourseId;
 }

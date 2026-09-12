@@ -4,8 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace CourseLibrary.Domain.Entities;
 
-[CosmosContainer("course-audit")]
-public sealed record CourseAuditEntry : ICosmosPartitioned
+public sealed record CourseAuditEntry : IEntity
 {
     public required string Id { get; init; }
     public required string CourseId { get; init; }
@@ -16,5 +15,4 @@ public sealed record CourseAuditEntry : ICosmosPartitioned
     public DateTimeOffset OccurredAt { get; init; } = DateTimeOffset.UtcNow;
     public IReadOnlyList<AuditEntry>? ChangedProperties { get; init; }
     public string? ActorId { get; init; }
-    public string PartitionKeyValue => CourseId;
 }

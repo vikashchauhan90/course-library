@@ -1,5 +1,7 @@
 using CourseLibrary.Application.Abstractions.Repositories;
+using CourseLibrary.Domain.Entities;
 using CourseLibrary.Infrastructure.Cosmos;
+using CourseLibrary.Infrastructure.Cosmos.Configurations;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -44,17 +46,41 @@ public static class CosmosRepositoryExtensions
                 clientOptions);
         });
 
-        
+
     }
 
-    public  static void AddRepositories(
+    public static void AddRepositories(
         this IServiceCollection services)
     {
+        // Register document configurations
+        services.AddCosmosDocumentConfiguration<Comment, CommentConfiguration>();
+        services.AddCosmosDocumentConfiguration<Course, CourseConfiguration>();
+        services.AddCosmosDocumentConfiguration<CourseAuditEntry, CourseAuditEntryConfiguration>();
+        services.AddCosmosDocumentConfiguration<Discussion, DiscussionConfiguration>();
+
+        // Register repositories
         services.AddSingleton(typeof(ICosmosRepository<>), typeof(CosmosRepository<>));
         services.AddSingleton<ICommentRepository, CosmosCommentRepository>();
         services.AddSingleton<ICourseRepository, CosmosCourseRepository>();
         services.AddSingleton<ICourseAuditRepository, CosmosCourseAuditRepository>();
         services.AddSingleton<IDiscussionRepository, CosmosDiscussionRepository>();
-        services.AddHostedService<AuditContainerInitializer>();
+        services.AddHostedService<CosmosContainerInitializer>();
+    }
+
+
+    public static IServiceCollection AddCosmosDocumentConfiguration<TDocument, TConfiguration>(
+    this IServiceCollection services)
+    where TDocument : class
+    where TConfiguration :
+        class,
+        ICosmosDocumentConfiguration<TDocument>
+    {
+        services.AddSingleton<TConfiguration>();
+
+        services.AddSingleton<
+            ICosmosDocumentConfiguration<TDocument>>(sp =>
+            sp.GetRequiredService<TConfiguration>());
+
+        return services;
     }
 }
