@@ -2,7 +2,7 @@
 
 namespace CourseLibrary.EventConsumer.Core;
 
-internal class OrchestrationContext
+internal class OrchestrationContext<T>
 {
     public T Event { get; init; } = default!;
     public string MessageId { get; init; } = string.Empty;

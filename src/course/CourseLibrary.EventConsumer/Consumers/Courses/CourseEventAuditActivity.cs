@@ -15,17 +15,15 @@ namespace CourseLibrary.EventConsumer.Consumers.Courses;
 
 internal sealed class CourseEventAuditActivity(
     IDispatcher dispatcher,
-     ISerializerFactory serializerFactory,
     ILogger<CourseEventAuditActivity> logger)
 {
-    private readonly ISerializer<CourseEvent> serializer = serializerFactory.Create<CourseEvent>(SerializerType.Json);
 
     [Function(nameof(CourseEventAuditActivity))]
     public async Task RunAsync(
         [ActivityTrigger] OrchestrationActivityInput<CourseEventPayload> input,
         CancellationToken cancellationToken)
     {
-        var curseEvent = serializer.Deserialize(input.Event);
+        var curseEvent = input.Event.ToDomain();
         var started = Stopwatch.GetTimestamp();
         using var activity = ActivitySources.EventConsumer.StartActivity(
             "activity.course-audit-event",

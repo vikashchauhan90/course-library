@@ -7,17 +7,15 @@ using System.Diagnostics;
 namespace CourseLibrary.EventConsumer.Consumers.Courses;
 
 internal sealed class CourseEventStartActivity(
-    ISerializerFactory serializerFactory,
     ILogger<CourseEventStartActivity> logger)
 {
 
-    private readonly ISerializer<CourseEvent> serializer = serializerFactory.Create<CourseEvent>(SerializerType.Json);
     [Function(nameof(CourseEventStartActivity))]
     public Task<string?> RunAsync(
         [ActivityTrigger] OrchestrationContext<CourseEventPayload> input)
     {
         var beforeActivityInstance = Activity.Current;
-        var courseEvent = serializer.Deserialize(input.Event);
+        var courseEvent = input.Event;
         try
         {
             // Clear the current activity context to avoid propagating the orchestration activity
