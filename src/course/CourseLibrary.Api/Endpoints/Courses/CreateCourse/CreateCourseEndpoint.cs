@@ -6,6 +6,7 @@ using CourseLibrary.Application.Operations.Courses;
 using CourseLibrary.Application.Operations.Courses.Create;
 using CourseLibrary.Models.Course;
 using MediatorForge.Abstractions;
+using CourseLibrary.Api.Configuration.OutputCache;
 
 namespace CourseLibrary.Api.Endpoints.Courses.CreateCourse;
 
@@ -48,6 +49,7 @@ public sealed class CreateCourseEndpoint : ICarterModule
                 return Results.Created(resource.Links.First(x => x.Rel.Equals("self")).Href, resource);
             })
             .WithName(RouteName)
+            .CacheOutput(OutputCachePolicies.Idempotency)
             .HasApiVersion(1.0);
     }
 }

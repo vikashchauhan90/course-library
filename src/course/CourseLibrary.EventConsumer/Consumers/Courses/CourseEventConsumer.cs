@@ -17,12 +17,9 @@ namespace CourseLibrary.EventConsumer.Consumers.Courses;
 
 internal sealed class CourseEventConsumer(
     ISerializerFactory serializerFactory,
-    IIdempotencyStore idempotencyStore,
     ILogger<CourseEventConsumer> logger)
 {
     private readonly ISerializer<CourseEvent> serializer = serializerFactory.Create<CourseEvent>(SerializerType.Json);
-    private static readonly byte[] ConsumedMarker = [1];
-    public static string GetIdempotencyKey(string messageId, string eventId) => $"event:message:{messageId}:{eventId}";
 
     [Function(nameof(CourseEventConsumer))]
     public async Task RunAsync(
@@ -135,27 +132,10 @@ internal sealed class CourseEventConsumer(
                     cancellationToken);
             }
 
-            var messageConsumedKey = GetIdempotencyKey(message.MessageId, courseEvent.EventId);
-            var cacheResult = await idempotencyStore.GetOrCreateAsync(
-                messageConsumedKey,
-                async ct => IdempotencyEntry.Empty,
-                ttl: TimeSpan.FromSeconds(1),
-                tags: ["event-consumed"],
-                cancellationToken: cancellationToken);
-            if (!cacheResult.IsEmpty)
+            var orchestrationInput = new OrchestrationInput<CourseEventPayload>
             {
-                logger.LogWarning("Event already consumed. MessageId: {MessageId}, EventId: {EventId}, IdempotencyKey: {IdempotencyKey}. Completing the message without reprocessing.",
-                    message.MessageId,
-                    courseEvent.EventId,
-                    messageConsumedKey);
-
-                await messageActions.CompleteMessageAsync(message, cancellationToken);
-                return;
-            }
-
-            var orchestrationInput = new OrchestrationInput
-            {
-                Event = serializer.Serialize(courseEvent),
+                Event = CourseEventPayload.FromDomain(courseEvent),
+                MessageId = message.MessageId,
                 ParentTraceParent =
                 InfraTraces.ServiceBusTraceContext.GetTraceParent(message),
                 ParentTraceState =
@@ -183,14 +163,6 @@ internal sealed class CourseEventConsumer(
                 message.MessageId,
                 courseEventType,
                 Stopwatch.GetElapsedTime(started).TotalMilliseconds);
-
-            await idempotencyStore.StoreAsync(
-                messageConsumedKey,
-                IdempotencyEntry.GetIdempotencyEntry(ConsumedMarker),
-                ttl: TimeSpan.FromMinutes(5),
-                tags: ["event-consumed"],
-                cancellationToken: cancellationToken
-                );
 
             await messageActions.CompleteMessageAsync(message, cancellationToken);
         }

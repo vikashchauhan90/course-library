@@ -7,6 +7,7 @@ using Asp.Versioning;
 using CourseLibrary.Application.Abstractions.RequestContext;
 using CourseLibrary.Models.Course;
 using MediatorForge.Abstractions;
+using CourseLibrary.Api.Configuration.OutputCache;
 
 namespace CourseLibrary.Api.Endpoints.Courses.UpdateCourse;
 
@@ -52,6 +53,7 @@ public sealed class UpdateCourseEndpoint : ICarterModule
                 return Results.Ok(CourseHelper.GetCourseResponse(linkGenerator, course, apiVersion));
             })
             .WithName(RouteName)
+            .CacheOutput(OutputCachePolicies.Idempotency)
             .HasApiVersion(1.0);
     }
 }

@@ -9,6 +9,7 @@ public sealed class HttpContextCommonHeadersProvider(
     [
         "X-Correlation-ID",
         "X-Request-ID",
+        "Idempotency-Key",
         "traceparent",
         "tracestate",
         "baggage"

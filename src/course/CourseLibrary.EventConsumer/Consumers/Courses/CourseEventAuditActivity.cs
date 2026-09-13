@@ -1,7 +1,7 @@
 using CourseLibrary.Application.Abstractions.Serialization;
 using CourseLibrary.Application.Abstractions.Serializers;
 using CourseLibrary.Application.Operations.Courses.Audit;
-using CourseLibrary.Domain.Events;
+
 using CourseLibrary.EventConsumer.Configuration.Observability.Metrics;
 using CourseLibrary.EventConsumer.Configuration.Observability.Traces;
 using CourseLibrary.EventConsumer.Core;
@@ -22,7 +22,7 @@ internal sealed class CourseEventAuditActivity(
 
     [Function(nameof(CourseEventAuditActivity))]
     public async Task RunAsync(
-        [ActivityTrigger] OrchestrationActivityInput input,
+        [ActivityTrigger] OrchestrationActivityInput<CourseEventPayload> input,
         CancellationToken cancellationToken)
     {
         var curseEvent = serializer.Deserialize(input.Event);
@@ -34,11 +34,15 @@ internal sealed class CourseEventAuditActivity(
         
         try
         {
+            var courseEvent = input.Event.ToDomain();
             activity?.SetTag("activity.name", nameof(CourseEventAuditActivity));
-            activity?.SetTag("activity.event_type", curseEvent.EventType.ToString());
-            activity?.SetTag("activity.course_id", curseEvent.CourseId.ToString());
-            activity?.SetTag("activity.event_id", curseEvent.EventId.ToString());
-            await dispatcher.SendAsync<CourseAuditEventCommand, Unit>(new CourseAuditEventCommand(curseEvent), cancellationToken);
+            activity?.SetTag("activity.event_type", courseEvent.EventType.ToString());
+            activity?.SetTag("activity.course_id", courseEvent.CourseId.ToString());
+            activity?.SetTag("activity.event_id", courseEvent.EventId);
+
+            await dispatcher.SendAsync<CourseAuditEventCommand, Unit>(
+                       new CourseAuditEventCommand(courseEvent),
+                       cancellationToken);
             activity?.SetStatus(ActivityStatusCode.Ok);
             Meters.ActivitiesCompleted.Add(1, new TagList { { "activity", nameof(CourseEventAuditActivity) } });
             Meters.ActivityDuration.Record(Stopwatch.GetElapsedTime(started).TotalMilliseconds, new TagList { { "activity", nameof(CourseEventAuditActivity) } });

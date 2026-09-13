@@ -2,6 +2,7 @@
 
 internal class OrchestrationActivityInput
 {
-    public byte[] Event { get; init; } = default!;
+    public T Event { get; init; } = default!;
+    public string MessageId { get; init; } = string.Empty;
     public string? ParentActivityId { get; init; }
 }

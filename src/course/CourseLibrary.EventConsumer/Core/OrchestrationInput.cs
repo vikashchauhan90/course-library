@@ -2,7 +2,8 @@
 
 internal class OrchestrationInput
 {
-    public byte[] Event { get; init; } = default!;
+    public T Event { get; init; } = default!;
+    public string MessageId { get; init; } = string.Empty;
     public string? ParentTraceParent { get; init; }
     public string? ParentTraceState { get; init; }
 }

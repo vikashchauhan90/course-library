@@ -12,6 +12,8 @@ public static class TraceHeaders
     /// </summary>
     public const string RequestId = "X-Request-ID";
 
+    public const string IdempotencyKey = "Idempotency-Key";
+
     /// <summary>
     /// W3C Trace Context parent identifier.
     /// RFC: lowercase header name.

@@ -27,6 +27,21 @@ internal sealed class RequestContextMiddleware(
         var traceState = ResolveTraceState(context, activity);
 
         var requestId = context.TraceIdentifier;
+        SetRequestHeader(context, TraceHeaders.CorrelationId, correlationId);
+        SetRequestHeader(context, TraceHeaders.RequestId, requestId);
+        SetRequestHeader(context, TraceHeaders.TraceParent, traceParent);
+        if (!string.IsNullOrWhiteSpace(traceState))
+            SetRequestHeader(context, TraceHeaders.TraceState, traceState);
+
+        if (IsWriteRequest(context.Request) &&
+            !context.Request.Headers.ContainsKey(TraceHeaders.IdempotencyKey))
+        {
+            SetRequestHeader(
+                context,
+                TraceHeaders.IdempotencyKey,
+                Guid.NewGuid().ToString("N"));
+        }
+
         var safePath = GetSafeRequestPath(context.Request);
         var route = safePath;
 
@@ -132,4 +147,16 @@ internal sealed class RequestContextMiddleware(
             ? "/"
             : path;
     }
+
+    private static bool IsWriteRequest(HttpRequest request) =>
+        HttpMethods.IsPost(request.Method) ||
+        HttpMethods.IsPut(request.Method) ||
+        HttpMethods.IsPatch(request.Method) ||
+        HttpMethods.IsDelete(request.Method);
+
+    private static void SetRequestHeader(
+        HttpContext context,
+        string name,
+        string value) =>
+        context.Request.Headers[name] = value;
 }

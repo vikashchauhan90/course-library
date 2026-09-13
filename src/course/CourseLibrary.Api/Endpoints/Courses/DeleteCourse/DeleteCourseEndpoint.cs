@@ -3,6 +3,7 @@ using CourseLibrary.Api.Configuration;
 using CourseLibrary.Application.Operations.Courses.Delete;
 using CourseLibrary.Application.Abstractions.RequestContext;
 using MediatorForge.Abstractions;
+using CourseLibrary.Api.Configuration.OutputCache;
 
 namespace CourseLibrary.Api.Endpoints.Courses.DeleteCourse;
 
@@ -46,6 +47,7 @@ public sealed class DeleteCourseEndpoint : ICarterModule
                 return Results.NotFound();
             })
             .WithName(RouteName)
+            .CacheOutput(OutputCachePolicies.Idempotency)
             .HasApiVersion(1.0);
     }
 }

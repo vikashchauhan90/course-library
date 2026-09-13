@@ -1,7 +1,4 @@
-﻿using CourseLibrary.Application.Abstractions.Serialization;
-using CourseLibrary.Application.Abstractions.Serializers;
-using CourseLibrary.Domain.Events;
-using CourseLibrary.EventConsumer.Configuration.Observability.Traces;
+﻿using CourseLibrary.EventConsumer.Configuration.Observability.Traces;
 using CourseLibrary.EventConsumer.Core;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
@@ -17,7 +14,7 @@ internal sealed class CourseEventStartActivity(
     private readonly ISerializer<CourseEvent> serializer = serializerFactory.Create<CourseEvent>(SerializerType.Json);
     [Function(nameof(CourseEventStartActivity))]
     public Task<string?> RunAsync(
-        [ActivityTrigger] OrchestrationContext input)
+        [ActivityTrigger] OrchestrationContext<CourseEventPayload> input)
     {
         var beforeActivityInstance = Activity.Current;
         var courseEvent = serializer.Deserialize(input.Event);
@@ -63,7 +60,7 @@ internal sealed class CourseEventStartActivity(
 
             activity.SetTag(
                 "activity.event_type",
-                courseEvent.EventType.ToString());
+                courseEvent.EventType);
 
             activity.SetTag(
                 "activity.course_id",

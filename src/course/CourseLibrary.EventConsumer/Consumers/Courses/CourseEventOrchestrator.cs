@@ -1,6 +1,3 @@
-using CourseLibrary.Application.Abstractions.Serialization;
-using CourseLibrary.Application.Abstractions.Serializers;
-using CourseLibrary.Domain.Events;
 using CourseLibrary.EventConsumer.Core;
 using CourseLibrary.Infrastructure.Serializers;
 using Microsoft.Azure.Functions.Worker;
@@ -26,7 +23,7 @@ internal sealed class CourseEventOrchestrator
             });
 
         var orchestrationInput =
-            context.GetInput<OrchestrationInput>();
+            context.GetInput<OrchestrationInput<CourseEventPayload>>();
 
         if (orchestrationInput?.Event is null)
         {
@@ -39,9 +36,10 @@ internal sealed class CourseEventOrchestrator
         }
 
         var orchestrationContext =
-            new OrchestrationContext
+            new OrchestrationContext<CourseEventPayload>
             {
                 Event = orchestrationInput.Event,
+                MessageId = orchestrationInput.MessageId,
                 InstanceId = context.InstanceId,
                 OrchestrationName = nameof(CourseEventOrchestrator),
                 StartTime = context.CurrentUtcDateTime,
@@ -55,9 +53,10 @@ internal sealed class CourseEventOrchestrator
                 nameof(CourseEventStartActivity),
                 orchestrationContext);
 
-        var orchestrationActivityInput = new OrchestrationActivityInput
+        var orchestrationActivityInput = new OrchestrationActivityInput<CourseEventPayload>
         {
             Event = orchestrationInput.Event,
+            MessageId = orchestrationInput.MessageId,
             ParentActivityId = parentActivityId
         };
 
