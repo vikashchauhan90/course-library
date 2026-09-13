@@ -12,7 +12,7 @@ public sealed class CourseAuditEventCommandHandler(
 {
     public async Task<Unit> HandleAsync(CourseAuditEventCommand command, CancellationToken ct)
     {
-        logger.CreatingCourseAudit(command.Event.CourseId, command.Event.EventType);
+        logger.CreatingCourseAudit(command.Event.CourseId.ToString(), command.Event.EventType);
         await auditRepository.AddAsync(new CourseAuditEntry
         {
             Id = Guid.NewGuid().ToString(),
@@ -25,7 +25,7 @@ public sealed class CourseAuditEventCommandHandler(
             CreatedAt = DateTimeOffset.UtcNow
         }, ct);
 
-        logger.CreatedCourseAudit(command.Event.CourseId, command.Event.EventType);
+        logger.CreatedCourseAudit(command.Event.CourseId.ToString(), command.Event.EventType);
         return Unit.Value;
     }
 

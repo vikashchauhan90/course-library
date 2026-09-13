@@ -10,8 +10,8 @@ public static class DiscussionMapper
 {
     public static DiscussionResponse ToResponse(Discussion discussion)
         => new(
-            discussion.Id,
-            discussion.CourseId,
+            discussion.Id.ToString(),
+            discussion.CourseId.ToString(),
             discussion.Title,
             discussion.Description,
             discussion.CreatedAt,

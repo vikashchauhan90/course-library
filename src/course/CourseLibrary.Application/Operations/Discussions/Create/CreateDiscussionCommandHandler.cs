@@ -1,6 +1,7 @@
 using MediatorForge.Abstractions;
 using Microsoft.Extensions.Logging;
 using CourseLibrary.Application.Abstractions.Repositories;
+using CourseLibrary.Domain.ValueObjects;
 using CourseLibrary.Models.Course;
 
 namespace CourseLibrary.Application.Operations.Discussions.Create;
@@ -21,15 +22,15 @@ public sealed class CreateDiscussionCommandHandler : IHandler<CreateDiscussionCo
         var now = DateTime.UtcNow;
         var discussion = new Domain.Entities.Discussion
         {
-            Id = Guid.NewGuid().ToString(),
-            CourseId = command.CourseId,
+            Id = DiscussionId.New(),
+            CourseId = (CourseId)Guid.Parse(command.CourseId),
             Title = command.Title,
             Description = command.Description,
             CreatedAt = now,
             UpdatedAt = now
         };
 
-        _logger.PersistingDiscussion(discussion.Id, discussion.CourseId);
+        _logger.PersistingDiscussion(discussion.Id.ToString(), discussion.CourseId.ToString());
 
         await _repository.UpsertAsync(discussion, ct);
 

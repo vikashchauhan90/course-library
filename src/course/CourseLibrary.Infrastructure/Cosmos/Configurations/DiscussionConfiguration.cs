@@ -11,6 +11,6 @@ internal class DiscussionConfiguration : ICosmosDocumentConfiguration<Discussion
     {
         ArgumentNullException.ThrowIfNull(document);
 
-        return document.CourseId;
+        return document.CourseId.ToString();
     }
 }

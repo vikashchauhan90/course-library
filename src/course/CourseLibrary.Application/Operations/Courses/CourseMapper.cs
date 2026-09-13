@@ -15,10 +15,10 @@ public static class CourseMapper
         IReadOnlyList<CommentResponse>? comments = null,
         IReadOnlyList<DiscussionResponse>? discussions = null)
         => new(
-            course.Id,
+            course.Id.ToString(),
             course.Title,
             course.Description,
-            course.AuthorId,
+            course.AuthorId.ToString(),
             course.AuthorName,
             course.CreatedAt,
             course.UpdatedAt,

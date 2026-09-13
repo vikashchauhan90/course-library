@@ -10,11 +10,11 @@ public static class CommentMapper
 {
     public static CommentResponse ToResponse(Comment comment)
         => new(
-            comment.Id,
-            comment.CourseId,
-            comment.AuthorId,
+            comment.Id.ToString(),
+            comment.CourseId.ToString(),
+            comment.AuthorId.ToString(),
             comment.Content,
-            comment.ParentCommentId,
+            comment.ParentCommentId?.ToString(),
             comment.CreatedAt,
             comment.UpdatedAt);
 

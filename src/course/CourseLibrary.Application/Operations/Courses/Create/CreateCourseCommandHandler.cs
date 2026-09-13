@@ -3,6 +3,7 @@ using CourseLibrary.Application.Abstractions.RequestContext;
 using CourseLibrary.Domain.Abstractions;
 using CourseLibrary.Domain.Entities;
 using CourseLibrary.Domain.Events;
+using CourseLibrary.Domain.ValueObjects;
 using CourseLibrary.Models.Course;
 using MediatorForge.Abstractions;
 using Microsoft.Extensions.Logging;
@@ -22,16 +23,16 @@ public sealed class CreateCourseCommandHandler(
         var now = DateTime.UtcNow;
         var course = new Course
         {
-            Id = Guid.NewGuid().ToString(),
+            Id = CourseId.New(),
             Title = command.Title,
             Description = command.Description,
-            AuthorId = command.AuthorId,
+            AuthorId = (AuthorId)command.AuthorId,
             AuthorName = command.AuthorName,
             CreatedAt = now,
             UpdatedAt = now
         };
 
-        logger.PersistingCourse(course.Id, course.AuthorId);
+        logger.PersistingCourse(course.Id.ToString(), course.AuthorId.ToString());
 
         await repository.UpsertAsync(course, ct);
 

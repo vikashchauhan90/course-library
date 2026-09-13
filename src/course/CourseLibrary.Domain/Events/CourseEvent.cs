@@ -1,10 +1,11 @@
 ﻿using CourseLibrary.Domain.Abstractions;
+using CourseLibrary.Domain.ValueObjects;
 
 namespace CourseLibrary.Domain.Events;
 
 public sealed class CourseEvent : IDomainEvent
 {
-    public required string CourseId { get; init; }
+    public required CourseId CourseId { get; init; }
     public required Guid EventType { get; init; }
 
     public required string EventId { get; init; }

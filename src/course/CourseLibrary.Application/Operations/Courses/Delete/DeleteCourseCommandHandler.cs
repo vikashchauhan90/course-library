@@ -29,7 +29,7 @@ public sealed class DeleteCourseCommandHandler(
             return false;
         }
         
-        if (!string.Equals(course.AuthorId, userId, StringComparison.Ordinal))
+        if (!string.Equals(course.AuthorId.ToString(), userId, StringComparison.Ordinal))
         {
             logger.LogWarning(
                 "User '{UserId}' attempted to delete course '{CourseId}' without proper authorization.",

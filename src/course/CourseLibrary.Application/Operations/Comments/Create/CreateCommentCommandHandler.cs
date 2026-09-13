@@ -1,6 +1,7 @@
 using MediatorForge.Abstractions;
 using Microsoft.Extensions.Logging;
 using CourseLibrary.Application.Abstractions.Repositories;
+using CourseLibrary.Domain.ValueObjects;
 using CourseLibrary.Models.Course;
 
 namespace CourseLibrary.Application.Operations.Comments.Create;
@@ -21,16 +22,18 @@ public sealed class CreateCommentCommandHandler : IHandler<CreateCommentCommand,
         var now = DateTime.UtcNow;
         var comment = new Domain.Entities.Comment
         {
-            Id = Guid.NewGuid().ToString(),
-            CourseId = command.CourseId,
-            AuthorId = command.AuthorId,
+            Id = CommentId.New(),
+            CourseId = (CourseId)Guid.Parse(command.CourseId),
+            AuthorId = (AuthorId)command.AuthorId,
             Content = command.Content,
-            ParentCommentId = command.ParentCommentId,
+            ParentCommentId = string.IsNullOrWhiteSpace(command.ParentCommentId)
+                ? null
+                : (CommentId)Guid.Parse(command.ParentCommentId),
             CreatedAt = now,
             UpdatedAt = now
         };
 
-        _logger.PersistingComment(comment.Id, comment.CourseId);
+        _logger.PersistingComment(comment.Id.ToString(), comment.CourseId.ToString());
 
         await _repository.UpsertAsync(comment, ct);
 

@@ -12,6 +12,6 @@ internal class CourseConfiguration: ICosmosDocumentConfiguration<Course>
     {
         ArgumentNullException.ThrowIfNull(document);
 
-        return document.AuthorId;
+        return document.AuthorId.ToString();
     }
 }

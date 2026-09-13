@@ -11,6 +11,6 @@ internal class CourseAuditEntryConfiguration: ICosmosDocumentConfiguration<Cours
     {
         ArgumentNullException.ThrowIfNull(document);
 
-        return document.CourseId;
+        return document.CourseId.ToString();
     }
 }

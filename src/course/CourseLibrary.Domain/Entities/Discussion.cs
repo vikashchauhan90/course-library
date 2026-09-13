@@ -1,11 +1,12 @@
 using CourseLibrary.Domain.Abstractions;
+using CourseLibrary.Domain.ValueObjects;
 
 namespace CourseLibrary.Domain.Entities;
 
-public sealed record Discussion : IEntity<string>, IAuditableEntity
+public sealed record Discussion : IEntity<DiscussionId>, IAuditableEntity
 {
-    public required string Id { get; init; }
-    public required string CourseId { get; init; }
+    public required DiscussionId Id { get; init; }
+    public required CourseId CourseId { get; init; }
     public required string Title { get; init; }
     public required string Description { get; init; }
     public required DateTimeOffset CreatedAt { get; init; }

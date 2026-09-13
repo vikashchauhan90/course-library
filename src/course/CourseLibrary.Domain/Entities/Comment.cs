@@ -1,15 +1,16 @@
 
 using CourseLibrary.Domain.Abstractions;
+using CourseLibrary.Domain.ValueObjects;
 
 namespace CourseLibrary.Domain.Entities;
 
-public sealed record Comment : IEntity<string>, IAuditableEntity
+public sealed record Comment : IEntity<CommentId>, IAuditableEntity
 {
-    public required string Id { get; init; }
-    public required string CourseId { get; init; }
-    public required string AuthorId { get; init; }
+    public required CommentId Id { get; init; }
+    public required CourseId CourseId { get; init; }
+    public required AuthorId AuthorId { get; init; }
     public required string Content { get; init; }
-    public string? ParentCommentId { get; init; }
+    public CommentId? ParentCommentId { get; init; }
     public required DateTimeOffset CreatedAt { get; init; }
     public DateTimeOffset? UpdatedAt { get; init; }
     public DateTimeOffset? DeletedAt { get; init; }

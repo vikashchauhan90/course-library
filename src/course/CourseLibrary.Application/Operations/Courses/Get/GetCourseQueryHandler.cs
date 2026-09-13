@@ -31,8 +31,8 @@ public sealed class GetCourseQueryHandler(
             return null;
         }
 
-        var commentsTask = commentRepository.GetByCourseAsync(course.Id, ct);
-        var discussionsTask = discussionRepository.GetByCourseAsync(course.Id, ct);
+        var commentsTask = commentRepository.GetByCourseAsync(course.Id.ToString(), ct);
+        var discussionsTask = discussionRepository.GetByCourseAsync(course.Id.ToString(), ct);
         await Task.WhenAll(commentsTask, discussionsTask);
 
         return CourseMapper.ToResponse(

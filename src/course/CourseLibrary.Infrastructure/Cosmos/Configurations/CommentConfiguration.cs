@@ -12,6 +12,6 @@ internal sealed class CommentConfiguration
     {
         ArgumentNullException.ThrowIfNull(document);
 
-        return document.CourseId;
+        return document.CourseId.ToString();
     }
 }

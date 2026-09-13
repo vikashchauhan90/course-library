@@ -35,7 +35,7 @@ public sealed class UpdateCourseCommandHandler(
             return null;
         }
 
-        if (!string.Equals(course.AuthorId, userId, StringComparison.Ordinal))
+        if (!string.Equals(course.AuthorId.ToString(), userId, StringComparison.Ordinal))
         {
             logger.LogWarning(
                 "User '{UserId}' attempted to update course '{CourseId}' without proper authorization.",
