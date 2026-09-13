@@ -1,4 +1,4 @@
-﻿using System.Text.Json.Serialization;
+﻿
 
 namespace CourseLibrary.Domain.Events;
 
@@ -28,8 +28,7 @@ public sealed class DqlMessage
 
     public int DeliveryCount { get; init; }
 
-    [JsonConverter(typeof(JsonStringEnumConverter))]
-    public DqlMessageStatus Status { get; set; }
+    public Guid Status { get; set; }
 
     public DateTimeOffset? ReplayedAt { get; set; }
 
@@ -37,13 +36,4 @@ public sealed class DqlMessage
 
     public string? LastError { get; set; }
     public string Payload { get; set; } = string.Empty;
-}
-
-public enum DqlMessageStatus
-{
-    DeadLettered,
-    ReplayPending,
-    Replayed,
-    ReplayFailed,
-    PermanentlyFailed
 }

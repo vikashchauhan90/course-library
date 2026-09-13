@@ -31,13 +31,13 @@ internal static partial class CourseOperationLogs
     public static partial void CourseNotFoundForRetirement(this ILogger logger, string courseId);
 
     [LoggerMessage(EventId = EventIds.Courses.CreateCourse + 24, Level = LogLevel.Information, Message = "Course {CourseId} and {Action}")]
-    public static partial void CourseEvent(this ILogger logger, string courseId, CourseEventType action);
+    public static partial void CourseEvent(this ILogger logger, string courseId, Guid action);
 
     [LoggerMessage(EventId = EventIds.Courses.CreateCourse + 25, Level = LogLevel.Information, Message = "Creating course audit entry for {CourseId} and {Action}")]
-    public static partial void CreatingCourseAudit(this ILogger logger, string courseId, CourseEventType Action);
+    public static partial void CreatingCourseAudit(this ILogger logger, string courseId, Guid Action);
 
     [LoggerMessage(EventId = EventIds.Courses.CreateCourse + 25, Level = LogLevel.Information, Message = "Add course audit entry for {CourseId} and {Action}")]
-    public static partial void CreatedCourseAudit(this ILogger logger, string courseId, CourseEventType Action);
+    public static partial void CreatedCourseAudit(this ILogger logger, string courseId, Guid Action);
 
 
 }
