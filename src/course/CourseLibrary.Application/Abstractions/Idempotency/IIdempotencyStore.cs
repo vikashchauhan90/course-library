@@ -2,25 +2,22 @@
 
 public interface IIdempotencyStore
 {
-    Task<IdempotencyEntry> GetOrCreateAsync(
+    Task<IdempotencyEntry?> GetAsync(
         string key,
-        Func<CancellationToken, Task<IdempotencyEntry>> factory,
+        CancellationToken cancellationToken = default);
+
+    Task<bool> TryAcquireAsync(
+        IdempotencyEntry entry,
         TimeSpan ttl,
-        IEnumerable<string>? tags = null,
         CancellationToken cancellationToken = default);
 
     Task StoreAsync(
         string key,
         IdempotencyEntry entry,
         TimeSpan ttl,
-        IEnumerable<string>? tags = null,
         CancellationToken cancellationToken = default);
 
     Task RemoveAsync(
         string key,
-        CancellationToken cancellationToken = default);
-
-    Task RemoveByTagAsync(
-        string tag,
         CancellationToken cancellationToken = default);
 }
