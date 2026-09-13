@@ -3,6 +3,8 @@ using CourseLibrary.Infrastructure.Caching;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
+using StackExchange.Redis;
 using ZiggyCreatures.Caching.Fusion;
 using ZiggyCreatures.Caching.Fusion.Serialization.NeueccMessagePack;
 
@@ -55,6 +57,11 @@ public static class CachingExtensions
            };
         });
 
+        services.AddSingleton<IConnectionMultiplexer>(sp =>
+        {
+            var configuration = sp.GetRequiredService<IOptions<RedisOptions>>().Value;
+            return ConnectionMultiplexer.Connect(configuration.ConnectionString);
+        });
         services.AddSingleton<ICacheProvider, RedisCacheProvider>();
 
         return services;
@@ -94,6 +101,12 @@ public static class CachingExtensions
                ConnectTimeout = 5000,
                SyncTimeout = 5000
            };
+        });
+
+        services.AddSingleton<IConnectionMultiplexer>(sp =>
+        {
+            var configuration = sp.GetRequiredService<IOptions<RedisOptions>>().Value;
+            return ConnectionMultiplexer.Connect(configuration.ConnectionString);
         });
 
         services.AddHybridCache();
@@ -143,6 +156,12 @@ public static class CachingExtensions
                 ConnectTimeout = 5000,
                 SyncTimeout = 5000
             };
+        });
+
+        services.AddSingleton<IConnectionMultiplexer>(sp =>
+        {
+            var configuration = sp.GetRequiredService<IOptions<RedisOptions>>().Value;
+            return ConnectionMultiplexer.Connect(configuration.ConnectionString);
         });
 
         // Redis backplane

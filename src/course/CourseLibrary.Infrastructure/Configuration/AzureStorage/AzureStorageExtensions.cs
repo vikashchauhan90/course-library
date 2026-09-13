@@ -1,4 +1,5 @@
-﻿using Azure.Data.Tables;
+﻿using Azure.Core;
+using Azure.Data.Tables;
 using Azure.Storage.Blobs;
 using CourseLibrary.Application.Abstractions.Messaging;
 using CourseLibrary.Infrastructure.Messaging.AzureTable;
@@ -28,7 +29,19 @@ public static class AzureStorageExtensions
                 .GetRequiredService<IOptions<AzureStorageOptions>>()
                 .Value;
 
-            return new BlobServiceClient(options.ConnectionString);
+            var clientOptions = new BlobClientOptions
+            {
+                Retry =
+                {
+                    Mode = RetryMode.Exponential,
+                    MaxRetries = 3,
+                    Delay = TimeSpan.FromSeconds(1),
+                    MaxDelay = TimeSpan.FromSeconds(5),
+                    NetworkTimeout = TimeSpan.FromSeconds(10)
+                }
+            };
+
+            return new BlobServiceClient(options.ConnectionString, clientOptions);
         });
 
 
@@ -38,7 +51,19 @@ public static class AzureStorageExtensions
                 .GetRequiredService<IOptions<AzureStorageOptions>>()
                 .Value;
 
-            return new TableServiceClient(options.ConnectionString);
+            var clientOptions = new TableClientOptions
+            {
+                Retry =
+                {
+                    Mode = RetryMode.Exponential,
+                    MaxRetries = 3,
+                    Delay = TimeSpan.FromSeconds(1),
+                    MaxDelay = TimeSpan.FromSeconds(5),
+                    NetworkTimeout = TimeSpan.FromSeconds(10)
+                }
+            };
+
+            return new TableServiceClient(options.ConnectionString, clientOptions);
         });
 
         services.AddKeyedSingleton<TableClient>("DqlMessages", (sp, _) =>

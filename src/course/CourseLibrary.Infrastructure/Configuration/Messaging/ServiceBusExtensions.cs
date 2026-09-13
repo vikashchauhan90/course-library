@@ -26,8 +26,21 @@ public static class ServiceBusExtensions
                 .GetRequiredService<IOptions<ServiceBusOptions>>()
                 .Value;
 
+            var clientOptions = new ServiceBusClientOptions
+            {
+                RetryOptions = new ServiceBusRetryOptions
+                {
+                    Mode = ServiceBusRetryMode.Exponential,
+                    MaxRetries = 3,
+                    Delay = TimeSpan.FromSeconds(1),
+                    MaxDelay = TimeSpan.FromSeconds(10),
+                    TryTimeout = TimeSpan.FromSeconds(10)
+                }
+            };
+
             return new ServiceBusClient(
-                options.ConnectionString);
+                options.ConnectionString,
+                clientOptions);
         });
 
         services.AddScoped<IEventPublisher, ServiceBusEventPublisher>();
