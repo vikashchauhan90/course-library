@@ -28,7 +28,6 @@ public sealed class CreateCourseCommandHandler(
             Description = command.Description,
             AuthorId = (AuthorId)command.AuthorId,
             AuthorName = command.AuthorName,
-            C
             CreatedAt = now,
             UpdatedAt = now
         };
