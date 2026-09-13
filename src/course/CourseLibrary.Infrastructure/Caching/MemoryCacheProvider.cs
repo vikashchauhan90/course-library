@@ -3,6 +3,7 @@ using CourseLibrary.Infrastructure.Observability.Traces;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
+using System.Diagnostics;
 
 namespace CourseLibrary.Infrastructure.Caching;
 
@@ -14,6 +15,67 @@ public sealed class MemoryCacheProvider(
     private readonly ConcurrentDictionary<string, AsyncLock> _locks = new();
     private readonly ConcurrentDictionary<string, ConcurrentBag<string>> _tagIndex = new();
 
+    public Task<byte[]?> GetAsync(
+    string key,
+    CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(key);
+
+        using var activity = ActivitySources.Infrastructure.StartActivity(
+            "MemoryCacheProvider.GetAsync",
+            ActivityKind.Internal);
+
+        activity?.SetTag("cache.key", key);
+        activity?.SetTag("cache.operation", "get");
+
+        try
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            if (cache.TryGetValue(key, out byte[]? cachedValue) &&
+                cachedValue?.Length > 0)
+            {
+                activity?.SetTag("cache.hit", true);
+
+                logger.LogDebug(
+                    "Memory cache hit for key {CacheKey}",
+                    key);
+
+                return Task.FromResult<byte[]?>(cachedValue);
+            }
+
+            activity?.SetTag("cache.hit", false);
+
+            logger.LogDebug(
+                "Memory cache miss for key {CacheKey}",
+                key);
+
+            return Task.FromResult<byte[]?>(null);
+        }
+        catch (OperationCanceledException)
+        {
+            activity?.SetTag("cache.cancelled", true);
+            activity?.SetStatus(
+                ActivityStatusCode.Error,
+                "Operation was cancelled.");
+
+            throw;
+        }
+        catch (Exception exception)
+        {
+            activity?.SetTag("cache.error", true);
+            activity?.SetStatus(
+                ActivityStatusCode.Error,
+                exception.Message);
+
+            logger.LogError(
+                exception,
+                "Error getting memory cache entry for key {CacheKey}",
+                key);
+
+            throw;
+        }
+    }
     public async Task<byte[]> GetOrCreateAsync(
         string key,
         Func<CancellationToken, Task<byte[]>> factory,
@@ -178,6 +240,52 @@ public sealed class MemoryCacheProvider(
         return Task.CompletedTask;
     }
 
+    public async Task<bool> TryAddAsync(
+        string key,
+        byte[] value,
+        TimeSpan ttl,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(key);
+        ArgumentNullException.ThrowIfNull(value);
+
+        if (ttl <= TimeSpan.Zero)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(ttl),
+                ttl,
+                "Cache expiration must be greater than zero.");
+        }
+
+        cancellationToken.ThrowIfCancellationRequested();
+
+        if (cache.TryGetValue(key, out _))
+        {
+            return false;
+        }
+
+        var asyncLock = _locks.GetOrAdd(
+            key,
+            static _ => new AsyncLock());
+
+        using (await asyncLock.LockAsync(cancellationToken))
+        {
+            if (cache.TryGetValue(key, out _))
+            {
+                return false;
+            }
+
+            cache.Set(
+                key,
+                value,
+                new MemoryCacheEntryOptions
+                {
+                    AbsoluteExpirationRelativeToNow = ttl
+                });
+
+            return true;
+        }
+    }
     private void IndexTags(string key, IEnumerable<string>? tags)
     {
         // Remove old tag associations first

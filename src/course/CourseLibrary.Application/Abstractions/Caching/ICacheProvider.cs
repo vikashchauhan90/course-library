@@ -2,6 +2,9 @@
 
 public interface ICacheProvider
 {
+    Task<byte[]?> GetAsync(
+       string key,
+       CancellationToken cancellationToken = default);
     Task<byte[]> GetOrCreateAsync(
         string key,
         Func<CancellationToken, Task<byte[]>> factory,
@@ -22,5 +25,11 @@ public interface ICacheProvider
 
     Task RemoveByTagAsync(
         string tag,
+        CancellationToken cancellationToken = default);
+
+    Task<bool> TryAddAsync(
+        string key,
+        byte[] value,
+        TimeSpan ttl,
         CancellationToken cancellationToken = default);
 }

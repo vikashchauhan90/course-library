@@ -2,15 +2,94 @@
 using CourseLibrary.Infrastructure.Observability.Traces;
 using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Logging;
+using StackExchange.Redis;
 using System.Diagnostics;
 
 namespace CourseLibrary.Infrastructure.Caching;
 
 public sealed class HybridCacheProvider(
     HybridCache cache,
-    ILogger<HybridCacheProvider> logger) 
+    IConnectionMultiplexer connectionMultiplexer,
+    ILogger<HybridCacheProvider> logger)
     : ICacheProvider
 {
+    private static readonly Func<object?, CancellationToken, ValueTask<byte[]?>> EmptyFactory =
+    static (_, _) => ValueTask.FromResult<byte[]?>(null);
+    public async Task<byte[]?> GetAsync(
+    string key,
+    CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(key);
+
+        using var activity = ActivitySources.Infrastructure.StartActivity(
+            "HybridCacheProvider.GetAsync",
+            ActivityKind.Internal);
+
+        activity?.SetTag("cache.key", key);
+        activity?.SetTag("cache.operation", "get");
+
+        try
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var options = new HybridCacheEntryOptions
+            {
+                Expiration = TimeSpan.FromSeconds(1),
+            };
+            var value = await cache.GetOrCreateAsync(
+                key,
+                null,
+                EmptyFactory,
+                options,
+                null,
+                cancellationToken: cancellationToken);
+
+            if (value is not null)
+            {
+                activity?.SetTag("cache.hit", true);
+
+                logger.LogDebug(
+                    "Hybrid cache hit for key {CacheKey}",
+                    key);
+
+                return value;
+            }
+
+            activity?.SetTag("cache.hit", false);
+
+            logger.LogDebug(
+                "Hybrid cache miss for key {CacheKey}",
+                key);
+
+            return null;
+        }
+        catch (OperationCanceledException)
+        {
+            activity?.SetTag("error", true)
+                .SetTag(
+                    "error.message",
+                    "Cache get operation was cancelled.");
+
+            logger.LogDebug(
+                "Hybrid cache get operation was cancelled for key {CacheKey}",
+                key);
+
+            throw;
+        }
+        catch (Exception ex)
+        {
+            activity?.SetTag("error", true)
+                .SetTag("error.message", ex.Message)
+                .SetTag("error.stacktrace", ex.StackTrace);
+
+            logger.LogError(
+                ex,
+                "Error getting cache entry for key {CacheKey}",
+                key);
+
+            throw;
+        }
+    }
     public async Task<byte[]> GetOrCreateAsync(
         string key,
         Func<CancellationToken, Task<byte[]>> factory,
@@ -94,7 +173,7 @@ public sealed class HybridCacheProvider(
             ActivityKind.Internal);
         activity?.SetTag("cache.key", key);
         activity?.SetTag("cache.ttl", ttl.ToString());
-        activity?.SetTag("cache.operation", "set"); 
+        activity?.SetTag("cache.operation", "set");
         if (ttl <= TimeSpan.Zero)
         {
             activity?.SetTag("error", true)
@@ -237,6 +316,79 @@ public sealed class HybridCacheProvider(
                 ex,
                 "Error removing cache entries for tag {CacheTag}",
                 tag);
+
+            throw;
+        }
+    }
+
+    public async Task<bool> TryAddAsync(
+    string key,
+    byte[] value,
+    TimeSpan ttl,
+    CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(key);
+        ArgumentNullException.ThrowIfNull(value);
+
+        if (ttl <= TimeSpan.Zero)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(ttl),
+                ttl,
+                "Cache expiration must be greater than zero.");
+        }
+
+        using var activity = ActivitySources.Infrastructure.StartActivity(
+            "HybridCacheProvider.TryAddAsync",
+            ActivityKind.Internal);
+
+        activity?.SetTag("cache.key", key);
+        activity?.SetTag("cache.ttl", ttl.ToString());
+        activity?.SetTag("cache.operation", "try-add");
+
+        try
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var database = connectionMultiplexer.GetDatabase();
+
+            var added = await database.StringSetAsync(
+                key,
+                value,
+                ttl,
+                when: When.NotExists);
+
+            activity?.SetTag("cache.operation.success", true);
+            activity?.SetTag("cache.added", added);
+
+            logger.LogDebug(
+                "Hybrid cache {CacheResult} for key {CacheKey}",
+                added ? "entry added" : "entry already exists",
+                key);
+
+            return added;
+        }
+        catch (OperationCanceledException)
+        {
+            activity?.SetTag("cache.operation.cancelled", true);
+
+            logger.LogDebug(
+                "Hybrid cache try-add operation was cancelled for key {CacheKey}",
+                key);
+
+            throw;
+        }
+        catch (Exception ex)
+        {
+            activity?.SetTag("cache.operation.error", true);
+            activity?.SetStatus(
+                ActivityStatusCode.Error,
+                ex.Message);
+
+            logger.LogError(
+                ex,
+                "Error atomically adding Hybrid cache entry for key {CacheKey}",
+                key);
 
             throw;
         }

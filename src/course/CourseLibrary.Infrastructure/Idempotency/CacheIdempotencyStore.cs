@@ -3,6 +3,7 @@ using CourseLibrary.Application.Abstractions.Idempotency;
 using CourseLibrary.Application.Abstractions.Serialization;
 using CourseLibrary.Application.Abstractions.Serializers;
 using CourseLibrary.Infrastructure.Observability.Traces;
+using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 
@@ -18,78 +19,144 @@ public sealed class CacheIdempotencyStore(
         serializerFactory.Create<IdempotencyEntry>(
             SerializerType.Json);
 
-    public async Task<IdempotencyEntry> GetOrCreateAsync(
+    public async Task<IdempotencyEntry?> GetAsync(
         string key,
-        Func<CancellationToken, Task<IdempotencyEntry>> factory,
-        TimeSpan ttl,
-        IEnumerable<string>? tags = null,
         CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(key);
-        ArgumentNullException.ThrowIfNull(factory);
-
-        ValidateTtl(ttl);
 
         using var activity = ActivitySources.Infrastructure.StartActivity(
-            "CacheIdempotencyStore.GetOrCreateAsync",
+            "CacheIdempotencyStore.GetAsync",
             ActivityKind.Internal);
 
-        activity?.SetTag("idempotency.operation", "get-or-create");
+        activity?.SetTag("idempotency.operation", "get");
         activity?.SetTag("idempotency.key", key);
-        activity?.SetTag("idempotency.ttl", ttl.ToString());
 
         try
         {
-            var data = await cacheProvider.GetOrCreateAsync(
+            var data = await cacheProvider.GetAsync(
                 key,
-                async ct =>
-                {
-                    var entry = await factory(ct);
-
-                    ArgumentNullException.ThrowIfNull(entry);
-
-                    return _serializer.Serialize(entry);
-                },
-                ttl,
-                tags,
                 cancellationToken);
 
-            var result = _serializer.Deserialize(data);
+            if (data is null or { Length: 0 })
+            {
+                activity?.SetTag("idempotency.found", false);
 
-            ArgumentNullException.ThrowIfNull(result);
+                logger.LogDebug(
+                    "No idempotency entry found for key {IdempotencyKey}",
+                    key);
 
-            activity?.SetTag("idempotency.success", true);
+                return null;
+            }
 
-            logger.LogDebug(
-                "Idempotency entry retrieved or created for key {IdempotencyKey}",
-                key);
+            var entry = _serializer.Deserialize(data);
 
-            return result;
+            ArgumentNullException.ThrowIfNull(entry);
+
+            activity?.SetTag("idempotency.found", true);
+            activity?.SetTag(
+                "idempotency.status",
+                entry.Status.ToString());
+
+            return entry;
         }
         catch (OperationCanceledException)
         {
             activity?.SetTag("idempotency.cancelled", true);
-            activity?.SetStatus(
-                ActivityStatusCode.Error,
-                "Operation was cancelled.");
 
             logger.LogDebug(
-                "Idempotency get-or-create operation was cancelled for key {IdempotencyKey}",
+                "Idempotency get operation was cancelled for key {IdempotencyKey}",
                 key);
 
             throw;
         }
-        catch (Exception ex)
+        catch (Exception exception)
         {
             activity?.SetTag("idempotency.error", true);
             activity?.SetStatus(
                 ActivityStatusCode.Error,
-                ex.Message);
+                exception.Message);
 
             logger.LogError(
-                ex,
-                "Error getting or creating idempotency entry for key {IdempotencyKey}",
+                exception,
+                "Error getting idempotency entry for key {IdempotencyKey}",
                 key);
+
+            throw;
+        }
+    }
+
+    public async Task<bool> TryAcquireAsync(
+        IdempotencyEntry entry,
+        TimeSpan ttl,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(entry);
+
+        ArgumentException.ThrowIfNullOrWhiteSpace(entry.Key);
+
+        ValidateTtl(ttl);
+
+        using var activity = ActivitySources.Infrastructure.StartActivity(
+            "CacheIdempotencyStore.TryAcquireAsync",
+            ActivityKind.Internal);
+
+        activity?.SetTag("idempotency.operation", "try-acquire");
+        activity?.SetTag("idempotency.key", entry.Key);
+        activity?.SetTag("idempotency.ttl", ttl.ToString());
+
+        try
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var data = _serializer.Serialize(entry);
+
+            var acquired = await cacheProvider.TryAddAsync(
+                entry.Key,
+                data,
+                ttl,
+                cancellationToken);
+
+            activity?.SetTag(
+                "idempotency.acquired",
+                acquired);
+
+            if (acquired)
+            {
+                logger.LogDebug(
+                    "Idempotency key {IdempotencyKey} acquired",
+                    entry.Key);
+            }
+            else
+            {
+                logger.LogDebug(
+                    "Idempotency key {IdempotencyKey} was already acquired",
+                    entry.Key);
+            }
+
+            return acquired;
+        }
+        catch (OperationCanceledException)
+        {
+            activity?.SetTag("idempotency.cancelled", true);
+
+            logger.LogDebug(
+                "Idempotency acquire operation was cancelled for key {IdempotencyKey}",
+                entry.Key);
+
+            throw;
+        }
+        catch (Exception exception)
+        {
+            activity?.SetTag("idempotency.error", true);
+            activity?.SetStatus(
+                ActivityStatusCode.Error,
+                exception.Message);
+
+            logger.LogError(
+                exception,
+                "Error acquiring idempotency key {IdempotencyKey}",
+                entry.Key);
 
             throw;
         }
@@ -99,7 +166,6 @@ public sealed class CacheIdempotencyStore(
         string key,
         IdempotencyEntry entry,
         TimeSpan ttl,
-        IEnumerable<string>? tags = null,
         CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(key);
@@ -114,12 +180,20 @@ public sealed class CacheIdempotencyStore(
         activity?.SetTag("idempotency.operation", "store");
         activity?.SetTag("idempotency.key", key);
         activity?.SetTag("idempotency.ttl", ttl.ToString());
+        activity?.SetTag(
+            "idempotency.status",
+            entry.Status.ToString());
 
         try
         {
             cancellationToken.ThrowIfCancellationRequested();
 
             var data = _serializer.Serialize(entry);
+
+            var tags = new[]
+            {
+                $"idempotency:{key}"
+            };
 
             await cacheProvider.SetAsync(
                 key,
@@ -131,15 +205,13 @@ public sealed class CacheIdempotencyStore(
             activity?.SetTag("idempotency.success", true);
 
             logger.LogDebug(
-                "Idempotency entry stored for key {IdempotencyKey}",
-                key);
+                "Idempotency entry stored for key {IdempotencyKey} with status {IdempotencyStatus}",
+                key,
+                entry.Status);
         }
         catch (OperationCanceledException)
         {
             activity?.SetTag("idempotency.cancelled", true);
-            activity?.SetStatus(
-                ActivityStatusCode.Error,
-                "Operation was cancelled.");
 
             logger.LogDebug(
                 "Idempotency store operation was cancelled for key {IdempotencyKey}",
@@ -147,15 +219,15 @@ public sealed class CacheIdempotencyStore(
 
             throw;
         }
-        catch (Exception ex)
+        catch (Exception exception)
         {
             activity?.SetTag("idempotency.error", true);
             activity?.SetStatus(
                 ActivityStatusCode.Error,
-                ex.Message);
+                exception.Message);
 
             logger.LogError(
-                ex,
+                exception,
                 "Error storing idempotency entry for key {IdempotencyKey}",
                 key);
 
@@ -191,9 +263,6 @@ public sealed class CacheIdempotencyStore(
         catch (OperationCanceledException)
         {
             activity?.SetTag("idempotency.cancelled", true);
-            activity?.SetStatus(
-                ActivityStatusCode.Error,
-                "Operation was cancelled.");
 
             logger.LogDebug(
                 "Idempotency remove operation was cancelled for key {IdempotencyKey}",
@@ -201,71 +270,17 @@ public sealed class CacheIdempotencyStore(
 
             throw;
         }
-        catch (Exception ex)
+        catch (Exception exception)
         {
             activity?.SetTag("idempotency.error", true);
             activity?.SetStatus(
                 ActivityStatusCode.Error,
-                ex.Message);
+                exception.Message);
 
             logger.LogError(
-                ex,
+                exception,
                 "Error removing idempotency entry for key {IdempotencyKey}",
                 key);
-
-            throw;
-        }
-    }
-
-    public async Task RemoveByTagAsync(
-        string tag,
-        CancellationToken cancellationToken = default)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(tag);
-
-        using var activity = ActivitySources.Infrastructure.StartActivity(
-            "CacheIdempotencyStore.RemoveByTagAsync",
-            ActivityKind.Internal);
-
-        activity?.SetTag("idempotency.operation", "remove-by-tag");
-        activity?.SetTag("idempotency.tag", tag);
-
-        try
-        {
-            await cacheProvider.RemoveByTagAsync(
-                tag,
-                cancellationToken);
-
-            activity?.SetTag("idempotency.success", true);
-
-            logger.LogDebug(
-                "Idempotency entries removed by tag {IdempotencyTag}",
-                tag);
-        }
-        catch (OperationCanceledException)
-        {
-            activity?.SetTag("idempotency.cancelled", true);
-            activity?.SetStatus(
-                ActivityStatusCode.Error,
-                "Operation was cancelled.");
-
-            logger.LogDebug(
-                "Idempotency remove-by-tag operation was cancelled for tag {IdempotencyTag}",
-                tag);
-
-            throw;
-        }
-        catch (Exception ex)
-        {
-            activity?.SetTag("idempotency.error", true);
-            activity?.SetStatus(
-                ActivityStatusCode.Error,
-                ex.Message);
-
-            logger.LogError(
-                ex,
-                "Error removing idempotency entries for tag {IdempotencyTag}",
-                tag);
 
             throw;
         }
