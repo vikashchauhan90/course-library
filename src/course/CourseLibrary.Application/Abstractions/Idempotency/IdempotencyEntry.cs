@@ -18,9 +18,16 @@ public sealed record IdempotencyEntry(
             ResponseBody: Array.Empty<byte>());
 
     public bool IsEmpty =>
-        string.IsNullOrWhiteSpace(RequestPath) &&
-        string.IsNullOrWhiteSpace(RequestMethod) &&
-        string.IsNullOrWhiteSpace(ResponseContentType) &&
-        ResponseStatusCode == 0 &&
         (ResponseBody is null || ResponseBody.Length == 0);
+
+    public static IdempotencyEntry GetIdempotencyEntry(byte[] ResponseBody) =>
+        new(
+            string.Empty,
+            string.Empty,
+            null,
+            0,
+            string.Empty,
+            ResponseBody
+            );
+
 }

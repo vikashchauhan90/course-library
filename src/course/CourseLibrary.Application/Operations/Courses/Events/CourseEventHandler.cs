@@ -1,4 +1,5 @@
 using CourseLibrary.Application.Abstractions.Messaging;
+using CourseLibrary.Application.Abstractions.Serialization;
 using CourseLibrary.Domain.Events;
 using MediatorForge.Abstractions;
 using Microsoft.Extensions.Logging;

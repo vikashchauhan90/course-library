@@ -2,7 +2,6 @@
 using CourseLibrary.Application.Abstractions.Messaging;
 using CourseLibrary.Application.Abstractions.RequestContext;
 using CourseLibrary.Application.Abstractions.Serialization;
-using CourseLibrary.Application.Abstractions.Serializers;
 using CourseLibrary.Domain.Abstractions;
 using CourseLibrary.Infrastructure.Observability.Traces;
 using Microsoft.Extensions.Logging;
@@ -17,10 +16,6 @@ internal sealed class ServiceBusEventPublisher(
     ILogger<ServiceBusEventPublisher> logger)
     : IEventPublisher
 {
-    private readonly ISerializer<object> _serializer =
-        serializerFactory.Create<object>(
-            SerializerType.MessagePack);
-
 
     public async Task PublishAsync<TEvent>(
         string queueOrTopicName,
@@ -36,7 +31,12 @@ internal sealed class ServiceBusEventPublisher(
         {
             var propagationActivity = activity ?? Activity.Current;
             var eventType = typeof(TEvent).Name;
-            var serialized = _serializer.Serialize(@event);
+
+           var  serializer =
+        serializerFactory.Create<TEvent>(
+            SerializerType.Json);
+
+            var serialized = serializer.Serialize(@event);
 
             // Set tags
             activity?.SetTag("event.type", eventType);
@@ -45,7 +45,7 @@ internal sealed class ServiceBusEventPublisher(
             activity?.SetTag("request.correlationId", requestContext.CorrelationId);
             activity?.SetTag("request.userId", requestContext.UserId);
             activity?.SetTag("request.traceId", propagationActivity?.TraceId.ToString());
-            activity?.SetTag("message.contentType", SerializerType.MessagePack.ToString());
+            activity?.SetTag("message.contentType", SerializerType.Json.ToString());
             activity?.SetTag("message.size", serialized.Length);
             activity?.SetTag("message.id", @event.EventId.ToString());
             activity?.SetTag("message.subject", eventType);
@@ -54,7 +54,7 @@ internal sealed class ServiceBusEventPublisher(
             {
                 MessageId = @event.EventId.ToString(),
                 Subject = eventType,
-                ContentType = SerializerType.MessagePack.ToString(),
+                ContentType = SerializerType.Json.ToString(),
                 CorrelationId = requestContext.CorrelationId,
                 ApplicationProperties =
             {

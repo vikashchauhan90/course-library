@@ -37,6 +37,7 @@ public static class DataProtectionExtensions
                     var containerClient = blobServiceClient
                         .GetBlobContainerClient(
                             dataProtectionOptions.KeyContainerName);
+                    containerClient.CreateIfNotExists();
 
                     var blobClient = containerClient.GetBlobClient(
                         dataProtectionOptions.KeyBlobName);

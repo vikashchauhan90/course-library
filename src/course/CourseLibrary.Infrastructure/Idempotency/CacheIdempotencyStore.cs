@@ -16,7 +16,7 @@ public sealed class CacheIdempotencyStore(
 {
     private readonly ISerializer<IdempotencyEntry> _serializer =
         serializerFactory.Create<IdempotencyEntry>(
-            SerializerType.MessagePack);
+            SerializerType.Json);
 
     public async Task<IdempotencyEntry> GetOrCreateAsync(
         string key,

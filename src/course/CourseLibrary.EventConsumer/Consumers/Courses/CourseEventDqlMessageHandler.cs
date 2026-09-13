@@ -21,7 +21,7 @@ internal sealed class CourseEventDqlMessageHandler(
 {
     private readonly ISerializer<CourseEvent> serializer =
         serializerFactory.Create<CourseEvent>(
-            SerializerType.MessagePack);
+            SerializerType.Json);
 
     [Function(nameof(CourseEventDqlMessageHandler))]
     public async Task RunAsync(

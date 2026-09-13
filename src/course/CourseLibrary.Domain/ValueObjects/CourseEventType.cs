@@ -2,6 +2,23 @@
 
 public readonly record struct CourseEventType
 {
+    // Static fields are initialized in declaration order.
+    // Initialize all fields required by validation before defining static
+    // instances that depend on them, to avoid accessing uninitialized state
+    // during type initialization.
+    private static readonly Guid CreatedValue = new("10000000-0000-0000-0000-000000000001");
+    private static readonly Guid UpdatedValue = new("10000000-0000-0000-0000-000000000002");
+    private static readonly Guid DeletedValue = new("10000000-0000-0000-0000-000000000003");
+    private static readonly Guid RetiredValue = new("10000000-0000-0000-0000-000000000004");
+
+    private static readonly HashSet<Guid> KnownEventTypes = new()
+    {
+        CreatedValue,
+        UpdatedValue,
+        DeletedValue,
+        RetiredValue
+    };
+
     public CourseEventType(Guid value)
     {
         if (!IsValid(value))
@@ -55,16 +72,4 @@ public readonly record struct CourseEventType
 
     private static bool IsValid(Guid value) => KnownEventTypes.Contains(value);
 
-    private static readonly HashSet<Guid> KnownEventTypes = new()
-    {
-        CreatedValue,
-        UpdatedValue,
-        DeletedValue,
-        RetiredValue
-    };
-
-    private static Guid CreatedValue = new("10000000-0000-0000-0000-000000000001");
-    private static Guid UpdatedValue = new("10000000-0000-0000-0000-000000000002");
-    private static Guid DeletedValue = new("10000000-0000-0000-0000-000000000003");
-    private static Guid RetiredValue = new("10000000-0000-0000-0000-000000000004");
 }

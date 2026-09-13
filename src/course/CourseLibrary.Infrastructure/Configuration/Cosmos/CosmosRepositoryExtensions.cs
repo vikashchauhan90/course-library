@@ -2,6 +2,7 @@ using CourseLibrary.Application.Abstractions.Repositories;
 using CourseLibrary.Domain.Entities;
 using CourseLibrary.Infrastructure.Cosmos;
 using CourseLibrary.Infrastructure.Cosmos.Configurations;
+using CourseLibrary.Infrastructure.Configuration.Cosmos.Serialization;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -30,11 +31,8 @@ public static class CosmosRepositoryExtensions
 
             var clientOptions = new CosmosClientOptions
             {
-                SerializerOptions = new CosmosSerializationOptions
-                {
-                    PropertyNamingPolicy =
-                        CosmosPropertyNamingPolicy.CamelCase
-                },
+                Serializer = new CourseLibraryCosmosSerializer(
+                    ValueObjectJsonConverters.CreateOptions()),
 
                 ApplicationName =
                     "CourseLibrary.Infrastructure.Cosmos"

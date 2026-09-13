@@ -47,6 +47,7 @@ public static class CachingExtensions
             options.ConfigurationOptions =
            new StackExchange.Redis.ConfigurationOptions
            {
+               EndPoints = { cacheOptions.ConnectionString },
                AbortOnConnectFail = false,
                ConnectRetry = 3,
                ConnectTimeout = 5000,
@@ -87,6 +88,7 @@ public static class CachingExtensions
             options.ConfigurationOptions =
            new StackExchange.Redis.ConfigurationOptions
            {
+               EndPoints = { cacheOptions.ConnectionString },
                AbortOnConnectFail = false,
                ConnectRetry = 3,
                ConnectTimeout = 5000,
@@ -135,6 +137,7 @@ public static class CachingExtensions
             options.ConfigurationOptions =
             new StackExchange.Redis.ConfigurationOptions
             {
+                EndPoints = { cacheOptions.ConnectionString },
                 AbortOnConnectFail = false,
                 ConnectRetry = 3,
                 ConnectTimeout = 5000,

@@ -2,6 +2,26 @@ namespace CourseLibrary.Domain.ValueObjects;
 
 public readonly struct AuditAction
 {
+    // Static fields are initialized in declaration order.
+    // Initialize all fields required by validation before defining static
+    // instances that depend on them, to avoid accessing uninitialized state
+    // during type initialization.
+    private static readonly Guid AddValue =
+  new("30000000-0000-0000-0000-000000000001");
+
+    private static readonly Guid UpdatedValue =
+        new("30000000-0000-0000-0000-000000000002");
+
+    private static readonly Guid DeletedValue =
+        new("30000000-0000-0000-0000-000000000003");
+
+    private static readonly HashSet<Guid> KnownActions =
+    [
+        AddValue,
+        UpdatedValue,
+        DeletedValue
+    ];
+
     public AuditAction(Guid value)
     {
         if (!IsValid(value))
@@ -53,22 +73,5 @@ public readonly struct AuditAction
     }
 
     public static explicit operator string(AuditAction action) => action.ToString();
-
-    private static readonly Guid AddValue =
-    new("30000000-0000-0000-0000-000000000001");
-
-    private static readonly Guid UpdatedValue =
-        new("30000000-0000-0000-0000-000000000002");
-
-    private static readonly Guid DeletedValue =
-        new("30000000-0000-0000-0000-000000000003");
-
-    private static readonly HashSet<Guid> KnownActions =
-    [
-        AddValue,
-        UpdatedValue,
-        DeletedValue
-    ];
-
     public static bool IsValid(Guid value) => KnownActions.Contains(value);
 }
