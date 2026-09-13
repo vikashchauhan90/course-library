@@ -1,4 +1,3 @@
-using CourseLibrary.Domain.Events;
 using CourseLibrary.EventConsumer.Core;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.DurableTask;
@@ -24,7 +23,7 @@ internal sealed class CourseEventOrchestrator
             });
 
         var orchestrationInput =
-            context.GetInput<OrchestrationInput<CourseEvent>>();
+            context.GetInput<OrchestrationInput<CourseEventPayload>>();
 
         if (orchestrationInput?.Event is null)
         {
@@ -37,9 +36,10 @@ internal sealed class CourseEventOrchestrator
         }
 
         var orchestrationContext =
-            new OrchestrationContext<CourseEvent>
+            new OrchestrationContext<CourseEventPayload>
             {
                 Event = orchestrationInput.Event,
+                MessageId = orchestrationInput.MessageId,
                 InstanceId = context.InstanceId,
                 OrchestrationName = nameof(CourseEventOrchestrator),
                 StartTime = context.CurrentUtcDateTime,
@@ -53,9 +53,10 @@ internal sealed class CourseEventOrchestrator
                 nameof(CourseEventStartActivity),
                 orchestrationContext);
 
-        var orchestrationActivityInput = new OrchestrationActivityInput<CourseEvent>
+        var orchestrationActivityInput = new OrchestrationActivityInput<CourseEventPayload>
         {
             Event = orchestrationInput.Event,
+            MessageId = orchestrationInput.MessageId,
             ParentActivityId = parentActivityId
         };
 

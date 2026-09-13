@@ -7,6 +7,7 @@ using CourseLibrary.Application.Operations.Courses.Retire;
 using CourseLibrary.Api.Endpoints.Courses;
 using MediatorForge.Abstractions;
 using CourseLibrary.Models.Course;
+using CourseLibrary.Api.Configuration.OutputCache;
 
 namespace CourseLibrary.Api.Endpoints.Courses.RetireCourse;
 
@@ -42,6 +43,7 @@ public sealed class RetireCourseEndpoint : ICarterModule
                     return Results.Ok(CourseHelper.GetCourseResponse(linkGenerator, course, apiVersion));
                 })
             .WithName(RouteName)
+            .CacheOutput(OutputCachePolicies.Idempotency)
             .HasApiVersion(1.0);
     }
 }

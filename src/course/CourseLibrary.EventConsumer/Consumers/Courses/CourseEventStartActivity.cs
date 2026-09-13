@@ -1,5 +1,4 @@
-﻿using CourseLibrary.Domain.Events;
-using CourseLibrary.EventConsumer.Configuration.Observability.Traces;
+﻿using CourseLibrary.EventConsumer.Configuration.Observability.Traces;
 using CourseLibrary.EventConsumer.Core;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
@@ -12,7 +11,7 @@ internal sealed class CourseEventStartActivity(
 {
     [Function(nameof(CourseEventStartActivity))]
     public Task<string?> RunAsync(
-        [ActivityTrigger] OrchestrationContext<CourseEvent> input)
+        [ActivityTrigger] OrchestrationContext<CourseEventPayload> input)
     {
         var beforeActivityInstance = Activity.Current;
         try
@@ -57,7 +56,7 @@ internal sealed class CourseEventStartActivity(
 
             activity.SetTag(
                 "activity.event_type",
-                courseEvent.EventType.ToString());
+                courseEvent.EventType);
 
             activity.SetTag(
                 "activity.course_id",

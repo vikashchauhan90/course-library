@@ -15,7 +15,7 @@ public sealed class CourseAuditEventCommandHandler(
         logger.CreatingCourseAudit(command.Event.CourseId, command.Event.EventType);
         await auditRepository.AddAsync(new CourseAuditEntry
         {
-            Id = Guid.NewGuid().ToString(),
+            Id = command.Event.EventId,
             CourseId = command.Event.CourseId,
             Action = command.Event.EventType,
             EventId = command.Event.EventId,
