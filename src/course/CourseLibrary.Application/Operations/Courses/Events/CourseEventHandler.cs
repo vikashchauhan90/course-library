@@ -16,7 +16,7 @@ public sealed class CourseEventHandler(
         CancellationToken ct)
     {
         var ev = notification.Event;
-        logger.CourseEvent(ev.CourseId.ToString(), ev.EventType);
+        logger.CourseEvent(ev.CourseId.ToString(), (Guid)ev.EventType);
         await eventPublisher.PublishAsync("CourseEvent",ev, ct);
     }
 }

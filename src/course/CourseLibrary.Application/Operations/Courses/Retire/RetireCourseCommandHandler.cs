@@ -1,7 +1,7 @@
 using CourseLibrary.Application.Abstractions.Repositories;
 using CourseLibrary.Application.Abstractions.RequestContext;
-using CourseLibrary.Domain.Abstractions;
 using CourseLibrary.Domain.Events;
+using CourseLibrary.Domain.ValueObjects;
 using CourseLibrary.Models.Course;
 using MediatorForge.Abstractions;
 using Microsoft.Extensions.Logging;

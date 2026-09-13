@@ -25,7 +25,11 @@ internal sealed class AzureTableDqlMessageStore(
             ["EnqueuedTime"] = message.EnqueuedTime,
             ["DeadLetteredAt"] = message.DeadLetteredAt,
             ["DeliveryCount"] = message.DeliveryCount,
-            ["Status"] = "DeadLettered"
+            ["Status"] = message.Status.ToString(),
+            ["ReplayedAt"] = message.ReplayedAt,
+            ["ReplayedMessageId"] = message.ReplayedMessageId,
+            ["LastError"] = message.LastError,
+            ["Payload"] = message.Payload
         };
 
         await tableClient.UpsertEntityAsync(

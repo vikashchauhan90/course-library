@@ -1,7 +1,7 @@
 using CourseLibrary.Application.Abstractions.Repositories;
 using CourseLibrary.Application.Abstractions.RequestContext;
-using CourseLibrary.Domain.Abstractions;
 using CourseLibrary.Domain.Events;
+using CourseLibrary.Domain.ValueObjects;
 using MediatorForge.Abstractions;
 using Microsoft.Extensions.Logging;
 using DomainErrors = CourseLibrary.Domain.Exceptions;
@@ -17,15 +17,16 @@ public sealed class DeleteCourseCommandHandler(
 {
     public async Task<bool> HandleAsync(DeleteCourseCommand command, CancellationToken ct)
     {
-        logger.DeletingCourse(command.CourseId);
+        CourseId courseId = (CourseId)command.CourseId;
+        logger.DeletingCourse(courseId);
 
         var userId = requestContext.UserId
             ?? throw new DomainErrors.UnauthorizedException();
 
-        var course = await repository.GetByIdAsync(command.CourseId, ct);
+        var course = await repository.GetByIdAsync(courseId, ct);
         if (course is null)
         {
-            logger.CourseNotFoundForDeletion(command.CourseId);
+            logger.CourseNotFoundForDeletion(courseId);
             return false;
         }
         

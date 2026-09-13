@@ -1,4 +1,4 @@
-﻿
+﻿using CourseLibrary.Domain.ValueObjects;
 
 namespace CourseLibrary.Domain.Events;
 
@@ -28,7 +28,7 @@ public sealed class DqlMessage
 
     public int DeliveryCount { get; init; }
 
-    public Guid Status { get; set; }
+    public DqlMessageStatus Status { get; set; }
 
     public DateTimeOffset? ReplayedAt { get; set; }
 

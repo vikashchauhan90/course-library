@@ -7,7 +7,7 @@ public sealed record CourseAuditEntry : IEntity<string>, IAuditableEntity
 {
     public required string Id { get; init; }
     public required CourseId CourseId { get; init; }
-    public required Guid Action { get; init; }
+    public required CourseEventType Action { get; init; }
     public string? EventId { get; init; }
     public DateTimeOffset OccurredAt { get; init; } = DateTimeOffset.UtcNow;
     public IReadOnlyList<AuditEntry>? ChangedProperties { get; init; }

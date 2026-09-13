@@ -6,7 +6,7 @@ namespace CourseLibrary.Domain.Events;
 public sealed class CourseEvent : IDomainEvent
 {
     public required CourseId CourseId { get; init; }
-    public required Guid EventType { get; init; }
+    public required CourseEventType EventType { get; init; }
 
     public required string EventId { get; init; }
 

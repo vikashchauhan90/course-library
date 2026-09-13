@@ -3,12 +3,13 @@ using CourseLibrary.Application.Abstractions.Messaging;
 using CourseLibrary.Application.Abstractions.Serialization;
 using CourseLibrary.Application.Abstractions.Serializers;
 using CourseLibrary.Domain.Events;
+using CourseLibrary.Domain.ValueObjects;
 using CourseLibrary.EventConsumer.Configuration.Observability.Metrics;
 using CourseLibrary.EventConsumer.Configuration.Observability.Traces;
-using InfraTraces = CourseLibrary.Infrastructure.Observability.Traces;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
+using InfraTraces = CourseLibrary.Infrastructure.Observability.Traces;
 
 
 namespace CourseLibrary.EventConsumer.Consumers.Courses;
@@ -105,7 +106,9 @@ internal sealed class CourseEventDqlMessageHandler(
                 DeliveryCount = message.DeliveryCount,
 
                 Payload = Convert.ToBase64String(
-                    message.Body.ToArray())
+                    message.Body.ToArray()),
+
+                Status = DqlMessageStatus.DeadLettered
             };
 
             await dqlMessageStore.StoreAsync(

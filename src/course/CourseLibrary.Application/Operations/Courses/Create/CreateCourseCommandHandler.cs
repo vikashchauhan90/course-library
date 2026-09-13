@@ -32,7 +32,7 @@ public sealed class CreateCourseCommandHandler(
             UpdatedAt = now
         };
 
-        logger.PersistingCourse(course.Id.ToString(), course.AuthorId.ToString());
+        logger.PersistingCourse(course.Id, course.AuthorId);
 
         await repository.UpsertAsync(course, ct);
 

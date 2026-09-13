@@ -1,4 +1,5 @@
 using CourseLibrary.Domain.Entities;
+using CourseLibrary.Domain.ValueObjects;
 using CourseLibrary.Models;
 using CourseLibrary.Models.Course;
 
@@ -6,9 +7,9 @@ namespace CourseLibrary.Application.Abstractions.Repositories;
 
 public interface ICourseRepository
 {
-    Task<Course?> GetByIdAsync(string courseId, CancellationToken cancellationToken = default);
+    Task<Course?> GetByIdAsync(CourseId courseId, CancellationToken cancellationToken = default);
     Task<PageResult<Course>> GetByAuthorAsync(
-        string authorId,
+        AuthorId authorId,
         int pageSize,
         string? continuationToken,
         CancellationToken cancellationToken = default);
