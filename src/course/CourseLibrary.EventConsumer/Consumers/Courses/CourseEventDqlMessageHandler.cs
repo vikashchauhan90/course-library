@@ -27,7 +27,7 @@ internal sealed class CourseEventDqlMessageHandler(
     public async Task RunAsync(
         [ServiceBusTrigger(
             "CourseEvent/$DeadLetterQueue",
-            "CourseEventDqlMessageHandler",
+            "CourseEventConsumer",
             Connection = "ServiceBusConnection",
             AutoCompleteMessages = false)]
         ServiceBusReceivedMessage message,

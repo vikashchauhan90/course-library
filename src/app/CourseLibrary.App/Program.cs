@@ -60,6 +60,7 @@ if (!app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();
+app.UseRequestContext();
 app.UseAuthentication();
 app.UseAuthorization();
 

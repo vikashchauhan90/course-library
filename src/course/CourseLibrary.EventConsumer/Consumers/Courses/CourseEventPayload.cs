@@ -49,12 +49,15 @@ internal sealed class AuditEntryPayload
     public string Name { get; init; } = string.Empty;
     public object? Value { get; init; }
 
+    public string? ValueTypeName { get; init; }
+
     public static AuditEntryPayload FromDomain(AuditEntry entry) =>
         new()
         {
             Action = entry.Action.Value,
             Name = entry.Name,
-            Value = entry.Value
+            Value = entry.Value,
+            ValueTypeName = entry.ValueTypeName,
         };
 
     public AuditEntry ToDomain()
@@ -64,7 +67,8 @@ internal sealed class AuditEntryPayload
         {
             Action = (AuditAction)Action,
             Name = Name,
-            Value = Value
+            Value = Value,
+            ValueTypeName = ValueTypeName,
         };
     }
 }

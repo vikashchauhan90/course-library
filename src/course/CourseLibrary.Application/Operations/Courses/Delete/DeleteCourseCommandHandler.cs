@@ -65,8 +65,8 @@ public sealed class DeleteCourseCommandHandler(
             OccurredAt = deletedAt,
             EventType = CourseEventType.Deleted,
             ChangedProperties = [
-                    new() { Action = AuditAction.Add, Name = nameof(deleted.DeletedAt), Value = deleted.DeletedAt },
-                    new() { Action = AuditAction.Updated, Name = nameof(deleted.UpdatedAt), Value = deleted.UpdatedAt }
+                    new() { Action = AuditAction.Add, Name = nameof(deleted.DeletedAt), Value = deleted.DeletedAt, ValueTypeName = deleted.DeletedAt?.GetType().Name },
+                    new() { Action = AuditAction.Updated, Name = nameof(deleted.UpdatedAt), Value = deleted.UpdatedAt, ValueTypeName = deleted.UpdatedAt?.GetType().Name }
                 ],
         };
 

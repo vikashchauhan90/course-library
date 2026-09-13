@@ -64,8 +64,8 @@ public sealed class RetireCourseCommandHandler(
             OccurredAt = retiredAt,
             EventType = CourseEventType.Retired,
             ChangedProperties = [
-                   new() { Action = AuditAction.Add, Name = nameof(retired.RetiredAt), Value = retired.RetiredAt },
-                    new() { Action = AuditAction.Updated, Name = nameof(retired.UpdatedAt), Value = retired.UpdatedAt }
+                   new() { Action = AuditAction.Add, Name = nameof(retired.RetiredAt), Value = retired.RetiredAt, ValueTypeName = retired.RetiredAt?.GetType().Name },
+                    new() { Action = AuditAction.Updated, Name = nameof(retired.UpdatedAt), Value = retired.UpdatedAt, ValueTypeName = retired.UpdatedAt?.GetType().Name }
                ],
         };
         await eventDispatcher.PublishAsync(

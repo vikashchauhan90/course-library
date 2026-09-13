@@ -88,6 +88,6 @@ public sealed class UpdateCourseCommandHandler(
     private static void AddIfChanged<T>(ICollection<AuditEntry> changes, string name, T previous, T current)
     {
         if (!EqualityComparer<T>.Default.Equals(previous, current))
-            changes.Add(new AuditEntry { Action = AuditAction.Updated, Name = name, Value = current });
+            changes.Add(new AuditEntry { Action = AuditAction.Updated, Name = name, Value = current, ValueTypeName = current?.GetType().Name });
     }
 }

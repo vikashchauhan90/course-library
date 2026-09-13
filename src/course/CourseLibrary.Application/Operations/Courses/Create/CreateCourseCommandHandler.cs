@@ -56,11 +56,11 @@ public sealed class CreateCourseCommandHandler(
 
     private static IReadOnlyList<AuditEntry> CreateAuditEntries(Course course) =>
     [
-        new() { Action = AuditAction.Add, Name = nameof(course.Title), Value = course.Title },
-        new() { Action = AuditAction.Add, Name = nameof(course.Description), Value = course.Description },
-        new() { Action = AuditAction.Add, Name = nameof(course.AuthorId), Value = course.AuthorId },
-        new() { Action = AuditAction.Add, Name = nameof(course.AuthorName), Value = course.AuthorName },
-        new() { Action = AuditAction.Add, Name = nameof(course.CreatedAt), Value = course.CreatedAt },
-        new() { Action = AuditAction.Add, Name = nameof(course.UpdatedAt), Value = course.UpdatedAt }
+        new() { Action = AuditAction.Add, Name = nameof(course.Title), Value = course.Title, ValueTypeName = course.Title?.GetType().Name },
+        new() { Action = AuditAction.Add, Name = nameof(course.Description), Value = course.Description, ValueTypeName = course.Description?.GetType().Name },
+        new() { Action = AuditAction.Add, Name = nameof(course.AuthorId), Value = course.AuthorId, ValueTypeName = course.AuthorId.Value.GetType().Name },
+        new() { Action = AuditAction.Add, Name = nameof(course.AuthorName), Value = course.AuthorName, ValueTypeName = course.AuthorName?.GetType().Name },
+        new() { Action = AuditAction.Add, Name = nameof(course.CreatedAt), Value = course.CreatedAt, ValueTypeName = course.CreatedAt.GetType().Name },
+        new() { Action = AuditAction.Add, Name = nameof(course.UpdatedAt), Value = course.UpdatedAt, ValueTypeName = course.UpdatedAt?.GetType().Name }
     ];
 }

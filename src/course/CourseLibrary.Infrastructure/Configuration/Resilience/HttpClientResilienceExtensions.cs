@@ -25,6 +25,8 @@ public static class HttpClientResilienceExtensions
             {
                 builder.AddStandardResilienceHandler(options =>
                 {
+                    options.AttemptTimeout.Timeout = TimeSpan.FromSeconds(30);
+                    options.TotalRequestTimeout.Timeout = TimeSpan.FromSeconds(60);
                     options.Retry.MaxRetryAttempts = 3;
                     options.Retry.ShouldRetryAfterHeader = true;
                     options.Retry.Delay = TimeSpan.FromSeconds(1);
@@ -50,7 +52,7 @@ public static class HttpClientResilienceExtensions
 
                     options.CircuitBreaker.FailureRatio = 0.20;
                     options.CircuitBreaker.MinimumThroughput = 20;
-                    options.CircuitBreaker.SamplingDuration = TimeSpan.FromSeconds(30);
+                    options.CircuitBreaker.SamplingDuration = TimeSpan.FromSeconds(60);
                     options.CircuitBreaker.BreakDuration = TimeSpan.FromSeconds(10);
 
                     options.CircuitBreaker.ShouldHandle = static args =>
