@@ -2,9 +2,9 @@
 
 namespace CourseLibrary.EventConsumer.Core;
 
-internal class OrchestrationContext<T>
+internal class OrchestrationContext
 {
-    public T Event { get; init; } = default!;
+    public byte[] Event { get; init; } = default!;
     public string InstanceId { get; init; } = default!;
     public string OrchestrationName { get; init; } = default!;
     public DateTimeOffset StartTime { get; init; } = default!;

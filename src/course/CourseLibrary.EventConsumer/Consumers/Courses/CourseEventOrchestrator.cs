@@ -1,5 +1,8 @@
+using CourseLibrary.Application.Abstractions.Serialization;
+using CourseLibrary.Application.Abstractions.Serializers;
 using CourseLibrary.Domain.Events;
 using CourseLibrary.EventConsumer.Core;
+using CourseLibrary.Infrastructure.Serializers;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.DurableTask;
 using Microsoft.Extensions.Logging;
@@ -14,7 +17,6 @@ internal sealed class CourseEventOrchestrator
     {
         var logger =
             context.CreateReplaySafeLogger<CourseEventOrchestrator>();
-
         using var scope = logger.BeginScope(
             new Dictionary<string, object?>
             {
@@ -24,7 +26,7 @@ internal sealed class CourseEventOrchestrator
             });
 
         var orchestrationInput =
-            context.GetInput<OrchestrationInput<CourseEvent>>();
+            context.GetInput<OrchestrationInput>();
 
         if (orchestrationInput?.Event is null)
         {
@@ -37,7 +39,7 @@ internal sealed class CourseEventOrchestrator
         }
 
         var orchestrationContext =
-            new OrchestrationContext<CourseEvent>
+            new OrchestrationContext
             {
                 Event = orchestrationInput.Event,
                 InstanceId = context.InstanceId,
@@ -53,7 +55,7 @@ internal sealed class CourseEventOrchestrator
                 nameof(CourseEventStartActivity),
                 orchestrationContext);
 
-        var orchestrationActivityInput = new OrchestrationActivityInput<CourseEvent>
+        var orchestrationActivityInput = new OrchestrationActivityInput
         {
             Event = orchestrationInput.Event,
             ParentActivityId = parentActivityId

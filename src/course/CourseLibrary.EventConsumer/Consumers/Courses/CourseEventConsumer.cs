@@ -153,9 +153,9 @@ internal sealed class CourseEventConsumer(
                 return;
             }
 
-            var orchestrationInput = new OrchestrationInput<CourseEvent>
+            var orchestrationInput = new OrchestrationInput
             {
-                Event = courseEvent,
+                Event = serializer.Serialize(courseEvent),
                 ParentTraceParent =
                 InfraTraces.ServiceBusTraceContext.GetTraceParent(message),
                 ParentTraceState =

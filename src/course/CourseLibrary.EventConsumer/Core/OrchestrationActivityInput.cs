@@ -1,7 +1,7 @@
 ﻿namespace CourseLibrary.EventConsumer.Core;
 
-internal class OrchestrationActivityInput<T>
+internal class OrchestrationActivityInput
 {
-    public T Event { get; init; } = default!;
+    public byte[] Event { get; init; } = default!;
     public string? ParentActivityId { get; init; }
 }

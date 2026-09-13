@@ -1,4 +1,6 @@
-﻿using CourseLibrary.Domain.Events;
+﻿using CourseLibrary.Application.Abstractions.Serialization;
+using CourseLibrary.Application.Abstractions.Serializers;
+using CourseLibrary.Domain.Events;
 using CourseLibrary.EventConsumer.Configuration.Observability.Traces;
 using CourseLibrary.EventConsumer.Core;
 using Microsoft.Azure.Functions.Worker;
@@ -8,18 +10,22 @@ using System.Diagnostics;
 namespace CourseLibrary.EventConsumer.Consumers.Courses;
 
 internal sealed class CourseEventStartActivity(
+    ISerializerFactory serializerFactory,
     ILogger<CourseEventStartActivity> logger)
 {
+
+    private readonly ISerializer<CourseEvent> serializer = serializerFactory.Create<CourseEvent>(SerializerType.Json);
     [Function(nameof(CourseEventStartActivity))]
     public Task<string?> RunAsync(
-        [ActivityTrigger] OrchestrationContext<CourseEvent> input)
+        [ActivityTrigger] OrchestrationContext input)
     {
         var beforeActivityInstance = Activity.Current;
+        var courseEvent = serializer.Deserialize(input.Event);
         try
         {
             // Clear the current activity context to avoid propagating the orchestration activity
             Activity.Current = null;
-            var courseEvent = input.Event;
+            
             using var activity = ActivitySources.StartActivity(
                 "activity.course-event",
                 ActivityKind.Internal,
@@ -78,7 +84,7 @@ internal sealed class CourseEventStartActivity(
             logger.LogError(
                 ex,
                 "Error processing CourseEvent {EventId} in orchestration {InstanceId}.",
-                input.Event.EventId,
+                courseEvent.EventId,
                 input.InstanceId);
             throw;
         }
