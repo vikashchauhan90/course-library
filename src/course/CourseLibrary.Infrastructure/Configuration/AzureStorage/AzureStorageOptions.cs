@@ -4,4 +4,6 @@ public sealed class AzureStorageOptions
 {
     public const string SectionName = "AzureStorage";
     public string? ConnectionString { get; init; }
+
+    public string DqlMessageTableName { get; init; } = "DqlMessages";
 }

@@ -64,10 +64,14 @@ public static class CosmosRepositoryExtensions
         services.AddSingleton<ICourseRepository, CosmosCourseRepository>();
         services.AddSingleton<ICourseAuditRepository, CosmosCourseAuditRepository>();
         services.AddSingleton<IDiscussionRepository, CosmosDiscussionRepository>();
-        services.AddHostedService<CosmosContainerInitializer>();
+        
     }
 
-
+    public static void AddCosmosContainerInitializer(
+        this IServiceCollection services)
+    {
+        services.AddHostedService<CosmosContainerInitializer>();
+    }
     public static IServiceCollection AddCosmosDocumentConfiguration<TDocument, TConfiguration>(
     this IServiceCollection services)
     where TDocument : class
@@ -79,6 +83,9 @@ public static class CosmosRepositoryExtensions
 
         services.AddSingleton<
             ICosmosDocumentConfiguration<TDocument>>(sp =>
+            sp.GetRequiredService<TConfiguration>());
+
+        services.AddSingleton<ICosmosDocumentConfiguration>(sp =>
             sp.GetRequiredService<TConfiguration>());
 
         return services;

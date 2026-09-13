@@ -41,6 +41,19 @@ public static class AzureStorageExtensions
             return new TableServiceClient(options.ConnectionString);
         });
 
+        services.AddKeyedSingleton<TableClient>("DqlMessages", (sp, _) =>
+        {
+            var options = sp
+                .GetRequiredService<IOptions<AzureStorageOptions>>()
+                .Value;
+
+            var tableServiceClient = sp
+                .GetRequiredService<TableServiceClient>();
+
+            return tableServiceClient.GetTableClient(
+                options.DqlMessageTableName);
+        });
+
         services.AddSingleton<IDqlMessageStore, AzureTableDqlMessageStore>();
 
         return services;

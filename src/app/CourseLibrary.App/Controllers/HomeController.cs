@@ -97,12 +97,14 @@ public sealed class HomeController(ICourseApiClient courseApiClient) : Controlle
     public async Task<IActionResult> Create(CourseFormViewModel model, CancellationToken cancellationToken)
     {
         if (!ModelState.IsValid) return View(model);
+        var userId = User.FindFirstValue("sub");
+        var userName = User.FindFirstValue("email");
         await courseApiClient.CreateAsync(
             new CreateCourseRequest(
                 model.Title,
                 model.Description,
-                User.Identity?.Name ?? string.Empty,
-                User.Identity?.Name ?? string.Empty),
+                userId!,
+                userName!),
             cancellationToken);
         return RedirectToAction(nameof(Mine));
     }

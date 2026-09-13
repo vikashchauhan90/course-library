@@ -1,12 +1,13 @@
-﻿using CourseLibrary.Application.Abstractions.Messaging;
+﻿using Azure.Data.Tables;
+using CourseLibrary.Application.Abstractions.Messaging;
 using CourseLibrary.Domain.Events;
-using Azure.Data.Tables;
+using Microsoft.Extensions.DependencyInjection;
 
 
 namespace CourseLibrary.Infrastructure.Messaging.AzureTable;
 
 internal sealed class AzureTableDqlMessageStore(
-    TableClient tableClient)
+     [FromKeyedServices("DqlMessages")] TableClient tableClient)
     : IDqlMessageStore
 {
     public async Task StoreAsync(

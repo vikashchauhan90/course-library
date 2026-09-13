@@ -17,6 +17,6 @@ public sealed class CourseEventHandler(
     {
         var ev = notification.Event;
         logger.CourseEvent(ev.CourseId, ev.EventType);
-        await eventPublisher.PublishAsync("CourseEvent",ev, ct);
+        await eventPublisher.PublishAsync("CourseEvent", ev, ct);
     }
 }

@@ -1,13 +1,14 @@
 using CourseLibrary.Infrastructure.Configuration.Cosmos;
-using CourseLibrary.Infrastructure.Cosmos.Configurations;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 
+namespace CourseLibrary.Infrastructure.Cosmos.Configurations;
+
 internal sealed class CosmosContainerInitializer(
     CosmosClient client,
     IOptions<CosmosOptions> options,
-    IEnumerable<ICosmosDocumentConfiguration<object>> configurations)
+    IEnumerable<ICosmosDocumentConfiguration> configurations)
     : IHostedService
 {
     public async Task StartAsync(CancellationToken cancellationToken)
@@ -29,7 +30,7 @@ internal sealed class CosmosContainerInitializer(
 
     private static Task CreateContainerAsync(
         Database database,
-        ICosmosDocumentConfiguration<object> configuration,
+        ICosmosDocumentConfiguration configuration,
         CancellationToken cancellationToken)
     {
         return database.CreateContainerIfNotExistsAsync(

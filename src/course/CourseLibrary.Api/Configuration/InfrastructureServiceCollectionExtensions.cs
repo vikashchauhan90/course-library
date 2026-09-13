@@ -66,6 +66,8 @@ public static class InfrastructureServiceCollectionExtensions
         {
             options.Level = CompressionLevel.SmallestSize;
         });
+
+        services.AddCosmosContainerInitializer();
         return services;
     }
 }
