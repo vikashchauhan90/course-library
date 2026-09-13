@@ -2,7 +2,7 @@ using CourseLibrary.Domain.Abstractions;
 
 namespace CourseLibrary.Domain.Entities;
 
-public sealed record CourseAuditEntry : IEntity
+public sealed record CourseAuditEntry : IEntity<string>, IAuditableEntity
 {
     public required string Id { get; init; }
     public required string CourseId { get; init; }
@@ -11,4 +11,7 @@ public sealed record CourseAuditEntry : IEntity
     public DateTimeOffset OccurredAt { get; init; } = DateTimeOffset.UtcNow;
     public IReadOnlyList<AuditEntry>? ChangedProperties { get; init; }
     public string? ActorId { get; init; }
+    public required DateTimeOffset CreatedAt { get; init; }
+    public DateTimeOffset? UpdatedAt { get; init; }
+    public DateTimeOffset? DeletedAt { get; init; }
 }

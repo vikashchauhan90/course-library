@@ -58,7 +58,7 @@ public sealed class UpdateCourseCommandHandler(
             EventId = Guid.NewGuid().ToString(),
             CourseId = updated.Id,
             ActorId = requestContext.UserId ?? "unknown",
-            OccurredAt = updated.UpdatedAt,
+            OccurredAt = updated.UpdatedAt ?? DateTimeOffset.UtcNow,
             EventType = CourseEventType.Updated,
             ChangedProperties = GetChangedProperties(course, updated),
         };

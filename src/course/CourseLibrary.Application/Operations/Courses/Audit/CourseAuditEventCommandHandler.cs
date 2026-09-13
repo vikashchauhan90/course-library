@@ -21,7 +21,8 @@ public sealed class CourseAuditEventCommandHandler(
             EventId = command.Event.EventId,
             ChangedProperties = command.Event.ChangedProperties,
             ActorId = command.Event.ActorId,
-            OccurredAt = command.Event.OccurredAt
+            OccurredAt = command.Event.OccurredAt,
+            CreatedAt = DateTimeOffset.UtcNow
         }, ct);
 
         logger.CreatedCourseAudit(command.Event.CourseId, command.Event.EventType);

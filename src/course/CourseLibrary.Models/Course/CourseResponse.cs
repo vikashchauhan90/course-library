@@ -7,7 +7,7 @@ public sealed record CourseResponse(
     string AuthorId,
     string AuthorName,
     DateTimeOffset CreatedAt,
-    DateTimeOffset UpdatedAt,
+    DateTimeOffset? UpdatedAt,
     DateTimeOffset? RetiredAt,
     DateTimeOffset? DeletedAt,
     IReadOnlyList<CommentResponse> Comments,

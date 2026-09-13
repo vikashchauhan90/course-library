@@ -6,4 +6,4 @@ public sealed record DiscussionResponse(
     string Title,
     string Description,
     DateTimeOffset CreatedAt,
-    DateTimeOffset UpdatedAt);
+    DateTimeOffset? UpdatedAt);

@@ -20,7 +20,7 @@
         foreach (var course in Model)
         {
             <article class="course-card">
-                <p class="eyebrow">Updated @course.UpdatedAt.ToLocalTime().ToString("d")</p>
+                <p class="eyebrow">Updated @course.UpdatedAt?.ToLocalTime().ToString("d")</p>
                 <h2>@course.Title</h2>
                 <p>@course.Description</p>
                 <div class="card-actions">
