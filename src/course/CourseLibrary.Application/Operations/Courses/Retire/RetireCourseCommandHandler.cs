@@ -18,15 +18,16 @@ public sealed class RetireCourseCommandHandler(
 {
     public async Task<CourseResponse?> HandleAsync(RetireCourseCommand command, CancellationToken ct)
     {
-        logger.RetiringCourse(command.CourseId);
+        var courseId = (CourseId)Guid.Parse(command.CourseId);
+        logger.RetiringCourse(courseId);
         var userId = requestContext.UserId
             ?? throw new DomainErrors.UnauthorizedException();
 
 
-        var course = await repository.GetByIdAsync(command.CourseId, ct);
+        var course = await repository.GetByIdAsync(courseId, ct);
         if (course is null)
         {
-            logger.CourseNotFoundForRetirement(command.CourseId);
+            logger.CourseNotFoundForRetirement(courseId);
             return null;
         }
 

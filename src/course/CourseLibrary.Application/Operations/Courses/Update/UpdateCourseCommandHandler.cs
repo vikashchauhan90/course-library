@@ -21,12 +21,13 @@ public sealed class UpdateCourseCommandHandler(
 {
     public async Task<CourseResponse?> HandleAsync(UpdateCourseCommand command, CancellationToken ct)
     {
-        logger.UpdatingCourse(command.Id);
+        var courseId = (CourseId)Guid.Parse(command.Id);
+        logger.UpdatingCourse(courseId);
 
         var userId = requestContext.UserId
             ?? throw new DomainErrors.UnauthorizedException();
 
-        var course = await repository.GetByIdAsync(command.Id, ct);
+        var course = await repository.GetByIdAsync(courseId, ct);
         if (course is null)
         {
             logger.LogWarning(

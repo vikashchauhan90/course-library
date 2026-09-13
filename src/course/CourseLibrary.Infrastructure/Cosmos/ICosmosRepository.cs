@@ -3,11 +3,11 @@ using Microsoft.Azure.Cosmos;
 
 namespace CourseLibrary.Infrastructure.Cosmos;
 
-public interface ICosmosRepository<TDocument>
+public interface ICosmosRepository<TDocument, TKey>
     where TDocument : class
 {
     Task<TDocument?> GetByIdAsync(
-        string id,
+        TKey id,
         string partitionKey,
         CancellationToken cancellationToken = default);
 
@@ -28,7 +28,7 @@ public interface ICosmosRepository<TDocument>
         CancellationToken cancellationToken = default);
 
     Task<bool> DeleteAsync(
-        string id,
+        TKey id,
         string partitionKey,
         CancellationToken cancellationToken = default);
 }

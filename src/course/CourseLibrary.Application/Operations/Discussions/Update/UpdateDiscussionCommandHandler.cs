@@ -1,5 +1,6 @@
 using MediatorForge.Abstractions;
 using CourseLibrary.Application.Abstractions.Repositories;
+using CourseLibrary.Domain.ValueObjects;
 using Microsoft.Extensions.Logging;
 using CourseLibrary.Models.Course;
 
@@ -10,7 +11,9 @@ public sealed class UpdateDiscussionCommandHandler(IDiscussionRepository reposit
     public async Task<DiscussionResponse> HandleAsync(UpdateDiscussionCommand command, CancellationToken ct)
     {
         logger.UpdatingDiscussion(command.Id);
-        var existing = await repository.GetByIdAsync(command.Id, command.CourseId, ct);
+        var discussionId = (DiscussionId)Guid.Parse(command.Id);
+        var courseId = (CourseId)Guid.Parse(command.CourseId);
+        var existing = await repository.GetByIdAsync(discussionId, courseId, ct);
         if (existing is null)
             throw new KeyNotFoundException($"Discussion '{command.Id}' not found");
 

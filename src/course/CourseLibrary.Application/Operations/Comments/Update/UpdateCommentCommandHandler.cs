@@ -1,6 +1,7 @@
 using MediatorForge.Abstractions;
 using CourseLibrary.Application.Abstractions.Repositories;
 using CourseLibrary.Application.Operations.Comments;
+using CourseLibrary.Domain.ValueObjects;
 using Microsoft.Extensions.Logging;
 using CourseLibrary.Models.Course;
 
@@ -11,7 +12,9 @@ public sealed class UpdateCommentCommandHandler(ICommentRepository repository, I
     public async Task<CommentResponse> HandleAsync(UpdateCommentCommand command, CancellationToken ct)
     {
         logger.UpdatingComment(command.Id);
-        var existing = await repository.GetByIdAsync(command.Id, command.CourseId, ct);
+        var commentId = (CommentId)Guid.Parse(command.Id);
+        var courseId = (CourseId)Guid.Parse(command.CourseId);
+        var existing = await repository.GetByIdAsync(commentId, courseId, ct);
         if (existing is null)
             throw new KeyNotFoundException($"Comment '{command.Id}' not found");
 

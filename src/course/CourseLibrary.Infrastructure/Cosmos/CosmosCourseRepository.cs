@@ -1,5 +1,6 @@
 using CourseLibrary.Application.Abstractions.Repositories;
 using CourseLibrary.Domain.Entities;
+using CourseLibrary.Domain.ValueObjects;
 using CourseLibrary.Models;
 using CourseLibrary.Models.Course;
 
@@ -7,14 +8,14 @@ namespace CourseLibrary.Infrastructure.Cosmos;
 
 public sealed class CosmosCourseRepository : ICourseRepository
 {
-    private readonly ICosmosRepository<Course> _repository;
+    private readonly ICosmosRepository<Course, CourseId> _repository;
 
-    public CosmosCourseRepository(ICosmosRepository<Course> repository)
+    public CosmosCourseRepository(ICosmosRepository<Course, CourseId> repository)
     {
         _repository = repository;
     }
 
-    public async Task<Course?> GetByIdAsync(string courseId, CancellationToken cancellationToken = default)
+    public async Task<Course?> GetByIdAsync(CourseId courseId, CancellationToken cancellationToken = default)
     {
         var query = new Microsoft.Azure.Cosmos.QueryDefinition(
             "SELECT TOP 1 * FROM c WHERE c.id = @courseId")
@@ -25,7 +26,7 @@ public sealed class CosmosCourseRepository : ICourseRepository
     }
 
     public Task<PageResult<Course>> GetByAuthorAsync(
-        string authorId,
+        AuthorId authorId,
         int pageSize,
         string? continuationToken,
         CancellationToken cancellationToken = default)
@@ -36,7 +37,7 @@ public sealed class CosmosCourseRepository : ICourseRepository
 
         return _repository.QueryPageAsync(
             query,
-            partitionKey: authorId,
+            partitionKey: authorId.ToString(),
             continuationToken,
             pageSize,
             cancellationToken);
@@ -89,6 +90,6 @@ public sealed class CosmosCourseRepository : ICourseRepository
     public Task UpsertAsync(Course course, CancellationToken cancellationToken = default)
         => _repository.UpsertAsync(course, cancellationToken);
 
-    public Task<bool> DeleteAsync(string courseId, string partitionKey, CancellationToken cancellationToken = default)
-        => _repository.DeleteAsync(courseId, partitionKey, cancellationToken);
+    public Task<bool> DeleteAsync(CourseId courseId, AuthorId partitionKey, CancellationToken cancellationToken = default)
+        => _repository.DeleteAsync(courseId, partitionKey.ToString(), cancellationToken);
 }

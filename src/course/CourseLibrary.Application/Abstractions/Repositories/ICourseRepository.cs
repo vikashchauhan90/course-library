@@ -19,5 +19,5 @@ public interface ICourseRepository
         string? continuationToken,
         CancellationToken cancellationToken = default);
     Task UpsertAsync(Course course, CancellationToken cancellationToken = default);
-    Task<bool> DeleteAsync(string courseId, string partitionKey, CancellationToken cancellationToken = default);
+    Task<bool> DeleteAsync(CourseId courseId, AuthorId partitionKey, CancellationToken cancellationToken = default);
 }

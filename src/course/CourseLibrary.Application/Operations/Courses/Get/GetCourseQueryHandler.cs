@@ -1,6 +1,7 @@
 using CourseLibrary.Application.Abstractions.Repositories;
 using CourseLibrary.Application.Operations.Comments;
 using CourseLibrary.Application.Operations.Discussions;
+using CourseLibrary.Domain.ValueObjects;
 using CourseLibrary.Models.Course;
 using MediatorForge.Abstractions;
 using Microsoft.Extensions.Logging;
@@ -21,7 +22,8 @@ public sealed class GetCourseQueryHandler(
             "Retrieving course '{CourseId}' with comments and discussions.",
             query.CourseId);
 
-        var course = await courseRepository.GetByIdAsync(query.CourseId, ct);
+        var courseId = (CourseId)Guid.Parse(query.CourseId);
+        var course = await courseRepository.GetByIdAsync(courseId, ct);
         if (course is null)
         {
             logger.LogWarning(
@@ -31,8 +33,8 @@ public sealed class GetCourseQueryHandler(
             return null;
         }
 
-        var commentsTask = commentRepository.GetByCourseAsync(course.Id.ToString(), ct);
-        var discussionsTask = discussionRepository.GetByCourseAsync(course.Id.ToString(), ct);
+        var commentsTask = commentRepository.GetByCourseAsync(course.Id, ct);
+        var discussionsTask = discussionRepository.GetByCourseAsync(course.Id, ct);
         await Task.WhenAll(commentsTask, discussionsTask);
 
         return CourseMapper.ToResponse(

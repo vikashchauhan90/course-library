@@ -1,6 +1,7 @@
 using MediatorForge.Abstractions;
 using CourseLibrary.Application.Abstractions.Repositories;
 using CourseLibrary.Application.Operations.Discussions;
+using CourseLibrary.Domain.ValueObjects;
 using Microsoft.Extensions.Logging;
 
 namespace CourseLibrary.Application.Operations.Discussions.Delete;
@@ -9,8 +10,10 @@ public sealed class DeleteDiscussionCommandHandler(IDiscussionRepository reposit
 {
     public async Task<bool> HandleAsync(DeleteDiscussionCommand command, CancellationToken ct)
     {
+        var discussionId = (DiscussionId)Guid.Parse(command.DiscussionId);
+        var courseId = (CourseId)Guid.Parse(command.CourseId);
         logger.DeletingDiscussion(command.DiscussionId);
-        if (!await repository.DeleteAsync(command.DiscussionId, command.CourseId, ct))
+        if (!await repository.DeleteAsync(discussionId, courseId, ct))
         {
             logger.DiscussionNotFoundForDeletion(command.DiscussionId);
             return false;

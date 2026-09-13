@@ -12,12 +12,13 @@ using System.Net;
 
 namespace CourseLibrary.Infrastructure.Cosmos;
 
-public class CosmosRepository<TDocument>
-    : ICosmosRepository<TDocument>
+public class CosmosRepository<TDocument, TKey>
+    : ICosmosRepository<TDocument, TKey>
     where TDocument : class
+    where TKey : notnull
 {
     private readonly Lazy<Container> _container;
-    private readonly ILogger<CosmosRepository<TDocument>> _logger;
+    private readonly ILogger<CosmosRepository<TDocument, TKey>> _logger;
     private readonly ICosmosDocumentConfiguration<TDocument> _configuration;
     private readonly CosmosOptions _options;
     private readonly CosmosClient _client;
@@ -25,7 +26,7 @@ public class CosmosRepository<TDocument>
         CosmosClient client,
         IOptions<CosmosOptions> options,
         ICosmosDocumentConfiguration<TDocument> configuration,
-        ILogger<CosmosRepository<TDocument>> logger)
+        ILogger<CosmosRepository<TDocument, TKey>> logger)
     {
         ArgumentNullException.ThrowIfNull(client);
         ArgumentNullException.ThrowIfNull(options);
@@ -58,11 +59,10 @@ public class CosmosRepository<TDocument>
 
 
     public async Task<TDocument?> GetByIdAsync(
-        string id,
+        TKey id,
         string partitionKey,
         CancellationToken cancellationToken = default)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(id);
         ArgumentException.ThrowIfNullOrWhiteSpace(partitionKey);
 
         using var activity =
@@ -78,7 +78,7 @@ public class CosmosRepository<TDocument>
         try
         {
             var response = await Container.ReadItemAsync<TDocument>(
-                id,
+                id.ToString(),
                 new PartitionKey(partitionKey),
                 cancellationToken: cancellationToken);
 
@@ -97,7 +97,7 @@ public class CosmosRepository<TDocument>
             _logger.DocumentNotFound(
                  "ReadItem",
                  _configuration.ContainerName,
-                 id);
+                 id.ToString() ?? string.Empty);
 
 
             return default;
@@ -317,11 +317,10 @@ public class CosmosRepository<TDocument>
     }
 
     public async Task<bool> DeleteAsync(
-        string id,
+        TKey id,
         string partitionKey,
         CancellationToken cancellationToken = default)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(id);
         ArgumentException.ThrowIfNullOrWhiteSpace(partitionKey);
 
         using var activity =
@@ -338,7 +337,7 @@ public class CosmosRepository<TDocument>
         {
             var response =
            await Container.DeleteItemAsync<TDocument>(
-               id,
+               id.ToString(),
                new PartitionKey(partitionKey),
                cancellationToken: cancellationToken);
 
@@ -357,7 +356,7 @@ public class CosmosRepository<TDocument>
             _logger.DocumentNotFound(
                  "DeleteItem",
                  _configuration.ContainerName,
-                 id);
+                 id.ToString() ?? string.Empty);
 
             return false;
         }

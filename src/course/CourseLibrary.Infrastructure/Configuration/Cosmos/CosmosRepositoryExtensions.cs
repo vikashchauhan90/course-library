@@ -59,7 +59,7 @@ public static class CosmosRepositoryExtensions
         services.AddCosmosDocumentConfiguration<Discussion, DiscussionConfiguration>();
 
         // Register repositories
-        services.AddSingleton(typeof(ICosmosRepository<>), typeof(CosmosRepository<>));
+        services.AddSingleton(typeof(ICosmosRepository<,>), typeof(CosmosRepository<,>));
         services.AddSingleton<ICommentRepository, CosmosCommentRepository>();
         services.AddSingleton<ICourseRepository, CosmosCourseRepository>();
         services.AddSingleton<ICourseAuditRepository, CosmosCourseAuditRepository>();
