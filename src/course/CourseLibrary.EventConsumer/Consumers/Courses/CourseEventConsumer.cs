@@ -34,6 +34,17 @@ internal sealed class CourseEventConsumer(
         var propagationContext =
             InfraTraces.ServiceBusTraceContext.Extract(message);
 
+        using var scope = logger.BeginScope(
+            new Dictionary<string, object?>
+            {
+                ["messaging.system"] = "servicebus",
+                ["messaging.destination"] = "CourseEvent",
+                ["messaging.operation"] = "process",
+                ["messaging.message_id"] = message.MessageId,
+                ["messaging.correlation_id"] = message.CorrelationId,
+                ["messaging.delivery_count"] = message.DeliveryCount
+            });
+
         using var activity = ActivitySources.StartActivity(
             "course.event.process",
             ActivityKind.Consumer,
@@ -48,8 +59,34 @@ internal sealed class CourseEventConsumer(
             if (courseEvent is null)
             {
                 Meters.DeserializationFailures.Add(1, new TagList { { "event_type", "CourseEvent" } });
-                activity?.SetStatus(ActivityStatusCode.Error, "Invalid event payload");
-                logger.LogWarning("Received invalid CourseEvent message {MessageId}.", message.MessageId);
+                const string deadLetterReason = "InvalidCourseEvent";
+                const string deadLetterDescription =
+                    "The message body could not be deserialized as a CourseEvent.";
+
+                activity?.SetTag("messaging.destination", "CourseEvent/$DeadLetterQueue");
+                activity?.SetTag("messaging.dead_letter.reason", deadLetterReason);
+                activity?.SetStatus(ActivityStatusCode.Error, deadLetterReason);
+
+                logger.LogWarning(
+                    "Dead-lettering invalid CourseEvent message {MessageId} with reason {DeadLetterReason}.",
+                    message.MessageId,
+                    deadLetterReason);
+
+                await messageActions.DeadLetterMessageAsync(
+                    message,
+                    propertiesToModify: null,
+                    deadLetterReason: deadLetterReason,
+                    deadLetterErrorDescription: deadLetterDescription,
+                    cancellationToken: cancellationToken);
+
+                Meters.ServiceBusMessagesDeadLettered.Add(
+                    1,
+                    new TagList
+                    {
+                        { "event_type", "CourseEvent" },
+                        { "reason", deadLetterReason }
+                    });
+
                 return;
             }
 

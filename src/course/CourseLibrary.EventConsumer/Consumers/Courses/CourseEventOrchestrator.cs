@@ -15,6 +15,14 @@ internal sealed class CourseEventOrchestrator
         var logger =
             context.CreateReplaySafeLogger<CourseEventOrchestrator>();
 
+        using var scope = logger.BeginScope(
+            new Dictionary<string, object?>
+            {
+                ["durable.orchestration.name"] = nameof(CourseEventOrchestrator),
+                ["durable.instance_id"] = context.InstanceId,
+                ["durable.is_replaying"] = context.IsReplaying
+            });
+
         var orchestrationInput =
             context.GetInput<OrchestrationInput<CourseEvent>>();
 

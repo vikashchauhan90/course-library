@@ -1,4 +1,5 @@
-﻿using CourseLibrary.Infrastructure.Configuration.Caching;
+﻿using CourseLibrary.Infrastructure.Configuration.AzureStorage;
+using CourseLibrary.Infrastructure.Configuration.Caching;
 using CourseLibrary.Infrastructure.Configuration.Cosmos;
 using CourseLibrary.Infrastructure.Configuration.Idempotency;
 using CourseLibrary.Infrastructure.Configuration.Resilience;
@@ -21,6 +22,7 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddCosmosDatabase(configuration);
         services.AddRepositories();
         services.AddCourseLibraryHttpResilience(configuration);
+        services.AddCourseLibraryAzureStorage(configuration);
 
         return services;
     }

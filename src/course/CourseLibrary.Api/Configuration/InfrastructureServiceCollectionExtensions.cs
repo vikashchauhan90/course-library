@@ -30,6 +30,7 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddCourseLibraryRequestContext();
         services.AddCourseLibraryServiceBus(configuration);
         services.AddCourseLibraryAzureStorage(configuration);
+        services.AddCourseLibraryAzureStorage(configuration);
         services.AddCourseLibraryDataProtection(configuration);
         services.AddCourseLibraryOutputCache();
         services.AddResponseCaching(options =>
