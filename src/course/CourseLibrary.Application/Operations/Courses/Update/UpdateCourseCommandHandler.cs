@@ -64,7 +64,9 @@ public sealed class UpdateCourseCommandHandler(
             EventType = CourseEventType.Updated,
             ChangedProperties = GetChangedProperties(course, updated),
         };
-        await eventDispatcher.PublishAsync(
+
+        // Fire and forget, we don't want to block the response to the client on this
+        _ = eventDispatcher.PublishAsync(
             courseEvent,
             ct);
         return CourseMapper.ToResponse(updated);

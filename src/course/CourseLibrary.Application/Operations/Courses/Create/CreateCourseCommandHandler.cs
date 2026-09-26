@@ -47,7 +47,8 @@ public sealed class CreateCourseCommandHandler(
         };
 
         // Publish course created event for downstream consumers
-        await eventDispatcher.PublishAsync(
+        // Fire and forget, we don't want to block the response to the client on this
+        _ = eventDispatcher.PublishAsync(
             courseEvent,
             ct);
 

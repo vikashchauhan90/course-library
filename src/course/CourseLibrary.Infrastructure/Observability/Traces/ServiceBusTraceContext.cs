@@ -8,8 +8,8 @@ namespace CourseLibrary.Infrastructure.Observability.Traces;
 public static class ServiceBusTraceContext
 {
     public const string DiagnosticId = "Diagnostic-Id";
-    public const string TraceParentHeader = "traceparent";
-    public const string TraceStateHeader = "tracestate";
+    public const string TraceParent = "traceparent";
+    public const string TraceState = "tracestate";
     public const string EventId = "Id";
     public const string EventType = "Type";
     public const string EventOccurredAt = "OccurredAt";
@@ -49,7 +49,7 @@ public static class ServiceBusTraceContext
         }
 
         if (carrier.TryGetValue(
-                TraceParentHeader,
+                TraceParent,
                 out var traceParent))
         {
             // Azure Service Bus correlation.
@@ -80,7 +80,7 @@ public static class ServiceBusTraceContext
 
         return TryGetApplicationProperty(
             message,
-            TraceParentHeader);
+            TraceParent);
     }
 
     public static string? GetTraceState(
@@ -90,7 +90,7 @@ public static class ServiceBusTraceContext
 
         return TryGetApplicationProperty(
             message,
-            TraceStateHeader);
+            TraceState);
     }
 
     public static string? GetDiagnosticId(

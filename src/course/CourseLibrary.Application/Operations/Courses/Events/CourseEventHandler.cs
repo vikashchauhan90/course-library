@@ -8,7 +8,7 @@ namespace CourseLibrary.Application.Operations.Courses.Events;
 
 public sealed class CourseEventHandler(
     IEventPublisher eventPublisher,
-    ILogger<CourseEventHandler> logger) 
+    ILogger<CourseEventHandler> logger)
     : IEventNotificationHandler<CourseEvent>
 {
 
@@ -18,6 +18,18 @@ public sealed class CourseEventHandler(
     {
         var ev = notification.Event;
         logger.CourseEvent(ev.CourseId, ev.EventType);
-        await eventPublisher.PublishAsync("CourseEvent", ev, ct);
+        try
+        {
+            await eventPublisher.PublishAsync("CourseEvent", ev, ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(
+                ex,
+                "Failed to publish course event for course '{CourseId}' with event type '{EventType}'.",
+                ev.CourseId,
+                ev.EventType);
+        }
+
     }
 }

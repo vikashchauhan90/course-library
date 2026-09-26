@@ -29,6 +29,12 @@ internal sealed class ServiceBusEventPublisher(
 
         try
         {
+            logger.LogInformation(
+                "Current trace context: TraceId={TraceId}, SpanId={SpanId}, ParentSpanId={ParentSpanId}",
+                Activity.Current?.TraceId.ToString(),
+                Activity.Current?.SpanId.ToString(),
+                Activity.Current?.ParentSpanId.ToString());
+
             var propagationActivity = activity ?? Activity.Current;
             var eventType = typeof(TEvent).Name;
 

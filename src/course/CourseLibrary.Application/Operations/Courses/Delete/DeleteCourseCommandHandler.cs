@@ -70,7 +70,8 @@ public sealed class DeleteCourseCommandHandler(
                 ],
         };
 
-        await eventDispatcher.PublishAsync(
+        // Fire and forget, we don't want to block the response to the client on this
+        _ = eventDispatcher.PublishAsync(
             courseEvent,
             ct);
         return true;

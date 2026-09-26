@@ -68,7 +68,9 @@ public sealed class RetireCourseCommandHandler(
                     new() { Action = AuditAction.Updated, Name = nameof(retired.UpdatedAt), Value = retired.UpdatedAt, ValueTypeName = retired.UpdatedAt?.GetType().Name }
                ],
         };
-        await eventDispatcher.PublishAsync(
+
+        // Fire and forget, we don't want to block the response to the client on this
+        _ = eventDispatcher.PublishAsync(
             courseEvent,
             ct);
 
