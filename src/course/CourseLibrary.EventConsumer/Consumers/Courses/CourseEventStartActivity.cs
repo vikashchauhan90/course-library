@@ -24,8 +24,7 @@ internal sealed class CourseEventStartActivity(
             using var activity = ActivitySources.StartActivity(
                 "activity.course-event",
                 ActivityKind.Internal,
-                input.ParentTraceParent,
-                input.ParentTraceState);
+                string.Empty);
 
             if (activity is null)
             {

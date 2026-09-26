@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using CourseLibrary.Infrastructure.Configuration.Messaging;
+using System.Diagnostics;
 
 namespace CourseLibrary.EventConsumer.Core;
 
@@ -10,6 +11,5 @@ internal class OrchestrationContext<T>
     public string OrchestrationName { get; init; } = default!;
     public DateTimeOffset StartTime { get; init; } = default!;
     public bool IsReplaying { get; init; } = default!;
-    public string? ParentTraceParent { get; init; }
-    public string? ParentTraceState { get; init; }
+    public EventMetadata Metadata { get; init; } = default!;
 }
