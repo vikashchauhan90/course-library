@@ -1,7 +1,12 @@
 <Solution>
-  <Folder Name="/src/" />
+  <Folder Name="/src/">
+    <Project Path="src/platform/Platform.Host/Platform.Host.csproj" Id="19c756fb-74a3-430e-adcb-738ea548c9a2" />
+  </Folder>
   <Folder Name="/src/app/">
     <Project Path="src/app/CourseLibrary.App/CourseLibrary.App.csproj" />
+  </Folder>
+  <Folder Name="/src/Core/">
+    <Project Path="CourseLibrary.Core.Results/CourseLibrary.Core.Results.csproj" Id="cd6adb28-8352-4a60-b33a-76fdac54c483" />
   </Folder>
   <Folder Name="/src/course/">
     <Project Path="src/course/CourseLibrary.Client/CourseLibrary.Client.csproj" />
@@ -22,7 +27,13 @@
     <Project Path="src/idp/CourseLibrary.Idp/CourseLibrary.Idp.csproj" Id="06331876-0944-4d94-a4a5-47852a30e649" />
   </Folder>
   <Folder Name="/src/platform/">
-    <Project Path="src/platform/Platform.Host/Platform.Host.csproj" Id="19c756fb-74a3-430e-adcb-738ea548c9a2" />
+    <Project Path="CourseLibrary.AspNetCore.OutputCaching/CourseLibrary.AspNetCore.OutputCaching.csproj" Id="04b375ad-7029-48fb-8b7d-54a405bf3e0a" />
+    <Project Path="CourseLibrary.Platform.Caching/CourseLibrary.Platform.Caching.csproj" Id="c6fde1ab-1f63-4560-960b-17c031af2fe1" />
+    <Project Path="CourseLibrary.Platform.DataProtection/CourseLibrary.Platform.DataProtection.csproj" Id="8ee8e6fd-c270-49bf-817a-9acf5a62a38f" />
+    <Project Path="CourseLibrary.Platform.Idempotency/CourseLibrary.Platform.Idempotency.csproj" Id="a30141bd-abda-4cad-9ef9-6e0592453ab5" />
+    <Project Path="CourseLibrary.Platform.Observability/CourseLibrary.Platform.Observability.csproj" Id="2a7f49b1-e6ed-4f1f-b6da-4de957862bda" />
+    <Project Path="CourseLibrary.Platform.Resilience/CourseLibrary.Platform.Resilience.csproj" Id="fbebf060-ee50-4cc5-aa60-3d7b837bc904" />
+    <Project Path="CourseLibrary.Platform.Serialization/CourseLibrary.Platform.Serialization.csproj" Id="1352a24b-5afa-4d10-98b1-defd370b5cae" />
   </Folder>
   <Folder Name="/tests/" />
   <Folder Name="/tools/" />
