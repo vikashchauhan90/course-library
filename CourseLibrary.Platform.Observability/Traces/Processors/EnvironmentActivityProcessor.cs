@@ -1,19 +1,23 @@
-﻿using OpenTelemetry;
-using System.Diagnostics;
+﻿using OpenTelemetry.Resources;
 using System.Runtime.InteropServices;
 
 namespace CourseLibrary.Platform.Observability.Traces.Processors;
 
-public sealed class EnvironmentActivityProcessor
-    : BaseProcessor<Activity>
+public static class EnvironmentResourceBuilderExtensions
 {
-    public override void OnStart(Activity activity)
+    public static ResourceBuilder AddCourseLibraryHostAttributes(
+        this ResourceBuilder resourceBuilder)
     {
-        activity.SetTag("host.name", Environment.MachineName);
-        activity.SetTag("process.id", Environment.ProcessId);
-        activity.SetTag("process.runtime", RuntimeInformation.FrameworkDescription);
-        activity.SetTag("os.description", RuntimeInformation.OSDescription);
-        activity.SetTag("os.architecture", RuntimeInformation.OSArchitecture.ToString());
-        activity.SetTag("process.architecture", RuntimeInformation.ProcessArchitecture.ToString());
+        ArgumentNullException.ThrowIfNull(resourceBuilder);
+
+        return resourceBuilder.AddAttributes(new Dictionary<string, object>
+        {
+            ["host.name"] = Environment.MachineName,
+            ["process.id"] = Environment.ProcessId,
+            ["process.runtime"] = RuntimeInformation.FrameworkDescription,
+            ["os.description"] = RuntimeInformation.OSDescription,
+            ["os.architecture"] = RuntimeInformation.OSArchitecture.ToString(),
+            ["process.architecture"] = RuntimeInformation.ProcessArchitecture.ToString()
+        });
     }
 }

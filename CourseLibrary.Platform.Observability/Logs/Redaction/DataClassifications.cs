@@ -6,37 +6,37 @@ public static class DataClassifications
 {
     public static readonly DataClassification Secret =
         new(
-            "Security",
-            "Secret");
+            DataClassificationCodes.SecurityCategory,
+            DataClassificationCodes.Secret);
 
 
     public static readonly DataClassification Email =
         new(
-            "Personal",
-            "Email");
+            DataClassificationCodes.PersonalCategory,
+            DataClassificationCodes.Email);
 
 
     public static readonly DataClassification Phone =
         new(
-            "Personal",
-            "Phone");
+            DataClassificationCodes.PersonalCategory,
+            DataClassificationCodes.Phone);
 
 
     public static readonly DataClassification CreditCard =
         new(
-            "Financial",
-            "CreditCard");
+            DataClassificationCodes.FinancialCategory,
+            DataClassificationCodes.CreditCard);
 
 
     public static readonly DataClassification PersonalData =
         new(
-            "Personal",
-            "General");
+            DataClassificationCodes.PersonalCategory,
+            DataClassificationCodes.PersonalData);
 
 
     public static readonly DataClassification Sensitive =
       new(
-          "Security",
-          "Sensitive");
+                    DataClassificationCodes.SecurityCategory,
+                    DataClassificationCodes.Sensitive);
 
 }

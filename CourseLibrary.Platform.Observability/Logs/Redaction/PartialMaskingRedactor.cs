@@ -7,6 +7,7 @@ public sealed class PartialMaskingRedactor : Redactor
 {
     private readonly int _prefixLength;
     private readonly int _suffixLength;
+    private readonly int _visibleLength;
     private readonly char _maskCharacter;
 
     public PartialMaskingRedactor(
@@ -14,31 +15,33 @@ public sealed class PartialMaskingRedactor : Redactor
         int suffixLength = 2,
         char maskCharacter = '*')
     {
+        ArgumentOutOfRangeException.ThrowIfNegative(prefixLength);
+        ArgumentOutOfRangeException.ThrowIfNegative(suffixLength);
+
+        if (prefixLength == 0 && suffixLength == 0)
+        {
+            throw new ArgumentException("At least one character must be masked.");
+        }
+
         _prefixLength = prefixLength;
         _suffixLength = suffixLength;
+        _visibleLength = checked(prefixLength + suffixLength);
         _maskCharacter = maskCharacter;
     }
 
 
     public override int GetRedactedLength(
         ReadOnlySpan<char> input)
-    {
-        if (input.Length <= _prefixLength + _suffixLength)
-        {
-            return input.Length;
-        }
-
-        return input.Length;
-    }
+        => input.Length;
 
 
     public override int Redact(
         ReadOnlySpan<char> source,
         Span<char> destination)
     {
-        if (source.Length <= _prefixLength + _suffixLength)
+        if (source.Length <= _visibleLength)
         {
-            source.CopyTo(destination);
+            destination[..source.Length].Fill(_maskCharacter);
             return source.Length;
         }
 
@@ -54,7 +57,7 @@ public sealed class PartialMaskingRedactor : Redactor
 
         var maskLength =
             source.Length -
-            (_prefixLength + _suffixLength);
+            _visibleLength;
 
 
         for (var i = 0; i < maskLength; i++)
