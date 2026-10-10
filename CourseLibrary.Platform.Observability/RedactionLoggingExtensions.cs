@@ -1,12 +1,13 @@
+using CourseLibrary.Platform.Observability.Logs.Redaction;
 using Microsoft.Extensions.Compliance.Redaction;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
-namespace CourseLibrary.Platform.Observability.Logs.Redaction;
+namespace CourseLibrary.Platform.Observability;
 
 public static class RedactionLoggingExtensions
 {
-    public static ILoggingBuilder AddCourseLibraryRedaction(
+    public static ILoggingBuilder EnableCourseLibraryRedaction(
         this ILoggingBuilder loggingBuilder,
         Action<HmacRedactorOptions>? configureHmac = null)
     {
