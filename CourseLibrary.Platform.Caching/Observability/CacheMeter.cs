@@ -46,8 +46,8 @@ public sealed class CacheMeter : MeterBase
     {
         var tags = new TagList
         {
-            { CacheMetricConstants.ProviderTag, provider },
-            { CacheMetricConstants.OperationTag, operation }
+            { CacheActivityTagConstants.ProviderTag, provider },
+            { CacheActivityTagConstants.OperationTag, operation }
         };
 
         return tags;

@@ -1,7 +1,6 @@
 ﻿
 using CourseLibrary.Platform.Caching.Abstractions;
 using CourseLibrary.Platform.Caching.Observability;
-using CourseLibrary.Platform.Observability.Metrics;
 using CourseLibrary.Platform.Observability.Traces;
 using Microsoft.Extensions.Logging;
 using StackExchange.Redis;
@@ -30,7 +29,6 @@ internal sealed class FusionCacheProvider(
         using var activity = ActivitySources.StartActivity(
             "FusionCacheProvider.GetAsync");
 
-        activity?.SetTag(CacheActivityTagConstants.Key, key);
         activity?.SetTag(CacheActivityTagConstants.Operation, CacheActivityTagConstants.GetOperation);
         Metrics.RecordLookup(CacheActivityTagConstants.FusionCacheProvider, CacheActivityTagConstants.GetOperation);
 
@@ -51,10 +49,7 @@ internal sealed class FusionCacheProvider(
                 Metrics.RecordHit(CacheActivityTagConstants.FusionCacheProvider, CacheActivityTagConstants.GetOperation);
             }
 
-            logger.LogDebug(
-                "FusionCache {CacheResult} for key {CacheKey}",
-                value is not null ? "hit" : "miss",
-                key);
+            logger.LookupResult(value is not null ? "hit" : "miss");
 
             return value;
         }
@@ -74,10 +69,7 @@ internal sealed class FusionCacheProvider(
                 ActivityStatusCode.Error,
                 ex.Message);
 
-            logger.LogError(
-                ex,
-                "Error getting FusionCache entry for key {CacheKey}",
-                key);
+            logger.OperationFailed(ex, CacheActivityTagConstants.GetOperation);
 
             throw;
         }
@@ -95,10 +87,8 @@ internal sealed class FusionCacheProvider(
         ValidateTtl(ttl);
 
         using var activity = ActivitySources.StartActivity(
-            "FusionCacheProvider.GetOrCreateAsync",
-            ActivityKind.Internal);
+            "FusionCacheProvider.GetOrCreateAsync");
 
-        activity?.SetTag(CacheActivityTagConstants.Key, key);
         activity?.SetTag(CacheActivityTagConstants.Ttl, ttl.ToString());
         activity?.SetTag(CacheActivityTagConstants.Operation, CacheActivityTagConstants.GetOrCreateOperation);
         Metrics.RecordLookup(CacheActivityTagConstants.FusionCacheProvider, CacheActivityTagConstants.GetOrCreateOperation);
@@ -113,9 +103,7 @@ internal sealed class FusionCacheProvider(
                  {
                      factoryInvoked = true;
                      Metrics.RecordMiss(CacheActivityTagConstants.FusionCacheProvider, CacheActivityTagConstants.GetOrCreateOperation);
-                     logger.LogDebug(
-                         "Cache miss for key {CacheKey}. Executing factory.",
-                         key);
+                     logger.MissExecutingFactory();
 
                      return await factory(ct);
                  },
@@ -129,9 +117,7 @@ internal sealed class FusionCacheProvider(
                 Metrics.RecordHit(CacheActivityTagConstants.FusionCacheProvider, CacheActivityTagConstants.GetOrCreateOperation);
             }
 
-            logger.LogDebug(
-                "FusionCache entry retrieved or created for key {CacheKey}",
-                key);
+            logger.GetOrCreateCompleted();
 
             return value;
         }
@@ -151,10 +137,7 @@ internal sealed class FusionCacheProvider(
                 ActivityStatusCode.Error,
                 ex.Message);
 
-            logger.LogError(
-                ex,
-                "Error getting or creating FusionCache entry for key {CacheKey}",
-                key);
+            logger.OperationFailed(ex, CacheActivityTagConstants.GetOrCreateOperation);
 
             throw;
         }
@@ -173,10 +156,8 @@ internal sealed class FusionCacheProvider(
         ValidateTtl(ttl);
 
         using var activity = ActivitySources.StartActivity(
-            "FusionCacheProvider.SetAsync",
-            ActivityKind.Internal);
+            "FusionCacheProvider.SetAsync");
 
-        activity?.SetTag(CacheActivityTagConstants.Key, key);
         activity?.SetTag(CacheActivityTagConstants.Ttl, ttl.ToString());
         activity?.SetTag(CacheActivityTagConstants.Operation, CacheActivityTagConstants.SetOperation);
 
@@ -191,10 +172,7 @@ internal sealed class FusionCacheProvider(
 
             activity?.SetTag(CacheActivityTagConstants.OperationSuccess, true);
 
-            logger.LogDebug(
-                "FusionCache entry set for key {CacheKey} with TTL {CacheTtl}",
-                key,
-                ttl);
+            logger.EntrySet();
         }
         catch (OperationCanceledException)
         {
@@ -212,10 +190,7 @@ internal sealed class FusionCacheProvider(
                 ActivityStatusCode.Error,
                 ex.Message);
 
-            logger.LogError(
-                ex,
-                "Error setting FusionCache entry for key {CacheKey}",
-                key);
+            logger.OperationFailed(ex, CacheActivityTagConstants.SetOperation);
 
             throw;
         }
@@ -228,10 +203,8 @@ internal sealed class FusionCacheProvider(
         ArgumentException.ThrowIfNullOrWhiteSpace(key);
 
         using var activity = ActivitySources.StartActivity(
-            "FusionCacheProvider.RemoveAsync",
-            ActivityKind.Internal);
+            "FusionCacheProvider.RemoveAsync");
 
-        activity?.SetTag(CacheActivityTagConstants.Key, key);
         activity?.SetTag(CacheActivityTagConstants.Operation, CacheActivityTagConstants.RemoveOperation);
 
         try
@@ -242,9 +215,7 @@ internal sealed class FusionCacheProvider(
 
             activity?.SetTag(CacheActivityTagConstants.OperationSuccess, true);
 
-            logger.LogDebug(
-                "FusionCache entry removed for key {CacheKey}",
-                key);
+            logger.EntryRemoved();
         }
         catch (OperationCanceledException)
         {
@@ -262,10 +233,7 @@ internal sealed class FusionCacheProvider(
                 ActivityStatusCode.Error,
                 ex.Message);
 
-            logger.LogError(
-                ex,
-                "Error removing FusionCache entry for key {CacheKey}",
-                key);
+            logger.OperationFailed(ex, CacheActivityTagConstants.RemoveOperation);
 
             throw;
         }
@@ -278,10 +246,8 @@ internal sealed class FusionCacheProvider(
         ArgumentException.ThrowIfNullOrWhiteSpace(tag);
 
         using var activity = ActivitySources.StartActivity(
-            "FusionCacheProvider.RemoveByTagAsync",
-            ActivityKind.Internal);
+            "FusionCacheProvider.RemoveByTagAsync");
 
-        activity?.SetTag(CacheActivityTagConstants.Tag, tag);
         activity?.SetTag(CacheActivityTagConstants.Operation, CacheActivityTagConstants.RemoveByTagOperation);
 
         try
@@ -292,9 +258,7 @@ internal sealed class FusionCacheProvider(
 
             activity?.SetTag(CacheActivityTagConstants.OperationSuccess, true);
 
-            logger.LogDebug(
-                "FusionCache entries removed by tag {CacheTag}",
-                tag);
+            logger.EntriesRemovedByTag();
         }
         catch (OperationCanceledException)
         {
@@ -312,10 +276,7 @@ internal sealed class FusionCacheProvider(
                 ActivityStatusCode.Error,
                 ex.Message);
 
-            logger.LogError(
-                ex,
-                "Error removing FusionCache entries by tag {CacheTag}",
-                tag);
+            logger.OperationFailed(ex, CacheActivityTagConstants.RemoveByTagOperation);
 
             throw;
         }
@@ -339,10 +300,8 @@ internal sealed class FusionCacheProvider(
         }
 
         using var activity = ActivitySources.StartActivity(
-            "FusionCacheProvider.TryAddAsync",
-            ActivityKind.Internal);
+            "FusionCacheProvider.TryAddAsync");
 
-        activity?.SetTag(CacheActivityTagConstants.Key, key);
         activity?.SetTag(CacheActivityTagConstants.Ttl, ttl.ToString());
         activity?.SetTag(CacheActivityTagConstants.Operation, CacheActivityTagConstants.TryAddOperation);
 
@@ -364,10 +323,7 @@ internal sealed class FusionCacheProvider(
             {
             }
 
-            logger.LogDebug(
-                "Fusion cache {CacheResult} for key {CacheKey}",
-                added ? "entry added" : "entry already exists",
-                key);
+            logger.TryAddResult(added ? "added" : "already exists");
 
             return added;
         }
@@ -375,9 +331,7 @@ internal sealed class FusionCacheProvider(
         {
             activity?.SetTag(CacheActivityTagConstants.OperationCancelled, true);
 
-            logger.LogDebug(
-                "Fusion cache try-add operation was cancelled for key {CacheKey}",
-                key);
+            logger.TryAddCancelled();
 
             throw;
         }
@@ -388,10 +342,7 @@ internal sealed class FusionCacheProvider(
                 ActivityStatusCode.Error,
                 ex.Message);
 
-            logger.LogError(
-                ex,
-                "Error atomically adding Fusion cache entry for key {CacheKey}",
-                key);
+            logger.OperationFailed(ex, CacheActivityTagConstants.TryAddOperation);
 
             throw;
         }

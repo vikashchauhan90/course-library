@@ -13,9 +13,6 @@
 		<PackageReference Include="ZiggyCreatures.FusionCache.Serialization.SystemTextJson" Version="2.7.2" />
 	</ItemGroup>
 	<ItemGroup>
-	  <Folder Include="Observability\" />
-	</ItemGroup>
-	<ItemGroup>
 	  <ProjectReference Include="..\CourseLibrary.Platform.Observability\CourseLibrary.Platform.Observability.csproj" />
 	</ItemGroup>
 
