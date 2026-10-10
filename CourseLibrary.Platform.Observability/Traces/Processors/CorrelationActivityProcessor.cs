@@ -1,0 +1,36 @@
+﻿using OpenTelemetry;
+using System.Diagnostics;
+
+namespace CourseLibrary.Platform.Observability.Traces.Processors;
+
+public sealed class CorrelationActivityProcessor
+    : BaseProcessor<Activity>
+{
+    public override void OnStart(Activity activity)
+    {
+        if (activity is null)
+        {
+            return;
+        }
+        activity.SetTag("trace.id", activity.TraceId.ToString());
+        activity.SetTag("span.id", activity.SpanId.ToString());
+
+        if (activity.ParentSpanId != default)
+        {
+            activity.SetTag("parent.span.id", activity.ParentSpanId.ToString());
+        }
+        activity.SetTag("trace.state", activity.TraceStateString);
+        activity.SetTag("trace.flags", activity.ActivityTraceFlags.ToString());
+        activity.SetTag("trace.start_time", activity.StartTimeUtc.ToString("O"));
+    }
+
+    public override void OnEnd(Activity activity)
+    {
+        if (activity is null)
+        {
+            return;
+        }
+        activity.SetTag("trace.end_time", DateTime.UtcNow.ToString("O"));
+        activity.SetTag("trace.duration_ms", activity.Duration.TotalMilliseconds);
+    }
+}
