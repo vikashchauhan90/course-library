@@ -18,7 +18,7 @@ public abstract class ActivitySourceBase : IDisposable
     protected ActivitySource ActivitySource =>
         _activitySource.Value;
 
-    protected Activity? StartActivity(
+    public Activity? StartActivity(
         string activityName,
         ActivityKind kind = ActivityKind.Internal)
         => ActivitySource.StartActivity(
