@@ -6,7 +6,11 @@ namespace CourseLibrary.Platform.Caching.Observability;
 
 public sealed class CacheMeter : MeterBase
 {
-    public static CacheMeter Shared { get; } = new();
+    private static readonly Lazy<CacheMeter> SharedInstance = new(
+        static () => new CacheMeter(),
+        LazyThreadSafetyMode.ExecutionAndPublication);
+
+    public static CacheMeter Shared => SharedInstance.Value;
 
     private readonly Counter<long> _lookups;
     private readonly Counter<long> _hits;
