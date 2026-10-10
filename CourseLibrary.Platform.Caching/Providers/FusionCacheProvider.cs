@@ -1,5 +1,6 @@
 ﻿
 using CourseLibrary.Platform.Caching.Abstractions;
+using CourseLibrary.Platform.Caching.Observability;
 using CourseLibrary.Platform.Observability.Metrics;
 using CourseLibrary.Platform.Observability.Traces;
 using Microsoft.Extensions.Logging;
@@ -19,7 +20,7 @@ internal sealed class FusionCacheProvider(
    static _ => Task.FromResult<byte[]?>(null!);
 
     private static readonly PlatformActivitySource ActivitySources = new();
-    private static readonly PlatformMeter Metrics = new();
+    private static readonly CacheMeter Metrics = CacheMeter.Shared;
     public async Task<byte[]?> GetAsync(
     string key,
     CancellationToken cancellationToken = default)
@@ -31,6 +32,7 @@ internal sealed class FusionCacheProvider(
 
         activity?.SetTag("cache.key", key);
         activity?.SetTag("cache.operation", "get");
+        Metrics.RecordLookup(CacheMetricConstants.FusionCacheProvider, CacheMetricConstants.GetOperation);
 
         try
         {
@@ -40,6 +42,14 @@ internal sealed class FusionCacheProvider(
                 token: cancellationToken);
 
             activity?.SetTag("cache.hit", value is not null);
+            if (value is null)
+            {
+                Metrics.RecordMiss(CacheMetricConstants.FusionCacheProvider, CacheMetricConstants.GetOperation);
+            }
+            else
+            {
+                Metrics.RecordHit(CacheMetricConstants.FusionCacheProvider, CacheMetricConstants.GetOperation);
+            }
 
             logger.LogDebug(
                 "FusionCache {CacheResult} for key {CacheKey}",
@@ -91,6 +101,9 @@ internal sealed class FusionCacheProvider(
         activity?.SetTag("cache.key", key);
         activity?.SetTag("cache.ttl", ttl.ToString());
         activity?.SetTag("cache.operation", "get-or-create");
+        Metrics.RecordLookup(CacheMetricConstants.FusionCacheProvider, CacheMetricConstants.GetOrCreateOperation);
+
+        var factoryInvoked = false;
 
         try
         {
@@ -98,6 +111,8 @@ internal sealed class FusionCacheProvider(
                 key,
                  async ct =>
                  {
+                     factoryInvoked = true;
+                     Metrics.RecordMiss(CacheMetricConstants.FusionCacheProvider, CacheMetricConstants.GetOrCreateOperation);
                      logger.LogDebug(
                          "Cache miss for key {CacheKey}. Executing factory.",
                          key);
@@ -109,6 +124,10 @@ internal sealed class FusionCacheProvider(
                 token: cancellationToken);
 
             activity?.SetTag("cache.operation.success", true);
+            if (!factoryInvoked)
+            {
+                Metrics.RecordHit(CacheMetricConstants.FusionCacheProvider, CacheMetricConstants.GetOrCreateOperation);
+            }
 
             logger.LogDebug(
                 "FusionCache entry retrieved or created for key {CacheKey}",
@@ -341,6 +360,9 @@ internal sealed class FusionCacheProvider(
 
             activity?.SetTag("cache.operation.success", true);
             activity?.SetTag("cache.added", added);
+            if (added)
+            {
+            }
 
             logger.LogDebug(
                 "Fusion cache {CacheResult} for key {CacheKey}",
