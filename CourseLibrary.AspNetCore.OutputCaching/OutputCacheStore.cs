@@ -15,6 +15,7 @@ public sealed class OutputCacheStore(
     : IOutputCacheStore
 {
     private static readonly PlatformActivitySource ActivitySources = new();
+    private static readonly OutputCacheMeter Metrics = OutputCacheMeter.Shared;
     public async ValueTask<byte[]?> GetAsync(
         string key,
         CancellationToken cancellationToken)
@@ -36,6 +37,9 @@ public sealed class OutputCacheStore(
                 cancellationToken);
 
             var cacheHit = value is { Length: > 0 };
+            Metrics.RecordOperation(
+                OutputCacheActivityTagConstants.GetOperation,
+                cacheHit ? "hit" : "miss");
             activity?.SetTag(OutputCacheActivityTagConstants.Hit, cacheHit);
             activity?.SetTag(OutputCacheActivityTagConstants.OperationSuccess, true);
 
@@ -45,6 +49,7 @@ public sealed class OutputCacheStore(
         }
         catch (OperationCanceledException)
         {
+            Metrics.RecordOperation(OutputCacheActivityTagConstants.GetOperation, "cancelled");
             activity?.SetTag(OutputCacheActivityTagConstants.OperationCancelled, true);
             activity?.SetStatus(
                 ActivityStatusCode.Error,
@@ -56,6 +61,7 @@ public sealed class OutputCacheStore(
         }
         catch (Exception ex)
         {
+            Metrics.RecordOperation(OutputCacheActivityTagConstants.GetOperation, "error");
             activity?.SetTag(OutputCacheActivityTagConstants.OperationError, true);
             activity?.SetStatus(
                 ActivityStatusCode.Error,
@@ -102,12 +108,14 @@ public sealed class OutputCacheStore(
                 tags,
                 cancellationToken);
 
+            Metrics.RecordOperation(OutputCacheActivityTagConstants.SetOperation, "success");
             activity?.SetTag(OutputCacheActivityTagConstants.OperationSuccess, true);
 
             logger.EntrySet(validFor);
         }
         catch (OperationCanceledException)
         {
+            Metrics.RecordOperation(OutputCacheActivityTagConstants.SetOperation, "cancelled");
             activity?.SetTag(OutputCacheActivityTagConstants.OperationCancelled, true);
             activity?.SetStatus(
                 ActivityStatusCode.Error,
@@ -119,6 +127,7 @@ public sealed class OutputCacheStore(
         }
         catch (Exception ex)
         {
+            Metrics.RecordOperation(OutputCacheActivityTagConstants.SetOperation, "error");
             activity?.SetTag(OutputCacheActivityTagConstants.OperationError, true);
             activity?.SetStatus(
                 ActivityStatusCode.Error,
@@ -147,12 +156,14 @@ public sealed class OutputCacheStore(
                 tag,
                 cancellationToken);
 
+            Metrics.RecordOperation(OutputCacheActivityTagConstants.EvictByTagOperation, "success");
             activity?.SetTag(OutputCacheActivityTagConstants.OperationSuccess, true);
 
             logger.EntriesEvictedByTag();
         }
         catch (OperationCanceledException)
         {
+            Metrics.RecordOperation(OutputCacheActivityTagConstants.EvictByTagOperation, "cancelled");
             activity?.SetTag(OutputCacheActivityTagConstants.OperationCancelled, true);
             activity?.SetStatus(
                 ActivityStatusCode.Error,
@@ -164,6 +175,7 @@ public sealed class OutputCacheStore(
         }
         catch (Exception ex)
         {
+            Metrics.RecordOperation(OutputCacheActivityTagConstants.EvictByTagOperation, "error");
             activity?.SetTag(OutputCacheActivityTagConstants.OperationError, true);
             activity?.SetStatus(
                 ActivityStatusCode.Error,

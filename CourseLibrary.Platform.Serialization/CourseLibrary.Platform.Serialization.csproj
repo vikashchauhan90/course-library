@@ -8,5 +8,8 @@
 	<ItemGroup>
 		<PackageReference Include="MessagePack" Version="3.1.8" />
 	</ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\CourseLibrary.Platform.Observability\CourseLibrary.Platform.Observability.csproj" />
+  </ItemGroup>
 
 </Project>

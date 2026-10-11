@@ -13,6 +13,7 @@ internal sealed class DataProtectionService(
 {
     private const string Purpose = "CourseLibrary.DataProtection";
     private static readonly PlatformActivitySource ActivitySources = new();
+    private static readonly DataProtectionMeter Metrics = DataProtectionMeter.Shared;
 
     private readonly IDataProtector _protector =
         dataProtectionProvider.CreateProtector(Purpose);
@@ -68,12 +69,14 @@ internal sealed class DataProtectionService(
         try
         {
             var result = action();
+            Metrics.RecordOperation(operation, payloadType, "success");
             activity?.SetTag(DataProtectionActivityTagConstants.OperationSuccess, true);
             logger.OperationSucceeded(operation, payloadType);
             return result;
         }
         catch (Exception exception)
         {
+            Metrics.RecordOperation(operation, payloadType, "error");
             activity?.SetTag(DataProtectionActivityTagConstants.OperationError, true);
             activity?.SetStatus(
                 ActivityStatusCode.Error,

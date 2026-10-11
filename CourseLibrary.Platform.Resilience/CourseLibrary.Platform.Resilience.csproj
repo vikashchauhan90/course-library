@@ -5,5 +5,13 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
+	<ItemGroup>
+		<PackageReference Include="Microsoft.Extensions.Http.Resilience" Version="10.10.0" />
+		<PackageReference Include="Microsoft.Extensions.Http.Resilience" Version="10.10.0" />
+		<PackageReference Include="Microsoft.Extensions.Resilience" Version="10.10.0" />
+	</ItemGroup>
+	<ItemGroup>
+	  <ProjectReference Include="..\CourseLibrary.Platform.Observability\CourseLibrary.Platform.Observability.csproj" />
+	</ItemGroup>
 
 </Project>
