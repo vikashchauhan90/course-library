@@ -1,7 +1,9 @@
 ﻿using CourseLibrary.Platform.Caching.Abstractions;
+using CourseLibrary.Platform.Observability.Traces;
 using Microsoft.AspNetCore.OutputCaching;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
+using System.IO.Hashing;
 using System.Text;
 
 namespace CourseLibrary.AspNetCore.OutputCaching;
@@ -11,15 +13,15 @@ public sealed class OutputCacheStore(
     ILogger<OutputCacheStore> logger)
     : IOutputCacheStore
 {
+    private static readonly PlatformActivitySource ActivitySources = new();
     public async ValueTask<byte[]?> GetAsync(
         string key,
         CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(key);
         var cacheKey = HashCacheKey(key);
-        using var activity = ActivitySources.Infrastructure.StartActivity(
-            "OutputCacheStore.GetAsync",
-            ActivityKind.Internal);
+        using var activity = ActivitySources.StartActivity(
+            "OutputCacheStore.GetAsync");
 
         activity?.SetTag("cache.key", cacheKey);
         activity?.SetTag("cache.operation", "get");
@@ -91,9 +93,8 @@ public sealed class OutputCacheStore(
                 "Output cache expiration must be greater than zero.");
         }
 
-        using var activity = ActivitySources.Infrastructure.StartActivity(
-            "OutputCacheStore.SetAsync",
-            ActivityKind.Internal);
+        using var activity = ActivitySources.StartActivity(
+            "OutputCacheStore.SetAsync");
 
         activity?.SetTag("cache.key", cacheKey);
         activity?.SetTag("cache.ttl", validFor.ToString());
@@ -151,9 +152,8 @@ public sealed class OutputCacheStore(
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(tag);
 
-        using var activity = ActivitySources.Infrastructure.StartActivity(
-            "OutputCacheStore.EvictByTagAsync",
-            ActivityKind.Internal);
+        using var activity = ActivitySources.StartActivity(
+            "OutputCacheStore.EvictByTagAsync");
 
         activity?.SetTag("cache.tag", tag);
         activity?.SetTag("cache.operation", "evict-by-tag");
