@@ -2,8 +2,6 @@ namespace CourseLibrary.AspNetCore.OutputCaching.Observability;
 
 public static class OutputCacheActivityTagConstants
 {
-    public const string Key = "cache.key";
-    public const string Tag = "cache.tag";
     public const string Ttl = "cache.ttl";
     public const string Operation = "cache.operation";
     public const string Hit = "cache.hit";

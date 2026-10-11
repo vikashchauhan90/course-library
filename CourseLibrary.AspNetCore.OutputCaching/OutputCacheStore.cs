@@ -24,7 +24,6 @@ public sealed class OutputCacheStore(
         using var activity = ActivitySources.StartActivity(
             "OutputCacheStore.GetAsync");
 
-        activity?.SetTag(OutputCacheActivityTagConstants.Key, cacheKey);
         activity?.SetTag(OutputCacheActivityTagConstants.Operation, OutputCacheActivityTagConstants.GetOperation);
 
         try
@@ -40,7 +39,7 @@ public sealed class OutputCacheStore(
             activity?.SetTag(OutputCacheActivityTagConstants.Hit, cacheHit);
             activity?.SetTag(OutputCacheActivityTagConstants.OperationSuccess, true);
 
-            logger.GetResult(cacheHit ? "hit" : "miss", cacheKey);
+            logger.GetResult(cacheHit ? "hit" : "miss");
 
             return value?.Length > 0 ? value : null;
         }
@@ -51,7 +50,7 @@ public sealed class OutputCacheStore(
                 ActivityStatusCode.Error,
                 "Operation was cancelled.");
 
-            logger.GetCancelled(cacheKey);
+            logger.GetCancelled();
 
             throw;
         }
@@ -62,7 +61,7 @@ public sealed class OutputCacheStore(
                 ActivityStatusCode.Error,
                 ex.Message);
 
-            logger.GetFailed(ex, cacheKey);
+            logger.GetFailed(ex);
 
             throw;
         }
@@ -90,7 +89,6 @@ public sealed class OutputCacheStore(
         using var activity = ActivitySources.StartActivity(
             "OutputCacheStore.SetAsync");
 
-        activity?.SetTag(OutputCacheActivityTagConstants.Key, cacheKey);
         activity?.SetTag(OutputCacheActivityTagConstants.Ttl, validFor.ToString());
         activity?.SetTag(OutputCacheActivityTagConstants.Operation, OutputCacheActivityTagConstants.SetOperation);
         activity?.SetTag(OutputCacheActivityTagConstants.TagCount, tags?.Length ?? 0);
@@ -106,7 +104,7 @@ public sealed class OutputCacheStore(
 
             activity?.SetTag(OutputCacheActivityTagConstants.OperationSuccess, true);
 
-            logger.EntrySet(cacheKey, validFor);
+            logger.EntrySet(validFor);
         }
         catch (OperationCanceledException)
         {
@@ -115,7 +113,7 @@ public sealed class OutputCacheStore(
                 ActivityStatusCode.Error,
                 "Operation was cancelled.");
 
-            logger.SetCancelled(cacheKey);
+            logger.SetCancelled();
 
             throw;
         }
@@ -126,7 +124,7 @@ public sealed class OutputCacheStore(
                 ActivityStatusCode.Error,
                 ex.Message);
 
-            logger.SetFailed(ex, cacheKey);
+            logger.SetFailed(ex);
 
             throw;
         }
@@ -141,7 +139,6 @@ public sealed class OutputCacheStore(
         using var activity = ActivitySources.StartActivity(
             "OutputCacheStore.EvictByTagAsync");
 
-        activity?.SetTag(OutputCacheActivityTagConstants.Tag, tag);
         activity?.SetTag(OutputCacheActivityTagConstants.Operation, OutputCacheActivityTagConstants.EvictByTagOperation);
 
         try
@@ -152,7 +149,7 @@ public sealed class OutputCacheStore(
 
             activity?.SetTag(OutputCacheActivityTagConstants.OperationSuccess, true);
 
-            logger.EntriesEvictedByTag(tag);
+            logger.EntriesEvictedByTag();
         }
         catch (OperationCanceledException)
         {
@@ -161,7 +158,7 @@ public sealed class OutputCacheStore(
                 ActivityStatusCode.Error,
                 "Operation was cancelled.");
 
-            logger.TagEvictionCancelled(tag);
+            logger.TagEvictionCancelled();
 
             throw;
         }
@@ -172,7 +169,7 @@ public sealed class OutputCacheStore(
                 ActivityStatusCode.Error,
                 ex.Message);
 
-            logger.TagEvictionFailed(ex, tag);
+            logger.TagEvictionFailed(ex);
 
             throw;
         }
