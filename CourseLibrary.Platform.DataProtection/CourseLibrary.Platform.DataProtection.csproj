@@ -6,4 +6,11 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+	<ItemGroup>
+		<PackageReference Include="Microsoft.AspNetCore.DataProtection" Version="10.0.12" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <ProjectReference Include="..\CourseLibrary.Platform.Observability\CourseLibrary.Platform.Observability.csproj" />
+	</ItemGroup>
 </Project>
