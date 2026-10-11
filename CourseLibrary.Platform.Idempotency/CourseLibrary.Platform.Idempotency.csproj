@@ -7,6 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\CourseLibrary.Platform.Caching\CourseLibrary.Platform.Caching.csproj" />
     <ProjectReference Include="..\CourseLibrary.Platform.Observability\CourseLibrary.Platform.Observability.csproj" />
   </ItemGroup>
 
