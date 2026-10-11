@@ -1,5 +1,6 @@
 ﻿using CourseLibrary.Platform.Caching.Abstractions;
 using CourseLibrary.Platform.Observability.Traces;
+using CourseLibrary.AspNetCore.OutputCaching.Observability;
 using Microsoft.AspNetCore.OutputCaching;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
@@ -23,8 +24,8 @@ public sealed class OutputCacheStore(
         using var activity = ActivitySources.StartActivity(
             "OutputCacheStore.GetAsync");
 
-        activity?.SetTag("cache.key", cacheKey);
-        activity?.SetTag("cache.operation", "get");
+        activity?.SetTag(OutputCacheActivityTagConstants.Key, cacheKey);
+        activity?.SetTag(OutputCacheActivityTagConstants.Operation, OutputCacheActivityTagConstants.GetOperation);
 
         try
         {
@@ -35,40 +36,33 @@ public sealed class OutputCacheStore(
                 null,
                 cancellationToken);
 
-            activity?.SetTag("cache.hit", value?.Length > 0);
-            activity?.SetTag("cache.operation.success", true);
+            var cacheHit = value is { Length: > 0 };
+            activity?.SetTag(OutputCacheActivityTagConstants.Hit, cacheHit);
+            activity?.SetTag(OutputCacheActivityTagConstants.OperationSuccess, true);
 
-            logger.LogDebug(
-                "Output cache {CacheResult} for key {CacheKey}",
-                value is null ? "miss" : "hit",
-                cacheKey);
+            logger.GetResult(cacheHit ? "hit" : "miss", cacheKey);
 
             return value?.Length > 0 ? value : null;
         }
         catch (OperationCanceledException)
         {
-            activity?.SetTag("cache.operation.cancelled", true);
+            activity?.SetTag(OutputCacheActivityTagConstants.OperationCancelled, true);
             activity?.SetStatus(
                 ActivityStatusCode.Error,
                 "Operation was cancelled.");
 
-            logger.LogDebug(
-                "Output cache get operation was cancelled for key {CacheKey}",
-                cacheKey);
+            logger.GetCancelled(cacheKey);
 
             throw;
         }
         catch (Exception ex)
         {
-            activity?.SetTag("cache.operation.error", true);
+            activity?.SetTag(OutputCacheActivityTagConstants.OperationError, true);
             activity?.SetStatus(
                 ActivityStatusCode.Error,
                 ex.Message);
 
-            logger.LogError(
-                ex,
-                "Error getting output cache entry for key {CacheKey}",
-                cacheKey);
+            logger.GetFailed(ex, cacheKey);
 
             throw;
         }
@@ -96,10 +90,10 @@ public sealed class OutputCacheStore(
         using var activity = ActivitySources.StartActivity(
             "OutputCacheStore.SetAsync");
 
-        activity?.SetTag("cache.key", cacheKey);
-        activity?.SetTag("cache.ttl", validFor.ToString());
-        activity?.SetTag("cache.operation", "set");
-        activity?.SetTag("cache.tag.count", tags?.Length ?? 0);
+        activity?.SetTag(OutputCacheActivityTagConstants.Key, cacheKey);
+        activity?.SetTag(OutputCacheActivityTagConstants.Ttl, validFor.ToString());
+        activity?.SetTag(OutputCacheActivityTagConstants.Operation, OutputCacheActivityTagConstants.SetOperation);
+        activity?.SetTag(OutputCacheActivityTagConstants.TagCount, tags?.Length ?? 0);
 
         try
         {
@@ -110,37 +104,29 @@ public sealed class OutputCacheStore(
                 tags,
                 cancellationToken);
 
-            activity?.SetTag("cache.operation.success", true);
+            activity?.SetTag(OutputCacheActivityTagConstants.OperationSuccess, true);
 
-            logger.LogDebug(
-                "Output cache entry set for key {CacheKey} with TTL {CacheTtl}",
-                cacheKey,
-                validFor);
+            logger.EntrySet(cacheKey, validFor);
         }
         catch (OperationCanceledException)
         {
-            activity?.SetTag("cache.operation.cancelled", true);
+            activity?.SetTag(OutputCacheActivityTagConstants.OperationCancelled, true);
             activity?.SetStatus(
                 ActivityStatusCode.Error,
                 "Operation was cancelled.");
 
-            logger.LogDebug(
-                "Output cache set operation was cancelled for key {CacheKey}",
-                cacheKey);
+            logger.SetCancelled(cacheKey);
 
             throw;
         }
         catch (Exception ex)
         {
-            activity?.SetTag("cache.operation.error", true);
+            activity?.SetTag(OutputCacheActivityTagConstants.OperationError, true);
             activity?.SetStatus(
                 ActivityStatusCode.Error,
                 ex.Message);
 
-            logger.LogError(
-                ex,
-                "Error setting output cache entry for key {CacheKey}",
-                cacheKey);
+            logger.SetFailed(ex, cacheKey);
 
             throw;
         }
@@ -155,8 +141,8 @@ public sealed class OutputCacheStore(
         using var activity = ActivitySources.StartActivity(
             "OutputCacheStore.EvictByTagAsync");
 
-        activity?.SetTag("cache.tag", tag);
-        activity?.SetTag("cache.operation", "evict-by-tag");
+        activity?.SetTag(OutputCacheActivityTagConstants.Tag, tag);
+        activity?.SetTag(OutputCacheActivityTagConstants.Operation, OutputCacheActivityTagConstants.EvictByTagOperation);
 
         try
         {
@@ -164,36 +150,29 @@ public sealed class OutputCacheStore(
                 tag,
                 cancellationToken);
 
-            activity?.SetTag("cache.operation.success", true);
+            activity?.SetTag(OutputCacheActivityTagConstants.OperationSuccess, true);
 
-            logger.LogDebug(
-                "Output cache entries evicted by tag {CacheTag}",
-                tag);
+            logger.EntriesEvictedByTag(tag);
         }
         catch (OperationCanceledException)
         {
-            activity?.SetTag("cache.operation.cancelled", true);
+            activity?.SetTag(OutputCacheActivityTagConstants.OperationCancelled, true);
             activity?.SetStatus(
                 ActivityStatusCode.Error,
                 "Operation was cancelled.");
 
-            logger.LogDebug(
-                "Output cache tag eviction was cancelled for tag {CacheTag}",
-                tag);
+            logger.TagEvictionCancelled(tag);
 
             throw;
         }
         catch (Exception ex)
         {
-            activity?.SetTag("cache.operation.error", true);
+            activity?.SetTag(OutputCacheActivityTagConstants.OperationError, true);
             activity?.SetStatus(
                 ActivityStatusCode.Error,
                 ex.Message);
 
-            logger.LogError(
-                ex,
-                "Error evicting output cache entries for tag {CacheTag}",
-                tag);
+            logger.TagEvictionFailed(ex, tag);
 
             throw;
         }
