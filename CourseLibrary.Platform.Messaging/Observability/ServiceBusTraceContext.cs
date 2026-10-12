@@ -35,13 +35,27 @@ public static class ServiceBusTraceContext
             return;
         }
 
+        Inject(message, new PropagationContext(activity.Context, Baggage.Current));
+    }
+
+    public static void Inject(
+        ServiceBusMessage message,
+        ActivityContext context)
+    {
+        ArgumentNullException.ThrowIfNull(message);
+
+        Inject(message, new PropagationContext(context, Baggage.Current));
+    }
+
+    private static void Inject(
+        ServiceBusMessage message,
+        PropagationContext context)
+    {
         var carrier = new Dictionary<string, string>(
             StringComparer.OrdinalIgnoreCase);
 
         Propagator.Inject(
-            new PropagationContext(
-                activity.Context,
-                Baggage.Current),
+            context,
             carrier,
             static (properties, key, value) =>
                 properties[key] = value);
@@ -55,7 +69,6 @@ public static class ServiceBusTraceContext
                 TraceParent,
                 out var traceParent))
         {
-            // Azure Service Bus correlation.
             message.ApplicationProperties[DiagnosticId] = traceParent;
         }
     }

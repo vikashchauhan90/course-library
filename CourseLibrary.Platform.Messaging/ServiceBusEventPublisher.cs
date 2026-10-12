@@ -12,112 +12,172 @@ internal sealed class ServiceBusEventPublisher(
     ILogger<ServiceBusEventPublisher> logger)
     : IEventPublisher
 {
-    private static readonly PlatformActivitySource ActivitySources = new();
+    private const string ActivityName = "ServiceBusEventPublisher.PublishAsync";
+    private const int RecommendedStandardTierMessageSize = 256 * 1024;
+
+    private static readonly ActivitySource ActivitySource =
+        new(PlatformActivitySource.DefaultSourceName);
+    private static readonly MessagingMeter Metrics = MessagingMeter.Shared;
+
     public async Task PublishAsync(
         string queueOrTopicName,
-      ServiceBusEventPayload @event,
-      CancellationToken cancellationToken = default)
+        ServiceBusEventPayload @event,
+        CancellationToken cancellationToken = default)
     {
+        logger.LogInformation(
+               "Current trace context: TraceId={TraceId}, SpanId={SpanId}, ParentSpanId={ParentSpanId}",
+               Activity.Current?.TraceId.ToString(),
+               Activity.Current?.SpanId.ToString(),
+               Activity.Current?.ParentSpanId.ToString());
+
+        ArgumentException.ThrowIfNullOrWhiteSpace(queueOrTopicName);
         ArgumentNullException.ThrowIfNull(@event);
-        using var activity = ActivitySources.StartActivity(
-            "ServiceBusEventPublisher.PublishAsync",
-            ActivityKind.Producer);
+        ArgumentNullException.ThrowIfNull(@event.Payload);
+        ArgumentNullException.ThrowIfNull(@event.Metadata);
+        ArgumentNullException.ThrowIfNull(@event.Metadata.Properties);
 
-        try
+        var hasTraceMetadata =
+            !string.IsNullOrWhiteSpace(@event.Metadata.TraceParent)
+            || !string.IsNullOrWhiteSpace(@event.Metadata.TraceState);
+        var hasParentContext = ActivityContext.TryParse(
+            @event.Metadata.TraceParent,
+            @event.Metadata.TraceState,
+            out var parentContext);
+
+        Activity? activity;
+        if (hasParentContext)
         {
-            logger.LogInformation(
-                "Current trace context: TraceId={TraceId}, SpanId={SpanId}, ParentSpanId={ParentSpanId}",
-                Activity.Current?.TraceId.ToString(),
-                Activity.Current?.SpanId.ToString(),
-                Activity.Current?.ParentSpanId.ToString());
-
-            var propagationActivity = activity ?? Activity.Current;
-
-            var userId = @event.Metadata.Properties.TryGetValue("userId", out var userIdValue) ? userIdValue : null;
-            var correlationId = @event.Metadata.Properties.TryGetValue("correlationId", out var correlationIdValue) ? correlationIdValue : null;
-            var tenantId = @event.Metadata.Properties.TryGetValue("tenantId", out var tenantIdValue) ? tenantIdValue : null;
-
-            // Set tags
-            activity?.SetTag("event.type", @event.EventType);
-            activity?.SetTag("event.id", @event.EventId);
-            activity?.SetTag("event.occurredAt", @event.OccurredAt.ToUnixTimeMilliseconds());
-            activity?.SetTag("request.correlationId", correlationId);
-            activity?.SetTag("request.userId", userId);
-            activity?.SetTag("request.traceId", propagationActivity?.TraceId.ToString());
-            activity?.SetTag("message.contentType", @event.Payload.MediaType);
-            activity?.SetTag("message.size", @event.Payload.Length);
-            activity?.SetTag("message.id", @event.EventId.ToString());
-            activity?.SetTag("message.subject", @event.EventType);
-
-            var message = new ServiceBusMessage(@event.Payload)
-            {
-                MessageId = @event.EventId.ToString(),
-                Subject = @event.EventType,
-                ContentType = @event.Payload.MediaType,
-                CorrelationId = correlationId,
-                ApplicationProperties =
-            {
-                [ServiceBusTraceContext.EventId] = @event.EventId.ToString(),
-                [ServiceBusTraceContext.EventOccurredAt] = @event.OccurredAt.ToUnixTimeMilliseconds(),
-                [ServiceBusTraceContext.EventType] = @event.EventType,
-                [ServiceBusTraceContext.Destination] = queueOrTopicName,
-                [ServiceBusTraceContext.UserId] = userId,
-                [ServiceBusTraceContext.Source] = nameof(ServiceBusEventPublisher),
-                [ServiceBusTraceContext.TenantId] = tenantId,
-            }
-            };
-
-            // Inject trace context
-            if (propagationActivity is not null)
-            {
-                ServiceBusTraceContext.Inject(message, propagationActivity);
-            }
-
-            // Check message size limits
-            if (@event.Payload.Length > 256 * 1024) // 256 KB for Standard tier
-            {
-                logger.LogWarning(
-                    "Message {EventId} size {Size} bytes exceeds recommended limit for Service Bus Standard tier.",
-                    @event.EventId, @event.Payload.Length);
-            }
-
-            await using var sender = client.CreateSender(queueOrTopicName);
-
-            var sendStartTime = Stopwatch.GetTimestamp();
-
-            // Record message size metrics
-
-            await sender.SendMessageAsync(message, cancellationToken);
-
-            // Set success tags
-            activity?.SetTag("message.status", "sent");
-            activity?.SetTag("message.sentAt", DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
-            activity?.SetTag("message.sentBy", nameof(ServiceBusEventPublisher));
-            activity?.SetTag("message.sentTo", queueOrTopicName);
-            activity?.SetTag("message.sentByService", nameof(ServiceBusClient));
-            activity?.SetTag("message.sentByServiceVersion",
-                client.GetType().Assembly.GetName().Version?.ToString() ?? "unknown");
-            activity?.SetTag("message.duration_ms",
-                (Stopwatch.GetElapsedTime(sendStartTime).TotalMilliseconds));
-
-            activity?.SetStatus(ActivityStatusCode.Ok);
-
-            logger.LogInformation(
-                "Published integration event {EventType} with EventId {EventId} to {Destination} in {Duration}ms.",
-                @event.EventType, @event.EventId, queueOrTopicName,
-                (Stopwatch.GetElapsedTime(sendStartTime).TotalMilliseconds));
+            activity = ActivitySource.StartActivity(
+                ActivityName,
+                ActivityKind.Producer,
+                parentContext);
         }
-        catch (Exception ex)
+        else
         {
-            activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
-            activity?.SetTag("error.type", ex.GetType().Name);
-            activity?.SetTag("error.message", ex.Message);
+            if (hasTraceMetadata)
+            {
+                logger.InvalidTraceContext(@event.EventId);
+            }
 
-            logger.LogError(ex,
-                "Failed to publish event {EventType} with EventId {EventId}.",
-                @event.EventType, @event.EventId);
+            activity = ActivitySource.StartActivity(
+                ActivityName,
+                ActivityKind.Producer);
+        }
 
-            throw;
+        using (activity)
+        {
+            var startedAt = Stopwatch.GetTimestamp();
+            var outcome = "error";
+            var payloadSize = @event.Payload.Length;
+            Metrics.RecordMessageSize(payloadSize);
+
+            var userId = @event.Metadata.Properties.TryGetValue(
+                "userId",
+                out var userIdValue)
+                ? userIdValue
+                : null;
+            var correlationId = @event.Metadata.Properties.TryGetValue(
+                "correlationId",
+                out var correlationIdValue)
+                ? correlationIdValue
+                : @event.CorrelationId?.ToString();
+            var tenantId = @event.Metadata.Properties.TryGetValue(
+                "tenantId",
+                out var tenantIdValue)
+                ? tenantIdValue
+                : null;
+
+            activity?.SetTag(MessagingActivityTagConstants.System, "azure_service_bus");
+            activity?.SetTag(MessagingActivityTagConstants.Operation, MessagingActivityTagConstants.PublishOperation);
+            activity?.SetTag(MessagingActivityTagConstants.Destination, queueOrTopicName);
+            activity?.SetTag(MessagingActivityTagConstants.EventType, @event.EventType);
+            activity?.SetTag(MessagingActivityTagConstants.MessageId, @event.EventId.ToString());
+            activity?.SetTag(MessagingActivityTagConstants.ContentType, @event.Payload.MediaType);
+            activity?.SetTag(MessagingActivityTagConstants.MessageSize, payloadSize);
+            activity?.SetTag("request.correlationId", correlationId);
+
+            try
+            {
+                var message = new ServiceBusMessage(@event.Payload)
+                {
+                    MessageId = @event.EventId.ToString(),
+                    Subject = @event.Subject ?? @event.EventType,
+                    ContentType = @event.Payload.MediaType,
+                    CorrelationId = correlationId,
+                    ApplicationProperties =
+                    {
+                        [ServiceBusTraceContext.EventId] = @event.EventId.ToString(),
+                        [ServiceBusTraceContext.EventOccurredAt] = @event.OccurredAt.ToUnixTimeMilliseconds(),
+                        [ServiceBusTraceContext.EventType] = @event.EventType,
+                        [ServiceBusTraceContext.Destination] = queueOrTopicName,
+                        [ServiceBusTraceContext.UserId] = userId,
+                        [ServiceBusTraceContext.Source] = @event.Source ?? nameof(ServiceBusEventPublisher),
+                        [ServiceBusTraceContext.TenantId] = tenantId,
+                        ["CausationId"] = @event.CausationId?.ToString(),
+                        ["Version"] = @event.Version
+                    }
+                };
+
+                if (activity is not null)
+                {
+                    ServiceBusTraceContext.Inject(message, activity);
+                }
+                else if (hasParentContext)
+                {
+                    ServiceBusTraceContext.Inject(message, parentContext);
+                }
+                else if (Activity.Current is { } currentActivity)
+                {
+                    ServiceBusTraceContext.Inject(message, currentActivity);
+                }
+
+                if (payloadSize > RecommendedStandardTierMessageSize)
+                {
+                    logger.MessageSizeExceedsRecommendedLimit(
+                        @event.EventId,
+                        payloadSize);
+                }
+
+                await using var sender = client.CreateSender(queueOrTopicName);
+                await sender.SendMessageAsync(message, cancellationToken);
+
+                outcome = "success";
+                activity?.SetStatus(ActivityStatusCode.Ok);
+                logger.EventPublished(
+                    @event.EventType,
+                    @event.EventId,
+                    queueOrTopicName,
+                    Stopwatch.GetElapsedTime(startedAt).TotalMilliseconds);
+            }
+            catch (OperationCanceledException)
+            {
+                outcome = "cancelled";
+                activity?.SetTag(MessagingActivityTagConstants.Cancelled, true);
+                logger.PublishCancelled(@event.EventId);
+                throw;
+            }
+            catch (Exception exception)
+            {
+                activity?.SetTag(
+                    MessagingActivityTagConstants.ErrorType,
+                    exception.GetType().FullName);
+                activity?.SetStatus(
+                    ActivityStatusCode.Error,
+                    "Messaging publish operation failed.");
+                logger.PublishFailed(
+                    exception,
+                    @event.EventType,
+                    @event.EventId);
+                throw;
+            }
+            finally
+            {
+                activity?.SetTag(MessagingActivityTagConstants.Outcome, outcome);
+                Metrics.RecordOperation(
+                    MessagingActivityTagConstants.PublishOperation,
+                    outcome,
+                    Stopwatch.GetElapsedTime(startedAt).TotalSeconds);
+            }
         }
     }
 }
