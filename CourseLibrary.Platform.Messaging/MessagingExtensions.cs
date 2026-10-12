@@ -1,12 +1,12 @@
 ﻿using Azure.Data.Tables;
 using Azure.Messaging.ServiceBus;
-using CourseLibrary.Messaging.Abstractions;
-using CourseLibrary.Messaging.Configurations;
+using CourseLibrary.Platform.Messaging.Abstractions;
+using CourseLibrary.Platform.Messaging.Configurations;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
-namespace CourseLibrary.Messaging;
+namespace CourseLibrary.Platform.Messaging;
 
 public static class MessagingExtensions
 {

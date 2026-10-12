@@ -1,7 +1,7 @@
 ﻿
 using System.Collections.Immutable;
 
-namespace CourseLibrary.Messaging.Abstractions;
+namespace CourseLibrary.Platform.Messaging.Abstractions;
 
 public sealed record EventMetadata
 {

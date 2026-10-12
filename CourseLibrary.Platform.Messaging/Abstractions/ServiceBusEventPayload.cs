@@ -1,5 +1,5 @@
 ﻿
-namespace CourseLibrary.Messaging.Abstractions;
+namespace CourseLibrary.Platform.Messaging.Abstractions;
 
 public sealed record ServiceBusEventPayload
 {

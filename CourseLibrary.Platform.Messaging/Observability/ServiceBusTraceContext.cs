@@ -4,7 +4,7 @@ using OpenTelemetry;
 using OpenTelemetry.Context.Propagation;
 using System.Diagnostics;
 
-namespace CourseLibrary.Messaging.Observability;
+namespace CourseLibrary.Platform.Messaging.Observability;
 
 public static class ServiceBusTraceContext
 {

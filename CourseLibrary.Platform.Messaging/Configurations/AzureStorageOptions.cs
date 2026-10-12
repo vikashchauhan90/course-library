@@ -1,5 +1,5 @@
 ﻿
-namespace CourseLibrary.Messaging.Configurations;
+namespace CourseLibrary.Platform.Messaging.Configurations;
 
 public sealed class AzureStorageOptions
 {

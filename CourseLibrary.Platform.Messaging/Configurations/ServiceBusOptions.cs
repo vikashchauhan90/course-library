@@ -1,7 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
 
-namespace CourseLibrary.Messaging.Configurations;
+namespace CourseLibrary.Platform.Messaging.Configurations;
 
 public sealed class ServiceBusOptions
 {

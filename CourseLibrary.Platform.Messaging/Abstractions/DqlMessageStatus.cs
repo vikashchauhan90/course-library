@@ -1,4 +1,4 @@
-﻿namespace CourseLibrary.Messaging.Abstractions;
+﻿namespace CourseLibrary.Platform.Messaging.Abstractions;
 
 public enum DqlMessageStatus
 {

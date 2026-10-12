@@ -1,9 +1,9 @@
 ﻿using Azure.Data.Tables;
-using CourseLibrary.Messaging.Abstractions;
-using CourseLibrary.Messaging.Configurations;
+using CourseLibrary.Platform.Messaging.Abstractions;
+using CourseLibrary.Platform.Messaging.Configurations;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace CourseLibrary.Messaging;
+namespace CourseLibrary.Platform.Messaging;
 
 internal sealed class AzureTableDqlMessageStore(
      [FromKeyedServices(AzureStorageOptions.KeyedServiceName)] TableClient tableClient)

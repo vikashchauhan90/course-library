@@ -1,12 +1,11 @@
 ﻿using Azure.Messaging.ServiceBus;
-using CourseLibrary.Messaging.Abstractions;
-using CourseLibrary.Messaging.Observability;
+using CourseLibrary.Platform.Messaging.Abstractions;
+using CourseLibrary.Platform.Messaging.Observability;
 using CourseLibrary.Platform.Observability.Traces;
-using CourseLibrary.Platform.Serialization.Abstractions;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 
-namespace CourseLibrary.Messaging;
+namespace CourseLibrary.Platform.Messaging;
 
 internal sealed class ServiceBusEventPublisher(
     ServiceBusClient client,
@@ -45,7 +44,7 @@ internal sealed class ServiceBusEventPublisher(
             activity?.SetTag("request.correlationId", correlationId);
             activity?.SetTag("request.userId", userId);
             activity?.SetTag("request.traceId", propagationActivity?.TraceId.ToString());
-            activity?.SetTag("message.contentType", SerializerType.Json.ToString());
+            activity?.SetTag("message.contentType", @event.Payload.MediaType);
             activity?.SetTag("message.size", @event.Payload.Length);
             activity?.SetTag("message.id", @event.EventId.ToString());
             activity?.SetTag("message.subject", @event.EventType);
@@ -54,7 +53,7 @@ internal sealed class ServiceBusEventPublisher(
             {
                 MessageId = @event.EventId.ToString(),
                 Subject = @event.EventType,
-                ContentType = SerializerType.Json.ToString(),
+                ContentType = @event.Payload.MediaType,
                 CorrelationId = correlationId,
                 ApplicationProperties =
             {

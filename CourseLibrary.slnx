@@ -9,7 +9,6 @@
     <Project Path="CourseLibrary.Core.Results/CourseLibrary.Core.Results.csproj" Id="cd6adb28-8352-4a60-b33a-76fdac54c483" />
   </Folder>
   <Folder Name="/src/course/">
-    <Project Path="CourseLibrary.Messaging/CourseLibrary.Messaging.csproj" Id="ee47cdba-5729-4ee1-be8b-7cfe53036485" />
     <Project Path="src/course/CourseLibrary.Api/CourseLibrary.Api.csproj" />
     <Project Path="src/course/CourseLibrary.Application/CourseLibrary.Application.csproj" Id="e3762092-40c5-498a-8603-2925bb385484" />
     <Project Path="src/course/CourseLibrary.Client/CourseLibrary.Client.csproj" />
@@ -32,6 +31,7 @@
     <Project Path="CourseLibrary.Platform.Caching/CourseLibrary.Platform.Caching.csproj" Id="c6fde1ab-1f63-4560-960b-17c031af2fe1" />
     <Project Path="CourseLibrary.Platform.DataProtection/CourseLibrary.Platform.DataProtection.csproj" Id="8ee8e6fd-c270-49bf-817a-9acf5a62a38f" />
     <Project Path="CourseLibrary.Platform.Idempotency/CourseLibrary.Platform.Idempotency.csproj" Id="a30141bd-abda-4cad-9ef9-6e0592453ab5" />
+    <Project Path="CourseLibrary.Platform.Messaging/CourseLibrary.Platform.Messaging.csproj" Id="527dc758-1c37-425d-a33c-20f8f187304d" />
     <Project Path="CourseLibrary.Platform.Observability/CourseLibrary.Platform.Observability.csproj" Id="2a7f49b1-e6ed-4f1f-b6da-4de957862bda" />
     <Project Path="CourseLibrary.Platform.Resilience/CourseLibrary.Platform.Resilience.csproj" Id="fbebf060-ee50-4cc5-aa60-3d7b837bc904" />
     <Project Path="CourseLibrary.Platform.Serialization/CourseLibrary.Platform.Serialization.csproj" Id="1352a24b-5afa-4d10-98b1-defd370b5cae" />
