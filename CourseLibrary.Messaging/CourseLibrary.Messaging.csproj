@@ -1,0 +1,21 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Azure.Data.Tables" Version="12.12.0" />
+		<PackageReference Include="Azure.Identity" Version="1.21.0" />
+		<PackageReference Include="Azure.Messaging.ServiceBus" Version="7.20.2" />
+		<PackageReference Include="MessagePack" Version="3.1.8" />
+		<PackageReference Include="Microsoft.Extensions.Options.DataAnnotations" Version="10.0.12" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <ProjectReference Include="..\CourseLibrary.Platform.Observability\CourseLibrary.Platform.Observability.csproj" />
+	  <ProjectReference Include="..\CourseLibrary.Platform.Serialization\CourseLibrary.Platform.Serialization.csproj" />
+	</ItemGroup>
+</Project>
