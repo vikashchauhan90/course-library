@@ -2,21 +2,21 @@ using CourseLibrary.Domain.ValueObjects;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace CourseLibrary.Infrastructure.Configuration.Cosmos.Serialization;
+namespace CourseLibrary.Course.Persistence.Data.Serialization;
 
-public sealed class AuditActionJsonConverter : JsonConverter<AuditAction>
+public sealed class DiscussionIdJsonConverter : JsonConverter<DiscussionId>
 {
-    public override AuditAction Read(
+    public override DiscussionId Read(
         ref Utf8JsonReader reader,
         Type typeToConvert,
         JsonSerializerOptions options)
     {
-        return new AuditAction(reader.GetGuid());
+        return new DiscussionId(reader.GetGuid());
     }
 
     public override void Write(
         Utf8JsonWriter writer,
-        AuditAction value,
+        DiscussionId value,
         JsonSerializerOptions options)
     {
         writer.WriteStringValue(value.Value);

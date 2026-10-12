@@ -5,7 +5,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace CourseLibrary.Infrastructure.Configuration.Cosmos.Serialization;
+namespace CourseLibrary.Course.Persistence.Data.Serialization;
 
 public sealed class CourseIdJsonConverter : JsonConverter<CourseId>
 {

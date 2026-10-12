@@ -2,21 +2,21 @@ using CourseLibrary.Domain.ValueObjects;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace CourseLibrary.Infrastructure.Configuration.Cosmos.Serialization;
+namespace CourseLibrary.Course.Persistence.Data.Serialization;
 
-public sealed class CommentIdJsonConverter : JsonConverter<CommentId>
+public sealed class CourseEventTypeJsonConverter : JsonConverter<CourseEventType>
 {
-    public override CommentId Read(
+    public override CourseEventType Read(
         ref Utf8JsonReader reader,
         Type typeToConvert,
         JsonSerializerOptions options)
     {
-        return new CommentId(reader.GetGuid());
+        return new CourseEventType(reader.GetGuid());
     }
 
     public override void Write(
         Utf8JsonWriter writer,
-        CommentId value,
+        CourseEventType value,
         JsonSerializerOptions options)
     {
         writer.WriteStringValue(value.Value);

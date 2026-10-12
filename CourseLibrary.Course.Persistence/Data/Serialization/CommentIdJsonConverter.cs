@@ -2,23 +2,23 @@ using CourseLibrary.Domain.ValueObjects;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace CourseLibrary.Infrastructure.Configuration.Cosmos.Serialization;
+namespace CourseLibrary.Course.Persistence.Data.Serialization;
 
-public sealed class MoneyJsonConverter : JsonConverter<Money>
+public sealed class CommentIdJsonConverter : JsonConverter<CommentId>
 {
-    public override Money Read(
+    public override CommentId Read(
         ref Utf8JsonReader reader,
         Type typeToConvert,
         JsonSerializerOptions options)
     {
-        return Money.Create(reader.GetDecimal());
+        return new CommentId(reader.GetGuid());
     }
 
     public override void Write(
         Utf8JsonWriter writer,
-        Money value,
+        CommentId value,
         JsonSerializerOptions options)
     {
-        writer.WriteNumberValue(value.Amount);
+        writer.WriteStringValue(value.Value);
     }
 }

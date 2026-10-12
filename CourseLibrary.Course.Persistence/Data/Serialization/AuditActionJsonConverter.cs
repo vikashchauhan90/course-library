@@ -1,22 +1,23 @@
+using CourseLibrary.Course.Domain.ValueObjects;
 using CourseLibrary.Domain.ValueObjects;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace CourseLibrary.Infrastructure.Configuration.Cosmos.Serialization;
+namespace CourseLibrary.Course.Persistence.Data.Serialization;
 
-public sealed class CourseEventTypeJsonConverter : JsonConverter<CourseEventType>
+public sealed class AuditActionJsonConverter : JsonConverter<AuditAction>
 {
-    public override CourseEventType Read(
+    public override AuditAction Read(
         ref Utf8JsonReader reader,
         Type typeToConvert,
         JsonSerializerOptions options)
     {
-        return new CourseEventType(reader.GetGuid());
+        return new AuditAction(reader.GetGuid());
     }
 
     public override void Write(
         Utf8JsonWriter writer,
-        CourseEventType value,
+        AuditAction value,
         JsonSerializerOptions options)
     {
         writer.WriteStringValue(value.Value);

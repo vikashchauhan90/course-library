@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace CourseLibrary.Infrastructure.Configuration.Cosmos.Serialization;
+namespace CourseLibrary.Course.Persistence.Data.Serialization;
 
 internal static class ValueObjectJsonConverters
 {
