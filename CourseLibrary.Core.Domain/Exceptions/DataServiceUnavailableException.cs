@@ -1,6 +1,6 @@
 namespace CourseLibrary.Core.Domain.Exceptions;
 
 public sealed class DataServiceUnavailableException(
-    string message,
+    string message = "The data service is currently unavailable.",
     Exception? innerException = null)
-    : BaseException(message, 503, innerException);
+    : DomainException(message, innerException);

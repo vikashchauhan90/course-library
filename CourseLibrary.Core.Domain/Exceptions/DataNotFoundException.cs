@@ -1,6 +1,6 @@
 namespace CourseLibrary.Core.Domain.Exceptions;
 
 public sealed class DataNotFoundException(
-    string message,
+    string message = "The requested resource was not found.",
     Exception? innerException = null)
-    : BaseException(message, 404, innerException);
+    : DomainException(message, innerException);

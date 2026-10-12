@@ -1,6 +1,6 @@
 namespace CourseLibrary.Core.Domain.Exceptions;
 
 public sealed class DataThrottledException(
-    string message,
+    string message = "The request has been throttled.",
     Exception? innerException = null)
-    : BaseException(message, 503, innerException);
+    : DomainException(message, innerException);

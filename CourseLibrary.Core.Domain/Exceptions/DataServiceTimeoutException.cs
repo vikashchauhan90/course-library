@@ -1,6 +1,6 @@
 namespace CourseLibrary.Core.Domain.Exceptions;
 
 public sealed class DataServiceTimeoutException(
-    string message,
+    string message = "The request to the data service timed out.",
     Exception? innerException = null)
-    : BaseException(message, 504, innerException);
+    : DomainException(message, innerException);
