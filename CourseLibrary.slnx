@@ -9,6 +9,9 @@
     <Project Path="CourseLibrary.Core.Results/CourseLibrary.Core.Results.csproj" Id="cd6adb28-8352-4a60-b33a-76fdac54c483" />
   </Folder>
   <Folder Name="/src/course/">
+    <Project Path="CourseLibrary.Course.Contracts/CourseLibrary.Course.Contracts.csproj" Id="da96a083-dbe5-4c7f-b654-3f1be89aaa96" />
+    <Project Path="CourseLibrary.Course.Domain/CourseLibrary.Course.Domain.csproj" Id="66bce27e-3e54-4f4e-a158-474c80355492" />
+    <Project Path="CourseLibrary.Course.Persistence/CourseLibrary.Course.Persistence.csproj" Id="0ccc591d-c864-44f5-aae1-a04bc42fa320" />
     <Project Path="src/course/CourseLibrary.Api/CourseLibrary.Api.csproj" />
     <Project Path="src/course/CourseLibrary.Application/CourseLibrary.Application.csproj" Id="e3762092-40c5-498a-8603-2925bb385484" />
     <Project Path="src/course/CourseLibrary.Client/CourseLibrary.Client.csproj" />
@@ -28,6 +31,7 @@
   </Folder>
   <Folder Name="/src/platform/">
     <Project Path="CourseLibrary.AspNetCore.OutputCaching/CourseLibrary.AspNetCore.OutputCaching.csproj" Id="04b375ad-7029-48fb-8b7d-54a405bf3e0a" />
+    <Project Path="CourseLibrary.Platform.AspNetCore.RequestContext/CourseLibrary.Platform.AspNetCore.RequestContext.csproj" Id="b6215de3-2554-4d45-b53e-88f8f03dbf15" />
     <Project Path="CourseLibrary.Platform.Caching/CourseLibrary.Platform.Caching.csproj" Id="c6fde1ab-1f63-4560-960b-17c031af2fe1" />
     <Project Path="CourseLibrary.Platform.DataProtection/CourseLibrary.Platform.DataProtection.csproj" Id="8ee8e6fd-c270-49bf-817a-9acf5a62a38f" />
     <Project Path="CourseLibrary.Platform.Idempotency/CourseLibrary.Platform.Idempotency.csproj" Id="a30141bd-abda-4cad-9ef9-6e0592453ab5" />
