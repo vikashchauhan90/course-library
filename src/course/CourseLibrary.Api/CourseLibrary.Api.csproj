@@ -31,4 +31,17 @@
 		<PackageReference Include="Scrutor" Version="7.0.0" />
 	</ItemGroup>
 
+	<ItemGroup>
+	  <ProjectReference Include="..\..\..\CourseLibrary.Course.Application\CourseLibrary.Course.Application.csproj" />
+	  <ProjectReference Include="..\..\..\CourseLibrary.Course.Persistence\CourseLibrary.Course.Persistence.csproj" />
+	  <ProjectReference Include="..\..\..\CourseLibrary.Platform.AspNetCore.RequestContext\CourseLibrary.Platform.AspNetCore.RequestContext.csproj" />
+	  <ProjectReference Include="..\..\..\CourseLibrary.Platform.Caching\CourseLibrary.Platform.Caching.csproj" />
+	  <ProjectReference Include="..\..\..\CourseLibrary.Platform.DataProtection\CourseLibrary.Platform.DataProtection.csproj" />
+	  <ProjectReference Include="..\..\..\CourseLibrary.Platform.Idempotency\CourseLibrary.Platform.Idempotency.csproj" />
+	  <ProjectReference Include="..\..\..\CourseLibrary.Platform.Messaging\CourseLibrary.Platform.Messaging.csproj" />
+	  <ProjectReference Include="..\..\..\CourseLibrary.Platform.Observability\CourseLibrary.Platform.Observability.csproj" />
+	  <ProjectReference Include="..\..\..\CourseLibrary.Platform.Resilience\CourseLibrary.Platform.Resilience.csproj" />
+	  <ProjectReference Include="..\..\..\CourseLibrary.Platform.Serialization\CourseLibrary.Platform.Serialization.csproj" />
+	</ItemGroup>
+
 </Project>
