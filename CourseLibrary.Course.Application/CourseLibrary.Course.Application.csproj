@@ -12,4 +12,14 @@
 		<PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="12.1.1" />
 	</ItemGroup>
 
+	<ItemGroup>
+	  <ProjectReference Include="..\CourseLibrary.Course.Contracts\CourseLibrary.Course.Contracts.csproj" />
+	  <ProjectReference Include="..\CourseLibrary.Course.Domain\CourseLibrary.Course.Domain.csproj" />
+	  <ProjectReference Include="..\CourseLibrary.Course.Persistence.Abstractions\CourseLibrary.Course.Persistence.Abstractions.csproj" />
+	  <ProjectReference Include="..\CourseLibrary.Platform.Caching\CourseLibrary.Platform.Caching.csproj" />
+	  <ProjectReference Include="..\CourseLibrary.Platform.Messaging\CourseLibrary.Platform.Messaging.csproj" />
+	  <ProjectReference Include="..\CourseLibrary.Platform.Observability\CourseLibrary.Platform.Observability.csproj" />
+	  <ProjectReference Include="..\CourseLibrary.Platform.Serialization\CourseLibrary.Platform.Serialization.csproj" />
+	</ItemGroup>
+
 </Project>
