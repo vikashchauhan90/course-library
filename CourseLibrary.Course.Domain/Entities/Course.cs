@@ -1,4 +1,5 @@
-﻿using CourseLibrary.Core.Domain.Abstractions;
+﻿using CourseLibrary.Core.Domain.Abstractions.Auditing;
+using CourseLibrary.Core.Domain.Abstractions.Entities;
 using CourseLibrary.Course.Domain.ValueObjects;
 
 namespace CourseLibrary.Course.Domain.Entities;

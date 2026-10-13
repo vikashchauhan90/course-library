@@ -1,38 +1,25 @@
-﻿namespace CourseLibrary.Course.Domain.ValueObjects;
+﻿using CourseLibrary.Core.Domain.Abstractions.ValueObjects;
 
-public readonly record struct CourseId(Guid Value)
+namespace CourseLibrary.Course.Domain.ValueObjects;
+
+public readonly record struct CourseId(string Value)
+    : IStronglyTypedValue<string>
 {
     public static CourseId New()
     {
-        return new CourseId(Guid.NewGuid());
+        return new CourseId(Guid.NewGuid().ToString("N"));
     }
 
-    public static CourseId Empty =>
-        new(Guid.Empty);
 
-
-    public static explicit operator CourseId(Guid value)
+    public static implicit operator CourseId(string value)
     {
         return new CourseId(value);
     }
 
-    public static explicit operator Guid(CourseId id)
+    public static implicit operator string(CourseId id)
     {
         return id.Value;
     }
-
-    public static explicit operator CourseId(string value)
-    {
-        if (Guid.TryParse(value, out var parsed))
-        {
-            return new CourseId(parsed);
-        }
-        throw new ArgumentException(
-            $"Invalid course ID '{value}'.",
-            nameof(value));
-    }
-
-    public static explicit operator string(CourseId id) => id.Value.ToString();
     public override string ToString()
     {
         return Value.ToString();

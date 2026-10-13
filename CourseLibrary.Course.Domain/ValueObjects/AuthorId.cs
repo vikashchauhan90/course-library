@@ -1,26 +1,19 @@
-﻿namespace CourseLibrary.Course.Domain.ValueObjects;
+﻿using CourseLibrary.Core.Domain.Abstractions.ValueObjects;
+
+namespace CourseLibrary.Course.Domain.ValueObjects;
 
 public readonly record struct AuthorId(string Value)
+    : IStronglyTypedValue<string>
 {
     public static AuthorId New()
-    {
-        return new AuthorId(Guid.NewGuid().ToString());
-    }
+        => new(Guid.NewGuid().ToString("N"));
 
-    public static AuthorId Empty =>
-      new(string.Empty);
+    public static implicit operator AuthorId(string value)
+        => new(value);
 
-    public static explicit operator AuthorId(string value)
-    {
-        return new AuthorId(value);
-    }
+    public static implicit operator string(AuthorId id)
+        => id.Value;
 
-    public static explicit operator string(AuthorId id)
-    {
-        return id.Value;
-    }
     public override string ToString()
-    {
-        return Value;
-    }
+        => Value;
 }

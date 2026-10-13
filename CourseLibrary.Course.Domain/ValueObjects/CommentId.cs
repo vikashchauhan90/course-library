@@ -1,22 +1,22 @@
-﻿namespace CourseLibrary.Course.Domain.ValueObjects;
+﻿using CourseLibrary.Core.Domain.Abstractions.ValueObjects;
 
-public readonly record struct CommentId(Guid Value)
+namespace CourseLibrary.Course.Domain.ValueObjects;
+
+public readonly record struct CommentId(string Value)
+    : IStronglyTypedValue<string>
 {
     public static CommentId New()
     {
-        return new CommentId(Guid.NewGuid());
+        return new CommentId(Guid.NewGuid().ToString("N"));
     }
 
-    public static CommentId Empty =>
-        new(Guid.Empty);
 
-
-    public static explicit operator CommentId(Guid value)
+    public static implicit operator CommentId(string value)
     {
         return new CommentId(value);
     }
 
-    public static explicit operator Guid(CommentId id)
+    public static implicit operator string(CommentId id)
     {
         return id.Value;
     }

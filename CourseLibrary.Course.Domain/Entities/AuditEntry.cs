@@ -1,7 +1,6 @@
-﻿
-using CourseLibrary.Course.Domain.ValueObjects;
+﻿using CourseLibrary.Course.Domain.ValueObjects;
 
-namespace CourseLibrary.Course.Domain.Abstractions;
+namespace CourseLibrary.Course.Domain.Entities;
 
 public class AuditEntry
 {

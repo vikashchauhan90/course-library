@@ -1,4 +1,4 @@
-namespace CourseLibrary.Core.Domain.Abstractions;
+namespace CourseLibrary.Core.Domain.Abstractions.Entities;
 
 public interface IEntity
 {

@@ -1,6 +1,9 @@
-﻿namespace CourseLibrary.Course.Domain.ValueObjects;
+﻿using CourseLibrary.Core.Domain.Abstractions.ValueObjects;
+
+namespace CourseLibrary.Course.Domain.ValueObjects;
 
 public readonly record struct Code(string Value)
+    : IStronglyTypedValue<string>
 {
     public static Code Create(string value)
     {
@@ -14,12 +17,12 @@ public readonly record struct Code(string Value)
         return new Code(value.Trim());
     }
 
-    public static explicit operator Code(string value)
+    public static implicit operator Code(string value)
     {
         return Create(value);
     }
 
-    public static explicit operator string(Code code)
+    public static implicit operator string(Code code)
     {
         return code.Value;
     }

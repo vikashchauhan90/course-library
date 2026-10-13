@@ -1,8 +1,10 @@
-﻿using System.Globalization;
+﻿using CourseLibrary.Core.Domain.Abstractions.ValueObjects;
+using System.Globalization;
 
 namespace CourseLibrary.Course.Domain.ValueObjects;
 
-public readonly record struct Money(decimal Amount)
+public readonly record struct Money(decimal Value)
+    : IStronglyTypedValue<decimal>
 {
     public static Money Create(
         decimal amount)
@@ -17,17 +19,17 @@ public readonly record struct Money(decimal Amount)
         return new Money(amount);
     }
 
-    public static explicit operator Money(decimal amount)
+    public static implicit operator Money(decimal amount)
     {
         return Create(amount);
     }
 
-    public static explicit operator decimal(Money money)
+    public static implicit operator decimal(Money money)
     {
-        return money.Amount;
+        return money.Value;
     }
     public override string ToString()
     {
-        return Amount.ToString(CultureInfo.InvariantCulture);
+        return Value.ToString(CultureInfo.InvariantCulture);
     }
 }

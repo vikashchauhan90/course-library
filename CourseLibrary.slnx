@@ -6,7 +6,8 @@
     <Project Path="src/app/CourseLibrary.App/CourseLibrary.App.csproj" />
   </Folder>
   <Folder Name="/src/Core/">
-    <Project Path="CourseLibrary.Core.Domain/CourseLibrary.Core.Domain.csproj" Id="fa7372f7-5d8a-46ff-8f70-2e9038cab6ca" />
+    <Project Path="CourseLibrary.Core.Domain.Abstractions/CourseLibrary.Core.Domain.Abstractions.csproj" Id="0a370192-7f19-4c2c-b355-2d18f81331a7" />
+    <Project Path="CourseLibrary.Core.Domain.Exceptions/CourseLibrary.Core.Domain.Exceptions.csproj" Id="07a17e16-df2c-479d-ab40-5f78fb9447ef" />
     <Project Path="CourseLibrary.Core.Results/CourseLibrary.Core.Results.csproj" Id="cd6adb28-8352-4a60-b33a-76fdac54c483" />
   </Folder>
   <Folder Name="/src/course/">
