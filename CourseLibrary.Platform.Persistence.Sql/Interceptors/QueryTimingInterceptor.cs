@@ -1,192 +1,234 @@
-﻿using CourseLibrary.Core.Domain.Abstractions.Auditing;
-using Microsoft.EntityFrameworkCore;
+using CourseLibrary.Platform.Persistence.Sql.Observability;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
+using System.Data.Common;
 using System.Diagnostics;
 
 namespace CourseLibrary.Platform.Persistence.Sql.Interceptors;
 
-
-public sealed class QueryTimingInterceptor(ILogger<QueryTimingInterceptor> logger) : DbCommandInterceptor, IInterceptor
+public sealed class QueryTimingInterceptor(ILogger<QueryTimingInterceptor> logger) : DbCommandInterceptor
 {
-    private readonly int warningThresholdMs = 500;
-    private readonly ConcurrentDictionary<Guid, Stopwatch> timers = new();
+    private const int WarningThresholdMilliseconds = 500;
+    private readonly ConcurrentDictionary<Guid, CommandMeasurement> _measurements = new();
 
-
-    // ====== helpers ======
-    private void Start(CommandEventData eventData)
-        => timers[eventData.CommandId] = Stopwatch.StartNew();
-
-    private long Stop(Guid commandId)
+    private void Start(DbCommand command, CommandEventData eventData, string operation)
     {
-        if (timers.TryRemove(commandId, out var sw))
+        var activity = SqlActivitySource.Shared.StartActivity(
+            $"db.command.{operation}",
+            ActivityKind.Client);
+        activity?.SetTag(SqlActivityTagConstants.DbSystem, SqlActivityTagConstants.SqlServer);
+        activity?.SetTag(SqlActivityTagConstants.DbOperationName, operation);
+        if (!string.IsNullOrWhiteSpace(command.Connection?.Database))
         {
-            sw.Stop();
-            return sw.ElapsedMilliseconds;
+            activity?.SetTag(SqlActivityTagConstants.DbNamespace, command.Connection.Database);
         }
-        return -1; // wasn't started or already removed
+
+        _measurements[eventData.CommandId] = new(operation, Stopwatch.StartNew(), activity);
     }
 
+    private CommandMeasurement? Stop(Guid commandId)
+    {
+        if (!_measurements.TryRemove(commandId, out var measurement))
+        {
+            return null;
+        }
 
-    // ====== READER (queries returning rows) ======
+        measurement.Timer.Stop();
+        return measurement;
+    }
+
     public override InterceptionResult<DbDataReader> ReaderExecuting(
-        DbCommand command, CommandEventData eventData,
+        DbCommand command,
+        CommandEventData eventData,
         InterceptionResult<DbDataReader> result)
     {
-        Start(eventData);
+        Start(command, eventData, SqlActivityTagConstants.ReaderOperation);
         return base.ReaderExecuting(command, eventData, result);
     }
 
     public override ValueTask<InterceptionResult<DbDataReader>> ReaderExecutingAsync(
-        DbCommand command, CommandEventData eventData,
+        DbCommand command,
+        CommandEventData eventData,
         InterceptionResult<DbDataReader> result,
         CancellationToken cancellationToken = default)
     {
-        Start(eventData);
+        Start(command, eventData, SqlActivityTagConstants.ReaderOperation);
         return base.ReaderExecutingAsync(command, eventData, result, cancellationToken);
     }
 
     public override DbDataReader ReaderExecuted(
-        DbCommand command, CommandExecutedEventData eventData, DbDataReader result)
+        DbCommand command,
+        CommandExecutedEventData eventData,
+        DbDataReader result)
     {
-        Log(command, eventData, "Reader");
+        Log(eventData, SqlActivityTagConstants.ReaderOperation);
         return base.ReaderExecuted(command, eventData, result);
     }
 
     public override ValueTask<DbDataReader> ReaderExecutedAsync(
-        DbCommand command, CommandExecutedEventData eventData,
-        DbDataReader result, CancellationToken cancellationToken = default)
+        DbCommand command,
+        CommandExecutedEventData eventData,
+        DbDataReader result,
+        CancellationToken cancellationToken = default)
     {
-        Log(command, eventData, "Reader");
+        Log(eventData, SqlActivityTagConstants.ReaderOperation);
         return base.ReaderExecutedAsync(command, eventData, result, cancellationToken);
     }
 
-    // ====== SCALAR (single value: COUNT, SUM, etc.) ======
     public override InterceptionResult<object> ScalarExecuting(
-        DbCommand command, CommandEventData eventData,
+        DbCommand command,
+        CommandEventData eventData,
         InterceptionResult<object> result)
     {
-        Start(eventData);
+        Start(command, eventData, SqlActivityTagConstants.ScalarOperation);
         return base.ScalarExecuting(command, eventData, result);
     }
 
     public override ValueTask<InterceptionResult<object>> ScalarExecutingAsync(
-        DbCommand command, CommandEventData eventData,
-        InterceptionResult<object> result, CancellationToken cancellationToken = default)
+        DbCommand command,
+        CommandEventData eventData,
+        InterceptionResult<object> result,
+        CancellationToken cancellationToken = default)
     {
-        Start(eventData);
+        Start(command, eventData, SqlActivityTagConstants.ScalarOperation);
         return base.ScalarExecutingAsync(command, eventData, result, cancellationToken);
     }
 
     public override object? ScalarExecuted(
-        DbCommand command, CommandExecutedEventData eventData, object? result)
+        DbCommand command,
+        CommandExecutedEventData eventData,
+        object? result)
     {
-        Log(command, eventData, "Scalar");
+        Log(eventData, SqlActivityTagConstants.ScalarOperation);
         return base.ScalarExecuted(command, eventData, result);
     }
 
     public override ValueTask<object?> ScalarExecutedAsync(
-        DbCommand command, CommandExecutedEventData eventData,
-        object? result, CancellationToken cancellationToken = default)
+        DbCommand command,
+        CommandExecutedEventData eventData,
+        object? result,
+        CancellationToken cancellationToken = default)
     {
-        Log(command, eventData, "Scalar");
+        Log(eventData, SqlActivityTagConstants.ScalarOperation);
         return base.ScalarExecutedAsync(command, eventData, result, cancellationToken);
     }
 
-    // ====== NON-QUERY (INSERT/UPDATE/DELETE, DDL) ======
     public override InterceptionResult<int> NonQueryExecuting(
-        DbCommand command, CommandEventData eventData,
+        DbCommand command,
+        CommandEventData eventData,
         InterceptionResult<int> result)
     {
-        Start(eventData);
+        Start(command, eventData, SqlActivityTagConstants.NonQueryOperation);
         return base.NonQueryExecuting(command, eventData, result);
     }
 
     public override ValueTask<InterceptionResult<int>> NonQueryExecutingAsync(
-        DbCommand command, CommandEventData eventData,
-        InterceptionResult<int> result, CancellationToken cancellationToken = default)
+        DbCommand command,
+        CommandEventData eventData,
+        InterceptionResult<int> result,
+        CancellationToken cancellationToken = default)
     {
-        Start(eventData);
+        Start(command, eventData, SqlActivityTagConstants.NonQueryOperation);
         return base.NonQueryExecutingAsync(command, eventData, result, cancellationToken);
     }
 
     public override int NonQueryExecuted(
-        DbCommand command, CommandExecutedEventData eventData, int result)
+        DbCommand command,
+        CommandExecutedEventData eventData,
+        int result)
     {
-        Log(command, eventData, "NonQuery");
+        Log(eventData, SqlActivityTagConstants.NonQueryOperation);
         return base.NonQueryExecuted(command, eventData, result);
     }
 
     public override ValueTask<int> NonQueryExecutedAsync(
-        DbCommand command, CommandExecutedEventData eventData,
-        int result, CancellationToken cancellationToken = default)
+        DbCommand command,
+        CommandExecutedEventData eventData,
+        int result,
+        CancellationToken cancellationToken = default)
     {
-        Log(command, eventData, "NonQuery");
+        Log(eventData, SqlActivityTagConstants.NonQueryOperation);
         return base.NonQueryExecutedAsync(command, eventData, result, cancellationToken);
     }
 
-    // ====== failure / cancel ======
     public override void CommandFailed(DbCommand command, CommandErrorEventData eventData)
     {
-        Log(command, eventData, "Failed", eventData.Exception);
+        Log(eventData, "command", eventData.Exception);
         base.CommandFailed(command, eventData);
     }
 
     public override Task CommandFailedAsync(
-        DbCommand command, CommandErrorEventData eventData, CancellationToken cancellationToken = default)
+        DbCommand command,
+        CommandErrorEventData eventData,
+        CancellationToken cancellationToken = default)
     {
-        Log(command, eventData, "Failed", eventData.Exception);
+        Log(eventData, "command", eventData.Exception);
         return base.CommandFailedAsync(command, eventData, cancellationToken);
     }
 
     public override void CommandCanceled(DbCommand command, CommandEndEventData eventData)
     {
-        Log(command, eventData, "Canceled");
+        Log(eventData, "command", failureType: "cancelled");
         base.CommandCanceled(command, eventData);
     }
 
     public override Task CommandCanceledAsync(
-        DbCommand command, CommandEndEventData eventData, CancellationToken cancellationToken = default)
+        DbCommand command,
+        CommandEndEventData eventData,
+        CancellationToken cancellationToken = default)
     {
-        Log(command, eventData, "Canceled");
+        Log(eventData, "command", failureType: "cancelled");
         return base.CommandCanceledAsync(command, eventData, cancellationToken);
     }
 
-    private void Log(DbCommand command, CommandEndEventData eventData, string kind, Exception? ex = null)
+    private void Log(
+        CommandEndEventData eventData,
+        string fallbackOperation,
+        Exception? exception = null,
+        string? failureType = null)
     {
-        var elapsed = Stop(eventData.CommandId);
+        var measurement = Stop(eventData.CommandId);
+        var operation = measurement?.Operation ?? fallbackOperation;
+        var elapsedMilliseconds = measurement?.Timer.Elapsed.TotalMilliseconds ?? 0;
 
-        // Choose level by duration / error
-        if (ex != null)
+        if (measurement is not null)
         {
-            logger.LogError(ex,
-                "EF SQL {Kind} failed after {Elapsed} ms. ConnId={ConnId}. Command:\n{Sql}",
-                kind,
-                elapsed,
-                eventData.ConnectionId,
-                command.CommandText);
-
-            return;
+            SqlMeter.Shared.RecordCommand(operation, elapsedMilliseconds);
+            measurement.Activity?.SetTag(SqlActivityTagConstants.DurationMilliseconds, elapsedMilliseconds);
         }
 
-        if (elapsed >= warningThresholdMs)
+        if (exception is not null)
         {
-            logger.LogWarning(
-                "EF SQL {Kind} took {Elapsed} ms (slow). ConnId={ConnId}. Command:\n{Sql}",
-                kind,
-                elapsed,
-                eventData.ConnectionId,
-                command.CommandText);
+            failureType = exception.GetType().Name;
+            measurement?.Activity?.SetTag(SqlActivityTagConstants.ErrorType, failureType);
+            measurement?.Activity?.SetStatus(ActivityStatusCode.Error, exception.Message);
+            SqlMeter.Shared.RecordFailure(operation, failureType);
+            SqlPersistenceLogs.CommandFailed(logger, exception, operation, elapsedMilliseconds);
+        }
+        else if (failureType is not null)
+        {
+            measurement?.Activity?.SetTag(SqlActivityTagConstants.OperationCancelled, true);
+            measurement?.Activity?.SetTag(SqlActivityTagConstants.ErrorType, failureType);
+            measurement?.Activity?.SetStatus(ActivityStatusCode.Error, "Command was cancelled.");
+            SqlMeter.Shared.RecordFailure(operation, failureType);
+            SqlPersistenceLogs.CommandCancelled(logger, operation, elapsedMilliseconds);
+        }
+        else if (elapsedMilliseconds >= WarningThresholdMilliseconds)
+        {
+            measurement?.Activity?.SetTag(SqlActivityTagConstants.OperationSuccess, true);
+            measurement?.Activity?.SetStatus(ActivityStatusCode.Ok);
+            SqlPersistenceLogs.CommandSlow(logger, operation, elapsedMilliseconds);
         }
         else
         {
-            logger.LogInformation(
-                "EF SQL {Kind} took {Elapsed} ms. ConnId={ConnId}. Command:\n{Sql}",
-                kind,
-                elapsed,
-                eventData.ConnectionId,
-                command.CommandText);
+            measurement?.Activity?.SetTag(SqlActivityTagConstants.OperationSuccess, true);
+            measurement?.Activity?.SetStatus(ActivityStatusCode.Ok);
+            SqlPersistenceLogs.CommandCompleted(logger, operation, elapsedMilliseconds);
         }
+
+        measurement?.Activity?.Dispose();
     }
+
+    private sealed record CommandMeasurement(string Operation, Stopwatch Timer, Activity? Activity);
 }

@@ -1,22 +1,23 @@
-﻿using CourseLibrary.Core.Domain.Abstractions.Auditing;
-using CourseLibrary.Core.Domain.Abstractions.Security;
+﻿using CourseLibrary.Core.Domain.Abstractions.Security;
+using CourseLibrary.Platform.Persistence.Sql.Observability;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Logging;
 
 namespace CourseLibrary.Platform.Persistence.Sql.Interceptors;
 
-public class SecurityEntityInterceptor(ILogger<SecurityEntityInterceptor> logger) : SaveChangesInterceptor, IInterceptor
+public sealed class SecurityEntityInterceptor(ILogger<SecurityEntityInterceptor> logger) : SaveChangesInterceptor
 {
     public override ValueTask<InterceptionResult<int>> SavingChangesAsync(DbContextEventData eventData,
         InterceptionResult<int> result,
         CancellationToken cancellationToken = default)
     {
-        using var activity = ActivitySources.Infrastructure.StartActivity(
-            "SecurityEntityInterceptor.SavingChangesAsync",
+        using var activity = SqlActivitySource.Shared.StartActivity(
+            SqlActivityTagConstants.SaveChangesOperation,
             System.Diagnostics.ActivityKind.Internal);
 
-        activity?.SetTag("dbContext", eventData.Context?.GetType().Name);
+        activity?.SetTag(SqlActivityTagConstants.DbOperationName, SqlActivityTagConstants.ConcurrencyStampOperation);
+        activity?.SetTag(SqlActivityTagConstants.DbContextType, eventData.Context?.GetType().Name);
         var context = eventData.Context;
         if (context == null) return base.SavingChangesAsync(eventData, result, cancellationToken);
 
@@ -24,12 +25,12 @@ public class SecurityEntityInterceptor(ILogger<SecurityEntityInterceptor> logger
         {
             if (string.IsNullOrEmpty(entry.Entity.ConcurrencyStamp))
             {
-                logger.LogDebug("Setting ConcurrencyStamp for entity of type {EntityType},", entry.Entity.GetType().Name);
+                SqlPersistenceLogs.ConcurrencyStampSet(logger, entry.Entity.GetType().Name);
                 entry.Entity.ConcurrencyStamp = Guid.NewGuid().ToString();
-                activity?.SetTag("entityType", entry.Entity.GetType().Name);
-                activity?.SetTag("concurrencyStamp", entry.Entity.ConcurrencyStamp);
+                activity?.SetTag(SqlActivityTagConstants.EntityType, entry.Entity.GetType().Name);
             }
         }
+        activity?.SetTag(SqlActivityTagConstants.OperationSuccess, true);
         return base.SavingChangesAsync(eventData, result, cancellationToken);
     }
 }

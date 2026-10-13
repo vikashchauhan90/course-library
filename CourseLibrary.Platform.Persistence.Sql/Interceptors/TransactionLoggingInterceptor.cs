@@ -1,4 +1,4 @@
-﻿using CourseLibrary.Core.Domain.Abstractions.Auditing;
+﻿using CourseLibrary.Platform.Persistence.Sql.Observability;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Logging;
@@ -7,28 +7,32 @@ using System.Data.Common;
 namespace CourseLibrary.Platform.Persistence.Sql.Interceptors;
 
 
-public class TransactionLoggingInterceptor(ILogger<TransactionLoggingInterceptor> logger) : DbTransactionInterceptor, IInterceptor
+public sealed class TransactionLoggingInterceptor(ILogger<TransactionLoggingInterceptor> logger) : DbTransactionInterceptor
 {
 
     public override DbTransaction TransactionStarted(DbConnection connection, TransactionEndEventData eventData, DbTransaction result)
     {
-        using var activity = ActivitySources.Infrastructure.StartActivity("TransactionStarted", System.Diagnostics.ActivityKind.Internal);
-        activity?.SetTag("TransactionId", eventData.TransactionId);
-        activity?.SetTag("Connection", connection.Database);
-        logger.LogInformation(
-            "Transaction started (Id: {TransactionId}) on connection {Connection}",
-            eventData.TransactionId,
-            connection.Database);
+        using var activity = SqlActivitySource.Shared.StartActivity(
+            SqlActivityTagConstants.TransactionStartOperation,
+            System.Diagnostics.ActivityKind.Internal);
+        activity?.SetTag(SqlActivityTagConstants.DbSystem, SqlActivityTagConstants.SqlServer);
+        activity?.SetTag(SqlActivityTagConstants.DbNamespace, connection.Database);
+        activity?.SetTag(SqlActivityTagConstants.DbTransactionId, eventData.TransactionId);
+        SqlPersistenceLogs.TransactionStarted(logger, eventData.TransactionId, connection.Database);
         return base.TransactionStarted(connection, eventData, result);
     }
 
     public override void TransactionCommitted(DbTransaction transaction, TransactionEndEventData eventData)
     {
-        using var activity = ActivitySources.Infrastructure.StartActivity("TransactionCommitted", System.Diagnostics.ActivityKind.Internal);
-        activity?.SetTag("TransactionId", eventData.TransactionId);
-        activity?.SetTag("Duration", eventData.Duration.TotalMilliseconds);
-        logger.LogInformation(
-            "Transaction committed (Id: {TransactionId}) Duration: {Duration} ms",
+        using var activity = SqlActivitySource.Shared.StartActivity(
+            SqlActivityTagConstants.TransactionCommitOperation,
+            System.Diagnostics.ActivityKind.Internal);
+        activity?.SetTag(SqlActivityTagConstants.DbSystem, SqlActivityTagConstants.SqlServer);
+        activity?.SetTag(SqlActivityTagConstants.DbTransactionId, eventData.TransactionId);
+        activity?.SetTag(SqlActivityTagConstants.DurationMilliseconds, eventData.Duration.TotalMilliseconds);
+        activity?.SetTag(SqlActivityTagConstants.OperationSuccess, true);
+        SqlPersistenceLogs.TransactionCommitted(
+            logger,
             eventData.TransactionId,
             eventData.Duration.TotalMilliseconds);
         base.TransactionCommitted(transaction, eventData);
@@ -36,11 +40,15 @@ public class TransactionLoggingInterceptor(ILogger<TransactionLoggingInterceptor
 
     public override void TransactionRolledBack(DbTransaction transaction, TransactionEndEventData eventData)
     {
-        using var activity = ActivitySources.Infrastructure.StartActivity("TransactionRolledBack", System.Diagnostics.ActivityKind.Internal);
-        activity?.SetTag("TransactionId", eventData.TransactionId);
-        activity?.SetTag("Duration", eventData.Duration.TotalMilliseconds);
-        logger.LogWarning(
-            "Transaction rolled back (Id: {TransactionId}) after {Duration} ms",
+        using var activity = SqlActivitySource.Shared.StartActivity(
+            SqlActivityTagConstants.TransactionRollbackOperation,
+            System.Diagnostics.ActivityKind.Internal);
+        activity?.SetTag(SqlActivityTagConstants.DbSystem, SqlActivityTagConstants.SqlServer);
+        activity?.SetTag(SqlActivityTagConstants.DbTransactionId, eventData.TransactionId);
+        activity?.SetTag(SqlActivityTagConstants.DurationMilliseconds, eventData.Duration.TotalMilliseconds);
+        activity?.SetTag(SqlActivityTagConstants.OperationSuccess, false);
+        SqlPersistenceLogs.TransactionRolledBack(
+            logger,
             eventData.TransactionId,
             eventData.Duration.TotalMilliseconds);
         base.TransactionRolledBack(transaction, eventData);
@@ -48,43 +56,50 @@ public class TransactionLoggingInterceptor(ILogger<TransactionLoggingInterceptor
 
     public override void TransactionFailed(DbTransaction transaction, TransactionErrorEventData eventData)
     {
-        using var activity = ActivitySources.Infrastructure.StartActivity("TransactionFailed", System.Diagnostics.ActivityKind.Internal);
-        activity?.SetTag("TransactionId", eventData.TransactionId);
-        activity?.SetTag("Exception", eventData.Exception.ToString());
-        logger.LogError(
+        using var activity = SqlActivitySource.Shared.StartActivity(
+            SqlActivityTagConstants.TransactionFailureOperation,
+            System.Diagnostics.ActivityKind.Internal);
+        activity?.SetTag(SqlActivityTagConstants.DbSystem, SqlActivityTagConstants.SqlServer);
+        activity?.SetTag(SqlActivityTagConstants.DbTransactionId, eventData.TransactionId);
+        activity?.SetTag(SqlActivityTagConstants.ErrorType, eventData.Exception.GetType().Name);
+        activity?.SetStatus(System.Diagnostics.ActivityStatusCode.Error, eventData.Exception.Message);
+        SqlPersistenceLogs.TransactionFailed(
+            logger,
             eventData.Exception,
-            "Transaction failed (Id: {TransactionId})",
             eventData.TransactionId);
         base.TransactionFailed(transaction, eventData);
     }
 
     public override void CreatedSavepoint(DbTransaction transaction, TransactionEventData eventData)
     {
-        using var activity = ActivitySources.Infrastructure.StartActivity("CreatedSavepoint", System.Diagnostics.ActivityKind.Internal);
-        activity?.SetTag("TransactionId", eventData.TransactionId);
-        logger.LogDebug(
-            "Savepoint created in transaction (Id: {TransactionId})",
-            eventData.TransactionId);
+        using var activity = SqlActivitySource.Shared.StartActivity(
+            SqlActivityTagConstants.SavepointCreateOperation,
+            System.Diagnostics.ActivityKind.Internal);
+        activity?.SetTag(SqlActivityTagConstants.DbSystem, SqlActivityTagConstants.SqlServer);
+        activity?.SetTag(SqlActivityTagConstants.DbTransactionId, eventData.TransactionId);
+        SqlPersistenceLogs.SavepointCreated(logger, eventData.TransactionId);
         base.CreatedSavepoint(transaction, eventData);
     }
 
     public override void RolledBackToSavepoint(DbTransaction transaction, TransactionEventData eventData)
     {
-        using var activity = ActivitySources.Infrastructure.StartActivity("RolledBackToSavepoint", System.Diagnostics.ActivityKind.Internal);
-        activity?.SetTag("TransactionId", eventData.TransactionId);
-        logger.LogWarning(
-            "Rolled back to savepoint in transaction (Id: {TransactionId})",
-            eventData.TransactionId);
+        using var activity = SqlActivitySource.Shared.StartActivity(
+            SqlActivityTagConstants.SavepointRollbackOperation,
+            System.Diagnostics.ActivityKind.Internal);
+        activity?.SetTag(SqlActivityTagConstants.DbSystem, SqlActivityTagConstants.SqlServer);
+        activity?.SetTag(SqlActivityTagConstants.DbTransactionId, eventData.TransactionId);
+        SqlPersistenceLogs.SavepointRolledBack(logger, eventData.TransactionId);
         base.RolledBackToSavepoint(transaction, eventData);
     }
 
     public override void ReleasedSavepoint(DbTransaction transaction, TransactionEventData eventData)
     {
-        using var activity = ActivitySources.Infrastructure.StartActivity("ReleasedSavepoint", System.Diagnostics.ActivityKind.Internal);
-        activity?.SetTag("TransactionId", eventData.TransactionId);
-        logger.LogDebug(
-            "Released savepoint in transaction (Id: {TransactionId})",
-            eventData.TransactionId);
+        using var activity = SqlActivitySource.Shared.StartActivity(
+            SqlActivityTagConstants.SavepointReleaseOperation,
+            System.Diagnostics.ActivityKind.Internal);
+        activity?.SetTag(SqlActivityTagConstants.DbSystem, SqlActivityTagConstants.SqlServer);
+        activity?.SetTag(SqlActivityTagConstants.DbTransactionId, eventData.TransactionId);
+        SqlPersistenceLogs.SavepointReleased(logger, eventData.TransactionId);
         base.ReleasedSavepoint(transaction, eventData);
     }
 }

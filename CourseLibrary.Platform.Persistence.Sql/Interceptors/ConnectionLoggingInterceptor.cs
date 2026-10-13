@@ -1,23 +1,25 @@
-﻿using CourseLibrary.Core.Domain.Abstractions.Auditing;
-using Microsoft.EntityFrameworkCore;
+﻿using CourseLibrary.Platform.Persistence.Sql.Observability;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Logging;
+using System.Data.Common;
 
 namespace CourseLibrary.Platform.Persistence.Sql.Interceptors;
 
 
-public class ConnectionLoggingInterceptor(ILogger<ConnectionLoggingInterceptor> logger) : DbConnectionInterceptor, IInterceptor
+public sealed class ConnectionLoggingInterceptor(ILogger<ConnectionLoggingInterceptor> logger) : DbConnectionInterceptor
 {
     public override async Task ConnectionOpenedAsync(
         DbConnection connection,
         ConnectionEndEventData eventData,
         CancellationToken cancellationToken = default)
     {
-        using var activity = ActivitySources.Infrastructure.StartActivity(
-            "Connection Opened",
+        using var activity = SqlActivitySource.Shared.StartActivity(
+            SqlActivityTagConstants.ConnectionOpenOperation,
             System.Diagnostics.ActivityKind.Internal);
-        logger.LogDebug(
-            "[Connection Opened] {DataSource}/{Database}",
+        activity?.SetTag(SqlActivityTagConstants.DbSystem, SqlActivityTagConstants.SqlServer);
+        activity?.SetTag(SqlActivityTagConstants.DbNamespace, connection.Database);
+        SqlPersistenceLogs.ConnectionOpened(
+            logger,
             connection.DataSource,
             connection.Database);
 
@@ -28,11 +30,13 @@ public class ConnectionLoggingInterceptor(ILogger<ConnectionLoggingInterceptor> 
         DbConnection connection,
         ConnectionEndEventData eventData)
     {
-        using var activity = ActivitySources.Infrastructure.StartActivity(
-            "Connection Closed",
+        using var activity = SqlActivitySource.Shared.StartActivity(
+            SqlActivityTagConstants.ConnectionCloseOperation,
             System.Diagnostics.ActivityKind.Internal);
-        logger.LogDebug(
-            "[Connection Closed] {DataSource}/{Database}",
+        activity?.SetTag(SqlActivityTagConstants.DbSystem, SqlActivityTagConstants.SqlServer);
+        activity?.SetTag(SqlActivityTagConstants.DbNamespace, connection.Database);
+        SqlPersistenceLogs.ConnectionClosed(
+            logger,
             connection.DataSource,
             connection.Database);
 

@@ -1,27 +1,28 @@
 ﻿
 using CourseLibrary.Core.Domain.Abstractions.Auditing;
+using CourseLibrary.Platform.Persistence.Sql.Observability;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Logging;
 
 namespace CourseLibrary.Platform.Persistence.Sql.Interceptors;
 
-public sealed class AuditEntityInterceptor(ILogger<AuditEntityInterceptor> logger) : SaveChangesInterceptor, IInterceptor
+public sealed class AuditEntityInterceptor(ILogger<AuditEntityInterceptor> logger) : SaveChangesInterceptor
 {
     public override ValueTask<InterceptionResult<int>> SavingChangesAsync(DbContextEventData eventData,
         InterceptionResult<int> result,
         CancellationToken cancellationToken = default)
     {
-        using var activity = ActivitySources.Infrastructure.StartActivity(
-            "AuditEntityInterceptor.SavingChangesAsync",
+        using var activity = SqlActivitySource.Shared.StartActivity(
+            SqlActivityTagConstants.SaveChangesOperation,
              System.Diagnostics.ActivityKind.Internal);
 
-        activity?.SetTag("DbContext", eventData.Context?.GetType().Name);
-        activity?.SetTag("InterceptionResult", result.ToString());
+        activity?.SetTag(SqlActivityTagConstants.DbOperationName, SqlActivityTagConstants.AuditOperation);
+        activity?.SetTag(SqlActivityTagConstants.DbContextType, eventData.Context?.GetType().Name);
         var context = eventData.Context;
         if (context == null)
         {
-            activity?.SetTag("Error", true);
+            activity?.SetTag(SqlActivityTagConstants.OperationSuccess, false);
             return base.SavingChangesAsync(eventData, result, cancellationToken);
         }
 
@@ -30,23 +31,26 @@ public sealed class AuditEntityInterceptor(ILogger<AuditEntityInterceptor> logge
             switch (entry.State)
             {
                 case EntityState.Added:
-                    activity?.SetTag("EntityState", "Added");
-                    logger.LogDebug("Adding entity of type {EntityType},", entry.Entity.GetType().Name);
+                    activity?.SetTag(SqlActivityTagConstants.EntityState, "added");
+                    activity?.SetTag(SqlActivityTagConstants.EntityType, entry.Entity.GetType().Name);
+                    SqlPersistenceLogs.AuditEntityAdded(logger, entry.Entity.GetType().Name);
                     entry.Entity.CreatedAt = DateTimeOffset.UtcNow;
                     break;
                 case EntityState.Modified:
-                    activity?.SetTag("EntityState", "Modified");
-                    logger.LogDebug("Updating entity of type {EntityType},", entry.Entity.GetType().Name);
+                    activity?.SetTag(SqlActivityTagConstants.EntityState, "modified");
+                    activity?.SetTag(SqlActivityTagConstants.EntityType, entry.Entity.GetType().Name);
+                    SqlPersistenceLogs.AuditEntityUpdated(logger, entry.Entity.GetType().Name);
                     entry.Entity.UpdatedAt = DateTimeOffset.UtcNow;
                     break;
                 case EntityState.Deleted:
-                    activity?.SetTag("EntityState", "Deleted");
-                    logger.LogDebug("Deleting entity of type {EntityType},", entry.Entity.GetType().Name);
+                    activity?.SetTag(SqlActivityTagConstants.EntityState, "deleted");
+                    activity?.SetTag(SqlActivityTagConstants.EntityType, entry.Entity.GetType().Name);
+                    SqlPersistenceLogs.AuditEntityDeleted(logger, entry.Entity.GetType().Name);
                     entry.Entity.DeletedAt = DateTimeOffset.UtcNow;
                     break;
             }
         }
-        activity?.SetTag("AuditEntityInterceptor", "Completed");
+        activity?.SetTag(SqlActivityTagConstants.OperationSuccess, true);
         return base.SavingChangesAsync(eventData, result, cancellationToken);
     }
 }
