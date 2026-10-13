@@ -40,7 +40,7 @@ internal static class CosmosExceptionExtensions
                     exception),
 
             HttpStatusCode.BadRequest =>
-                new DataAccessException(
+                new BadRequestException(
                     "The data service rejected the request.",
                     exception),
 
