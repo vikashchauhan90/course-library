@@ -1,5 +1,4 @@
 using CourseLibrary.Core.Results;
-using Microsoft.AspNetCore.Http;
 
 namespace CourseLibrary.Course.Api.Http;
 
@@ -21,7 +20,8 @@ internal static class ResultHttpExtensions
 
         var statusCode = error.Type switch
         {
-            ErrorType.Validation or ErrorType.BusinessRule => StatusCodes.Status400BadRequest,
+            ErrorType.Validation  => StatusCodes.Status400BadRequest,
+            ErrorType.BusinessRule => StatusCodes.Status422UnprocessableEntity,
             ErrorType.NotFound => StatusCodes.Status404NotFound,
             ErrorType.Conflict or ErrorType.Concurrency => StatusCodes.Status409Conflict,
             ErrorType.Unauthorized => StatusCodes.Status401Unauthorized,

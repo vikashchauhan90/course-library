@@ -1,29 +1,72 @@
+using CourseLibrary.Course.App.Authentication;
+using CourseLibrary.Course.App.Configuration.Observability;
+using CourseLibrary.Course.App.Configuration.Observability.Metrics;
+using CourseLibrary.Course.Client;
+using CourseLibrary.Course.Client.Security;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.OpenIdConnect;
+using Microsoft.IdentityModel.Protocols.OpenIdConnect;
+
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
 builder.Services.AddControllersWithViews();
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<IAccessTokenProvider, HttpContextAccessTokenProvider>();
+builder.Services.AddScoped<ICommonHeadersProvider, HttpContextCommonHeadersProvider>();
+builder.Services.AddCourseLibraryClients(builder.Configuration);
+builder.AddObservability();
+
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = OpenIdConnectDefaults.AuthenticationScheme;
+})
+.AddCookie(options =>
+{
+    options.Cookie.Name = "CourseLibrary.Course.App.Session";
+    options.AccessDeniedPath = "/home/access-denied";
+})
+.AddOpenIdConnect(options =>
+{
+    options.Authority = builder.Configuration["OpenId:Authority"]
+        ?? throw new InvalidOperationException("OpenId:Authority is missing.");
+    options.ClientId = builder.Configuration["OpenId:ClientId"]
+        ?? throw new InvalidOperationException("OpenId:ClientId is missing.");
+    options.ClientSecret = builder.Configuration["OpenId:ClientSecret"];
+    options.ResponseType = OpenIdConnectResponseType.Code;
+    options.UsePkce = true;
+    options.SaveTokens = true;
+    options.GetClaimsFromUserInfoEndpoint = false;
+    options.MapInboundClaims = false;
+    options.Scope.Clear();
+    options.Scope.Add("openid");
+    options.Scope.Add("profile");
+    options.Scope.Add("email");
+    options.Scope.Add("roles");
+    options.Scope.Add("course-library-api");
+    options.CallbackPath = "/signin-oidc";
+    options.SignedOutCallbackPath = "/signout-callback-oidc";
+    options.RequireHttpsMetadata = true;
+});
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
 {
-    app.UseExceptionHandler("/Home/Error");
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
+    app.UseExceptionHandler("/home/error");
     app.UseHsts();
 }
 
 app.UseHttpsRedirection();
+app.UseStaticFiles();
 app.UseRouting();
-
+app.UseRequestContext();
+app.UseRequestMetrics();
+app.UseAuthentication();
 app.UseAuthorization();
-
-app.MapStaticAssets();
 
 app.MapControllerRoute(
     name: "default",
-    pattern: "{controller=Home}/{action=Index}/{id?}")
-    .WithStaticAssets();
-
+    pattern: "{controller=Home}/{action=Index}/{id?}");
 
 app.Run();

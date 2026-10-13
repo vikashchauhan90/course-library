@@ -1,8 +1,17 @@
-﻿@{
-    ViewData["Title"] = "Home Page";
-}
+<section class="hero">
+    <p class="eyebrow">Your learning workspace</p>
+    <h1>Build your next course.</h1>
+    <p class="lede">You are signed in through CourseLibrary Identity. Use the gateway to retrieve protected course data.</p>
+    <a class="button" asp-action="Course">Open course lookup</a>
+</section>
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
-</div>
+<section class="stats" aria-label="Account details">
+    <div>
+        <span class="stat-label">Signed in as</span>
+        <strong>@(User.Identity?.Name ?? "Course Library user")</strong>
+    </div>
+    <div>
+        <span class="stat-label">Access</span>
+        <strong>Gateway enabled</strong>
+    </div>
+</section>
