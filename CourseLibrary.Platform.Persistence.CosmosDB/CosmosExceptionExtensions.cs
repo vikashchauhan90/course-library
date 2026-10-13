@@ -45,8 +45,8 @@ internal static class CosmosExceptionExtensions
                     exception),
 
             HttpStatusCode.UnprocessableEntity =>
-                new DataAccessException(
-                    "The data service rejected the request.",
+                new ValidationFailedException(
+                    "The data service rejected the request due to validation errors.",
                     exception),
 
             _ =>
