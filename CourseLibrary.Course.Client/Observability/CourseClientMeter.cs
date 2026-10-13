@@ -14,10 +14,11 @@ public sealed class CourseClientMeter : MeterBase
 
     private readonly Counter<long> _requests;
     private readonly Counter<long> _failures;
-    private readonly Histogram<long> _duration;
-    public CourseClientMeter() : base(CourseClientMeterConstants.MeterName)
+    private readonly Histogram<double> _duration;
+
+    private CourseClientMeter() : base(CourseClientMeterConstants.MeterName)
     {
-        _requests= CreateCounter<long>(
+        _requests = CreateCounter<long>(
             CourseClientMeterConstants.RequestsInstrumentName,
             "{request}",
             "Number of requests made to the Course API.");
@@ -25,34 +26,39 @@ public sealed class CourseClientMeter : MeterBase
             CourseClientMeterConstants.FailuresInstrumentName,
             "{failure}",
             "Number of failed requests made to the Course API.");
-        _duration = CreateHistogram<long>(
+        _duration = CreateHistogram<double>(
             CourseClientMeterConstants.DurationInstrumentName,
-            "{duration}",
+            "ms",
             "Duration of requests made to the Course API.");
     }
 
-    public void RecordRequest(string request)
+    public void RecordRequest(string operation)
     {
-        _requests.Add(1, new("request", request));
-    }
-    public void RecordFailure(string failure)
-    {
-        _failures.Add(1, new("failure", failure));
-    }
-    public void RecordDuration(long duration)
-    {
-        _duration.Record(duration, new("duration", duration.ToString()));
+        _requests.Add(1, CreateTags(operation));
     }
 
-    private static TagList CreateTag(string key, string operation)
+    public void RecordFailure(string operation, string failureType)
+    {
+        _failures.Add(1, CreateTags(operation, failureType));
+    }
+
+    public void RecordDuration(double durationMilliseconds, string operation)
+    {
+        _duration.Record(durationMilliseconds, CreateTags(operation));
+    }
+
+    private static TagList CreateTags(string operation, string? failureType = null)
     {
         var tags = new TagList
         {
-            { CourseClientActivityTagConstants., provider },
-            { CourseClientActivityTagConstants.OperationTag, operation }
+            { CourseClientActivityTagConstants.Operation, operation }
         };
+
+        if (failureType is not null)
+        {
+            tags.Add(CourseClientActivityTagConstants.FailureType, failureType);
+        }
 
         return tags;
     }
-
 }

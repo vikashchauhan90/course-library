@@ -1,13 +1,10 @@
-using CourseLibrary.Client.Observability;
 using CourseLibrary.Course.Client.Observability;
 using CourseLibrary.Course.Contracts.DTOs;
 using CourseLibrary.Course.Contracts.Pagination;
-using CourseLibrary.Models;
-using CourseLibrary.Models.Course;
-using Hal.Core;
 using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
+using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -20,52 +17,85 @@ internal sealed class CourseApiClient(
 {
     private static readonly JsonSerializerOptions JsonOptions = CreateJsonOptions();
     private static readonly CourseClientActivitySource ActivitySources = new();
-    private static readonly CourseClientMeter CourseApiMeter = new();
+    private static readonly CourseClientMeter CourseApiMeter = CourseClientMeter.Shared;
 
-    public async Task<CourseResponse> GetCourseAsync(string courseId, CancellationToken cancellationToken = default) =>
-        await SendResourceAsync(
+    public Task<CourseResponse> GetCourseAsync(
+        string courseId,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(courseId);
+
+        return SendResourceAsync(
             HttpMethod.Get,
             $"api/v1/courses/{Uri.EscapeDataString(courseId)}",
             operation: "get-course",
             cancellationToken);
+    }
 
     public Task<PageResult<CourseResponse>> SearchAsync(
         CourseSearchCriteria? criteria,
         int pageSize = 20,
         string? continuationToken = null,
-        CancellationToken cancellationToken = default) =>
-        SendPageAsync(
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(pageSize);
+
+        return SendPageAsync(
             HttpMethod.Get,
             BuildSearchPath(criteria, pageSize, continuationToken),
             operation: "search-courses",
             cancellationToken);
+    }
 
+    public Task<CourseResponse> CreateAsync(
+        CreateCourseRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
 
-    public async Task<CourseResponse> CreateAsync(CreateCourseRequest request, CancellationToken cancellationToken = default) =>
-            await SendResourceAsync(
-                HttpMethod.Post,
-                "api/v1/courses",
-                request,
-                operation: "create-course",
-                cancellationToken);
+        return SendResourceAsync(
+            HttpMethod.Post,
+            "api/v1/courses",
+            request,
+            operation: "create-course",
+            cancellationToken);
+    }
 
-    public async Task<CourseResponse> UpdateAsync(string courseId, UpdateCourseRequest request, CancellationToken cancellationToken = default) =>
-        await SendResourceAsync(
+    public Task<CourseResponse> UpdateAsync(
+        string courseId,
+        UpdateCourseRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(courseId);
+        ArgumentNullException.ThrowIfNull(request);
+
+        return SendResourceAsync(
             HttpMethod.Put,
             $"api/v1/courses/{Uri.EscapeDataString(courseId)}",
             request,
             operation: "update-course",
             cancellationToken);
+    }
 
-    public async Task<CourseResponse> RetireAsync(string courseId, CancellationToken cancellationToken = default) =>
-        await SendResourceAsync(
+    public Task<CourseResponse> RetireAsync(
+        string courseId,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(courseId);
+
+        return SendResourceAsync(
             HttpMethod.Post,
             $"api/v1/courses/{Uri.EscapeDataString(courseId)}/retire",
             operation: "retire-course",
             cancellationToken);
+    }
 
-    public async Task DeleteAsync(string courseId, CancellationToken cancellationToken = default)
+    public async Task DeleteAsync(
+        string courseId,
+        CancellationToken cancellationToken = default)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(courseId);
+
         await SendAsync<object>(
             HttpMethod.Delete,
             $"api/v1/courses/{Uri.EscapeDataString(courseId)}",
@@ -86,49 +116,47 @@ internal sealed class CourseApiClient(
         object content,
         string operation,
         CancellationToken cancellationToken) =>
-        SendAsync<T>(method, path, JsonContent.Create(content, options: JsonOptions), operation, cancellationToken);
+        SendAsync<T>(
+            method,
+            path,
+            JsonContent.Create(content, options: JsonOptions),
+            operation,
+            cancellationToken);
 
-    private async Task<CourseResponse> SendResourceAsync(
-        HttpMethod method,
-        string path,
-        string operation,
-        CancellationToken cancellationToken) =>
-        await SendAsync<HalDocument<CourseResponse>>(method, path, operation, cancellationToken);
-
-    private async Task<IResource<CourseResponse>> SendResourceAsync(
-        HttpMethod method,
-        string path,
-        object content,
-        string operation,
-        CancellationToken cancellationToken) =>
-        await SendAsync<HalDocument<CourseResponse>>(method, path, content, operation, cancellationToken);
-
-    private async Task<PageResult<CourseResponse>> SendPageAsync(
+    private Task<CourseResponse> SendResourceAsync(
         HttpMethod method,
         string path,
         string operation,
         CancellationToken cancellationToken)
-    {
-        var document = await SendAsync<HalDocument<PageResult<HalDocument<CourseResponse>>>>(
+        => SendAsync<CourseResponse>(
             method,
             path,
             operation,
             cancellationToken);
 
-        var result = new HalDocument<PageResult<IResource<CourseResponse>>>
-        {
-            Data = document.Data.Map(item => (IResource<CourseResponse>)item)
-        };
+    private Task<CourseResponse> SendResourceAsync(
+        HttpMethod method,
+        string path,
+        object content,
+        string operation,
+        CancellationToken cancellationToken)
+        => SendAsync<CourseResponse>(
+            method,
+            path,
+            content,
+            operation,
+            cancellationToken);
 
-        foreach (var link in document.Links)
-            result.AddLink(link);
-
-        foreach (var embeddedResource in document.EmbeddedResources)
-            result.EmbeddedResources[embeddedResource.Key] = embeddedResource.Value;
-
-        return result;
-
-    }
+    private Task<PageResult<CourseResponse>> SendPageAsync(
+        HttpMethod method,
+        string path,
+        string operation,
+        CancellationToken cancellationToken)
+        => SendAsync<PageResult<CourseResponse>>(
+            method,
+            path,
+            operation,
+            cancellationToken);
 
     private async Task<T> SendAsync<T>(
         HttpMethod method,
@@ -137,11 +165,14 @@ internal sealed class CourseApiClient(
         string operation,
         CancellationToken cancellationToken)
     {
-        using var activity = CourseApiDiagnostics.ActivitySource.StartActivity(
+        using var activity = ActivitySources.StartActivity(
             $"CourseApi {operation}",
             ActivityKind.Client);
+        activity?.SetTag(CourseClientActivityTagConstants.Operation, operation);
+        activity?.SetTag(CourseClientActivityTagConstants.HttpRequestMethod, method.Method);
+
         var stopwatch = Stopwatch.StartNew();
-        CourseApiDiagnostics.Requests.Add(1, new KeyValuePair<string, object?>("operation", operation));
+        CourseApiMeter.RecordRequest(operation);
         logger.Calling(operation);
 
         try
@@ -152,48 +183,81 @@ internal sealed class CourseApiClient(
             };
 
             using var response = await httpClient.SendAsync(request, cancellationToken);
+            activity?.SetTag(
+                CourseClientActivityTagConstants.HttpResponseStatusCode,
+                (int)response.StatusCode);
+
             if (!response.IsSuccessStatusCode)
             {
-                CourseApiDiagnostics.Failures.Add(1, new KeyValuePair<string, object?>("operation", operation));
-                logger.Failed(operation, (int)response.StatusCode);
                 var detail = await response.Content.ReadAsStringAsync(cancellationToken);
-                ProblemDetails? problemDetails = null;
+                CourseApiProblemDetails? problemDetails = null;
                 try
                 {
-                    problemDetails = JsonSerializer.Deserialize<ProblemDetails>(detail, JsonOptions);
+                    problemDetails = JsonSerializer.Deserialize<CourseApiProblemDetails>(detail, JsonOptions);
                 }
                 catch (JsonException)
                 {
-                    // Preserve the raw response when the server did not return RFC 7807 JSON.
+                    // Keep the raw response detail when the server did not return problem-details JSON.
                 }
 
                 throw new CourseApiException(response.StatusCode, operation, problemDetails, detail);
             }
 
-            if (typeof(T) == typeof(object) || response.StatusCode == System.Net.HttpStatusCode.NoContent)
-                return default!;
+            T result;
+            if (typeof(T) == typeof(object))
+            {
+                result = default!;
+            }
+            else if (response.StatusCode == HttpStatusCode.NoContent)
+            {
+                throw new JsonException($"The Course API {operation} response did not contain the expected response body.");
+            }
+            else
+            {
+                result = await response.Content.ReadFromJsonAsync<T>(JsonOptions, cancellationToken)
+                    ?? throw new JsonException($"The Course API {operation} response body was empty.");
+            }
 
-            return (await response.Content.ReadFromJsonAsync<T>(JsonOptions, cancellationToken))!;
+            activity?.SetTag(CourseClientActivityTagConstants.OperationSuccess, true);
+            activity?.SetStatus(ActivityStatusCode.Ok);
+            logger.Completed(operation, (int)response.StatusCode, stopwatch.Elapsed.TotalMilliseconds);
+
+            return result;
         }
-        catch (CourseApiException)
+        catch (CourseApiException exception)
         {
+            CourseApiMeter.RecordFailure(operation, CourseClientActivityTagConstants.HttpFailure);
+            activity?.SetTag(CourseClientActivityTagConstants.FailureType, CourseClientActivityTagConstants.HttpFailure);
+            activity?.SetTag(
+                CourseClientActivityTagConstants.HttpResponseStatusCode,
+                (int)exception.StatusCode);
+            activity?.SetStatus(ActivityStatusCode.Error, exception.Message);
+            logger.Failed(operation, (int)exception.StatusCode);
             throw;
         }
-        catch (Exception exception) when (exception is HttpRequestException or TaskCanceledException)
+        catch (OperationCanceledException)
         {
-            CourseApiDiagnostics.Failures.Add(1, new KeyValuePair<string, object?>("operation", operation));
-            logger.FailedUnexpectedly(exception, operation);
+            CourseApiMeter.RecordFailure(operation, CourseClientActivityTagConstants.CancelledFailure);
+            activity?.SetTag(CourseClientActivityTagConstants.OperationCancelled, true);
+            activity?.SetTag(CourseClientActivityTagConstants.FailureType, CourseClientActivityTagConstants.CancelledFailure);
+            activity?.SetStatus(ActivityStatusCode.Error, "Operation was cancelled.");
+            logger.Cancelled(operation);
+            throw;
+        }
+        catch (Exception exception)
+        {
+            CourseApiMeter.RecordFailure(operation, CourseClientActivityTagConstants.ClientFailure);
+            activity?.SetTag(CourseClientActivityTagConstants.FailureType, CourseClientActivityTagConstants.ClientFailure);
             activity?.SetStatus(ActivityStatusCode.Error, exception.Message);
+            logger.FailedUnexpectedly(exception, operation);
             throw;
         }
         finally
         {
-            CourseApiDiagnostics.Duration.Record(
-                stopwatch.Elapsed.TotalMilliseconds,
-                new KeyValuePair<string, object?>("operation", operation));
+            stopwatch.Stop();
+            CourseApiMeter.RecordDuration(stopwatch.Elapsed.TotalMilliseconds, operation);
         }
     }
-
 
     private static string BuildSearchPath(
         CourseSearchCriteria? criteria,
@@ -201,9 +265,9 @@ internal sealed class CourseApiClient(
         string? continuationToken)
     {
         var query = new QueryBuilder
-    {
-        { "pageSize", pageSize.ToString() }
-    };
+        {
+            { "pageSize", pageSize.ToString() }
+        };
 
         AddIfNotNullOrWhiteSpace(query, "pageToken", continuationToken);
         AddIfNotNullOrWhiteSpace(query, "searchTerm", criteria?.SearchTerm);
@@ -224,11 +288,17 @@ internal sealed class CourseApiClient(
     private static void AddIfNotNullOrWhiteSpace(QueryBuilder query, string key, string? value)
     {
         if (!string.IsNullOrWhiteSpace(value))
+        {
             query.Add(key, value.Trim());
+        }
     }
+
     private static void AddIfHasValue(QueryBuilder query, string key, object? value)
     {
-        if (value != null)
+        if (value is not null)
+        {
             query.Add(key, value.ToString());
+        }
     }
+
 }

@@ -1,4 +1,4 @@
-using CourseLibrary.Client.Handlers;
+using CourseLibrary.Course.Client.Handlers;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
