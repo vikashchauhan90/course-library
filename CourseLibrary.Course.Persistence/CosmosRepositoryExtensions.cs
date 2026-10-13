@@ -6,6 +6,7 @@ using CourseLibrary.Course.Persistence.Data.Serialization;
 using CourseLibrary.Course.Persistence.Observability;
 using CourseLibrary.Platform.Persistence.CosmosDB;
 using CourseLibrary.Platform.Persistence.CosmosDB.Configurations;
+using PlatformCosmosActivitySource = CourseLibrary.Platform.Persistence.CosmosDB.Observability.CosmosActivitySource;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -48,6 +49,7 @@ public static class CosmosRepositoryExtensions
         });
 
         services.AddSingleton<CosmosActivitySource>();
+        services.AddSingleton<PlatformCosmosActivitySource>();
 
     }
 

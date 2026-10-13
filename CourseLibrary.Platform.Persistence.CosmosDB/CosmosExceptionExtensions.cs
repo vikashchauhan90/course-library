@@ -1,4 +1,6 @@
 ﻿using System.Net;
+using CourseLibrary.Core.Domain.Exceptions;
+using Microsoft.Azure.Cosmos;
 
 
 namespace CourseLibrary.Platform.Persistence.CosmosDB;
@@ -38,6 +40,11 @@ internal static class CosmosExceptionExtensions
                     exception),
 
             HttpStatusCode.BadRequest =>
+                new DataAccessException(
+                    "The data service rejected the request.",
+                    exception),
+
+            HttpStatusCode.UnprocessableEntity =>
                 new DataAccessException(
                     "The data service rejected the request.",
                     exception),

@@ -1,5 +1,6 @@
 using CourseLibrary.Core.Results;
 using CourseLibrary.Platform.Persistence.CosmosDB.Configurations;
+using CourseLibrary.Platform.Persistence.CosmosDB.Observability;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -19,6 +20,8 @@ public class CosmosRepository<TDocument, TKey>
     private readonly CosmosOptions _options;
     private readonly CosmosClient _client;
     private readonly CosmosActivitySource _activitySource;
+    private static readonly CosmosMeter Metrics = CosmosMeter.Shared;
+
     public CosmosRepository(
         CosmosClient client,
         IOptions<CosmosOptions> options,
@@ -69,6 +72,7 @@ public class CosmosRepository<TDocument, TKey>
          _activitySource.StartActivity(
              "Cosmos.GetItem",
              ActivityKind.Client);
+        var startedAt = Stopwatch.GetTimestamp();
 
         activity.SetCosmosOperation(
             "ReadItem",
@@ -82,35 +86,36 @@ public class CosmosRepository<TDocument, TKey>
                 new PartitionKey(partitionKey),
                 cancellationToken: cancellationToken);
 
-            activity.RecordSuccess(
-            response.RequestCharge);
+            RecordSuccess(activity, "ReadItem", startedAt, response.RequestCharge);
 
             return response.Resource;
         }
         catch (CosmosException ex) when (
             ex.StatusCode == HttpStatusCode.NotFound)
         {
-            activity?.SetTag(
-             "http.response.status_code",
-             404);
-
-            _logger.DocumentNotFound(
-                 "ReadItem",
-                 _configuration.ContainerName,
-                 id.ToString() ?? string.Empty);
-
+            RecordNotFound(
+                activity,
+                "ReadItem",
+                startedAt,
+                ex.RequestCharge,
+                id.ToString() ?? string.Empty);
 
             return default;
         }
         catch (CosmosException ex)
         {
-            activity.RecordFailure(ex);
-
-            LogCosmosFailure(
-                 "ReadItem",
-                 ex);
-
+            RecordFailure(activity, "ReadItem", startedAt, ex);
             throw ex.ToApplicationException();
+        }
+        catch (OperationCanceledException ex)
+        {
+            RecordFailure(activity, "ReadItem", startedAt, ex);
+            throw;
+        }
+        catch (Exception ex)
+        {
+            RecordFailure(activity, "ReadItem", startedAt, ex);
+            throw;
         }
     }
 
@@ -125,6 +130,7 @@ public class CosmosRepository<TDocument, TKey>
         _activitySource.StartActivity(
             "Cosmos.Query",
             ActivityKind.Client);
+        var startedAt = Stopwatch.GetTimestamp();
 
         activity.SetCosmosOperation(
             "Query",
@@ -157,23 +163,28 @@ public class CosmosRepository<TDocument, TKey>
                 totalRequestCharge += response.RequestCharge;
             }
 
-            activity.RecordSuccess(
-          totalRequestCharge);
+            RecordSuccess(activity, "Query", startedAt, totalRequestCharge);
 
             activity?.SetTag(
-                "cosmos.result_count",
+                CosmosActivityTagConstants.ResultCount,
                 results.Count);
 
             return results;
         }
         catch (CosmosException ex)
         {
-            activity.RecordFailure(ex);
-
-            LogCosmosFailure(
-                "Query",
-                ex);
+            RecordFailure(activity, "Query", startedAt, ex);
             throw ex.ToApplicationException();
+        }
+        catch (OperationCanceledException ex)
+        {
+            RecordFailure(activity, "Query", startedAt, ex);
+            throw;
+        }
+        catch (Exception ex)
+        {
+            RecordFailure(activity, "Query", startedAt, ex);
+            throw;
         }
     }
 
@@ -198,18 +209,19 @@ public class CosmosRepository<TDocument, TKey>
        _activitySource.StartActivity(
            "Cosmos.QueryPage",
            ActivityKind.Client);
+        var startedAt = Stopwatch.GetTimestamp();
 
         activity.SetCosmosOperation(
-            "Cosmos.QueryPage",
+            "QueryPage",
             _configuration.ContainerName,
             Container.Database.Id);
 
         activity?.SetTag(
-        "cosmos.page_size",
+        CosmosActivityTagConstants.PageSize,
         pageSize);
 
         activity?.SetTag(
-            "cosmos.has_continuation_token",
+            CosmosActivityTagConstants.HasContinuationToken,
             !string.IsNullOrWhiteSpace(continuationToken));
 
         try
@@ -232,6 +244,9 @@ public class CosmosRepository<TDocument, TKey>
 
             if (!iterator.HasMoreResults)
             {
+                activity?.SetTag(CosmosActivityTagConstants.ResultCount, 0);
+                RecordSuccess(activity, "QueryPage", startedAt, 0);
+
                 return new PageResult<TDocument>(
                     [],
                     null,
@@ -246,15 +261,11 @@ public class CosmosRepository<TDocument, TKey>
 
             var nextToken = response.ContinuationToken;
 
+            activity?.SetTag(CosmosActivityTagConstants.ResultCount, items.Count);
             activity?.SetTag(
-            "cosmos.result_count",
-            items.Count);
-
-            activity?.SetTag(
-                "cosmos.has_next_page",
+                CosmosActivityTagConstants.HasNextPage,
                 !string.IsNullOrWhiteSpace(nextToken));
-
-            activity?.RecordSuccess(response.RequestCharge);
+            RecordSuccess(activity, "QueryPage", startedAt, response.RequestCharge);
 
             return new PageResult<TDocument>(
                 items,
@@ -263,12 +274,18 @@ public class CosmosRepository<TDocument, TKey>
         }
         catch (CosmosException ex)
         {
-            activity.RecordFailure(ex);
-
-            LogCosmosFailure(
-                "QueryPage",
-                ex);
+            RecordFailure(activity, "QueryPage", startedAt, ex);
             throw ex.ToApplicationException();
+        }
+        catch (OperationCanceledException ex)
+        {
+            RecordFailure(activity, "QueryPage", startedAt, ex);
+            throw;
+        }
+        catch (Exception ex)
+        {
+            RecordFailure(activity, "QueryPage", startedAt, ex);
+            throw;
         }
     }
 
@@ -286,6 +303,7 @@ public class CosmosRepository<TDocument, TKey>
         _activitySource.StartActivity(
             "Cosmos.UpsertItem",
             ActivityKind.Client);
+        var startedAt = Stopwatch.GetTimestamp();
 
         activity.SetCosmosOperation(
             "UpsertItem",
@@ -301,18 +319,22 @@ public class CosmosRepository<TDocument, TKey>
                     partitionKey),
                 cancellationToken: cancellationToken);
 
-            activity.RecordSuccess(
-                response.RequestCharge);
+            RecordSuccess(activity, "UpsertItem", startedAt, response.RequestCharge);
         }
         catch (CosmosException ex)
         {
-            activity.RecordFailure(ex);
-
-            LogCosmosFailure(
-               "UpsertItem",
-               ex);
-
+            RecordFailure(activity, "UpsertItem", startedAt, ex);
             throw ex.ToApplicationException();
+        }
+        catch (OperationCanceledException ex)
+        {
+            RecordFailure(activity, "UpsertItem", startedAt, ex);
+            throw;
+        }
+        catch (Exception ex)
+        {
+            RecordFailure(activity, "UpsertItem", startedAt, ex);
+            throw;
         }
     }
 
@@ -327,6 +349,7 @@ public class CosmosRepository<TDocument, TKey>
        _activitySource.StartActivity(
            "Cosmos.DeleteItem",
            ActivityKind.Client);
+        var startedAt = Stopwatch.GetTimestamp();
 
         activity.SetCosmosOperation(
             "DeleteItem",
@@ -341,61 +364,132 @@ public class CosmosRepository<TDocument, TKey>
                new PartitionKey(partitionKey),
                cancellationToken: cancellationToken);
 
-            activity.RecordSuccess(
-                response.RequestCharge);
+            RecordSuccess(activity, "DeleteItem", startedAt, response.RequestCharge);
 
             return true;
         }
         catch (CosmosException ex) when (
             ex.StatusCode == HttpStatusCode.NotFound)
         {
-            activity?.SetTag(
-            "http.response.status_code",
-            404);
-
-            _logger.DocumentNotFound(
-                 "DeleteItem",
-                 _configuration.ContainerName,
-                 id.ToString() ?? string.Empty);
+            RecordNotFound(
+                activity,
+                "DeleteItem",
+                startedAt,
+                ex.RequestCharge,
+                id.ToString() ?? string.Empty);
 
             return false;
         }
         catch (CosmosException ex)
         {
-            activity.RecordFailure(ex);
-
-            LogCosmosFailure(
-               "DeleteItem",
-               ex);
+            RecordFailure(activity, "DeleteItem", startedAt, ex);
             throw ex.ToApplicationException();
+        }
+        catch (OperationCanceledException ex)
+        {
+            RecordFailure(activity, "DeleteItem", startedAt, ex);
+            throw;
+        }
+        catch (Exception ex)
+        {
+            RecordFailure(activity, "DeleteItem", startedAt, ex);
+            throw;
         }
     }
 
-    protected void LogCosmosFailure(
+    private void RecordSuccess(
+        Activity? activity,
         string operation,
-        CosmosException exception)
+        long startedAt,
+        double requestCharge)
     {
-        var statusCode = (int)exception.StatusCode;
+        activity.RecordSuccess(requestCharge);
+        Metrics.RecordOperation(
+            operation,
+            "success",
+            Stopwatch.GetElapsedTime(startedAt).TotalMilliseconds,
+            requestCharge);
+        _logger.OperationCompleted(
+            operation,
+            _configuration.ContainerName,
+            requestCharge);
+    }
 
-        if (statusCode >= 500)
+    private void RecordNotFound(
+        Activity? activity,
+        string operation,
+        long startedAt,
+        double requestCharge,
+        string id)
+    {
+        activity.RecordNotFound();
+        Metrics.RecordOperation(
+            operation,
+            "not_found",
+            Stopwatch.GetElapsedTime(startedAt).TotalMilliseconds,
+            requestCharge);
+        _logger.DocumentNotFound(operation, _configuration.ContainerName, id);
+    }
+
+    private void RecordFailure(
+        Activity? activity,
+        string operation,
+        long startedAt,
+        Exception exception)
+    {
+        activity.RecordFailure(exception);
+        var failureType = exception is OperationCanceledException
+            ? "cancelled"
+            : exception.GetType().Name;
+
+        Metrics.RecordOperation(
+            operation,
+            failureType == "cancelled" ? "cancelled" : "failure",
+            Stopwatch.GetElapsedTime(startedAt).TotalMilliseconds,
+            exception is CosmosException cosmosException
+                ? cosmosException.RequestCharge
+                : null);
+        Metrics.RecordFailure(operation, failureType);
+
+        if (exception is OperationCanceledException)
         {
-            _logger.OperationError(
+            _logger.OperationCancelled(
                 operation,
                 _configuration.ContainerName,
-                statusCode,
-                exception.ActivityId,
-                exception.RequestCharge,
                 exception);
+            return;
+        }
+
+        if (exception is CosmosException cosmosError)
+        {
+            var statusCode = (int)cosmosError.StatusCode;
+            if (statusCode >= 500)
+            {
+                _logger.OperationError(
+                    operation,
+                    _configuration.ContainerName,
+                    statusCode,
+                    cosmosError.ActivityId,
+                    cosmosError.RequestCharge,
+                    cosmosError);
+            }
+            else
+            {
+                _logger.OperationWarning(
+                    operation,
+                    _configuration.ContainerName,
+                    statusCode,
+                    cosmosError.ActivityId,
+                    cosmosError.RequestCharge,
+                    cosmosError);
+            }
 
             return;
         }
 
-        _logger.OperationWarning(
+        _logger.UnexpectedOperationFailure(
             operation,
             _configuration.ContainerName,
-            statusCode,
-            exception.ActivityId,
-            exception.RequestCharge,
             exception);
     }
 }
