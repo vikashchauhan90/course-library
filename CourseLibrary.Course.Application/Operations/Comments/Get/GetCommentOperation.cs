@@ -2,12 +2,11 @@ using CourseLibrary.Course.Application.Core;
 using CourseLibrary.Course.Contracts.DTOs;
 using CourseLibrary.Core.Domain.Exceptions;
 using CourseLibrary.Core.Results;
-using CourseLibrary.Course.Persistence.Abstractions.Repositories;
+using CourseLibrary.Course.Persistence.Data.Repositories;
 using CourseLibrary.Course.Domain.ValueObjects;
 using FluentValidation;
 using Microsoft.Extensions.Logging;
 using CourseLibrary.Course.Application.Operations.Courses;
-using CourseLibrary.Course.Domain.Repositories;
 
 namespace CourseLibrary.Course.Application.Operations.Comments.Get;
 
