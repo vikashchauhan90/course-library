@@ -23,12 +23,52 @@ public interface ICosmosRepository<TDocument, TKey>
         int pageSize = 20,
         CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyList<TDocument>> GetManyAsync(
+        IReadOnlyList<(TKey Id, string PartitionKey)> items,
+        CancellationToken cancellationToken = default);
+
+    Task CreateAsync(
+        TDocument item,
+        CancellationToken cancellationToken = default);
+
+    Task ReplaceAsync(
+        TDocument item,
+        string partitionKey,
+        CancellationToken cancellationToken = default);
+
+    Task ReplaceAsync(
+        TDocument item,
+        string partitionKey,
+        string etag,
+        CancellationToken cancellationToken = default);
+
     Task UpsertAsync(
         TDocument item,
+        CancellationToken cancellationToken = default);
+
+    Task PatchAsync(
+        TKey id,
+        string partitionKey,
+        IReadOnlyList<PatchOperation> operations,
         CancellationToken cancellationToken = default);
 
     Task<bool> DeleteAsync(
         TKey id,
         string partitionKey,
+        CancellationToken cancellationToken = default);
+
+    Task<TDocument?> FirstOrDefaultAsync(
+        QueryDefinition query,
+        string? partitionKey = null,
+        CancellationToken cancellationToken = default);
+
+    Task<TDocument?> SingleOrDefaultAsync(
+        QueryDefinition query,
+        string? partitionKey = null,
+        CancellationToken cancellationToken = default);
+
+    Task ExecuteBatchAsync(
+        string partitionKey,
+        Action<TransactionalBatch> configure,
         CancellationToken cancellationToken = default);
 }

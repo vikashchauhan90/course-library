@@ -9,6 +9,7 @@ internal static class CosmosActivityTagConstants
     public const string RequestCharge = "cosmos.request_charge";
     public const string ActivityId = "cosmos.activity_id";
     public const string ResultCount = "cosmos.result_count";
+    public const string PatchOperationCount = "cosmos.patch_operation_count";
     public const string PageSize = "cosmos.page_size";
     public const string HasContinuationToken = "cosmos.has_continuation_token";
     public const string HasNextPage = "cosmos.has_next_page";
