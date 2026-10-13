@@ -17,8 +17,4 @@
 	  <PackageReference Include="Microsoft.Extensions.Compliance.Redaction" Version="10.9.0" />
   </ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\..\course\CourseLibrary.Client\CourseLibrary.Client.csproj" />
-  </ItemGroup>
-
 </Project>
