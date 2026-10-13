@@ -7,7 +7,7 @@ public abstract class AuditableEntity<TId> :
     IAuditableEntity
     where TId : notnull
 {
-    public DateTimeOffset CreatedAt { get; protected set; }
-    public DateTimeOffset? UpdatedAt { get; protected set; }
-    public DateTimeOffset? DeletedAt { get; protected set; }
+    public DateTimeOffset CreatedAt { get; set; }
+    public DateTimeOffset? UpdatedAt { get; set; }
+    public DateTimeOffset? DeletedAt { get; set; }
 }

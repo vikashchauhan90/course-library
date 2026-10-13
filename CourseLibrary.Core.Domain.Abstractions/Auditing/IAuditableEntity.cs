@@ -2,7 +2,7 @@ namespace CourseLibrary.Core.Domain.Abstractions.Auditing;
 
 public interface IAuditableEntity
 {
-    DateTimeOffset CreatedAt { get; }
-    DateTimeOffset? UpdatedAt { get; }
-    DateTimeOffset? DeletedAt { get; }
+    public DateTimeOffset CreatedAt { get; set; }
+    public DateTimeOffset? UpdatedAt { get; set; }
+    public DateTimeOffset? DeletedAt { get; set; }
 }
