@@ -2,21 +2,22 @@
   <Folder Name="/src/">
     <Project Path="src/platform/Platform.Host/Platform.Host.csproj" Id="19c756fb-74a3-430e-adcb-738ea548c9a2" />
   </Folder>
-  <Folder Name="/src/app/">
-    <Project Path="src/app/CourseLibrary.App/CourseLibrary.App.csproj" />
-  </Folder>
   <Folder Name="/src/Core/">
     <Project Path="CourseLibrary.Core.Domain.Abstractions/CourseLibrary.Core.Domain.Abstractions.csproj" Id="0a370192-7f19-4c2c-b355-2d18f81331a7" />
     <Project Path="CourseLibrary.Core.Domain.Exceptions/CourseLibrary.Core.Domain.Exceptions.csproj" Id="07a17e16-df2c-479d-ab40-5f78fb9447ef" />
     <Project Path="CourseLibrary.Core.Results/CourseLibrary.Core.Results.csproj" Id="cd6adb28-8352-4a60-b33a-76fdac54c483" />
   </Folder>
   <Folder Name="/src/course/">
+    <Project Path="CourseLibrary.Course.Api/CourseLibrary.Course.Api.csproj" Id="35c92564-d055-4797-9414-dd4735b17477" />
+    <Project Path="CourseLibrary.Course.App/CourseLibrary.Course.App.csproj" Id="89862077-c284-46af-809e-39b72c73ad6c" />
     <Project Path="CourseLibrary.Course.Application/CourseLibrary.Course.Application.csproj" Id="db0719b5-1e9b-4cd4-a1ed-f4b496a159d7" />
     <Project Path="CourseLibrary.Course.Client/CourseLibrary.Course.Client.csproj" Id="331d94e6-40b0-4a43-ab91-9a4f557923cf" />
     <Project Path="CourseLibrary.Course.Contracts/CourseLibrary.Course.Contracts.csproj" Id="da96a083-dbe5-4c7f-b654-3f1be89aaa96" />
     <Project Path="CourseLibrary.Course.Domain/CourseLibrary.Course.Domain.csproj" Id="66bce27e-3e54-4f4e-a158-474c80355492" />
+    <Project Path="CourseLibrary.Course.EventConsumer/CourseLibrary.Course.EventConsumer.csproj" Id="8cc9f7c7-e165-4923-b7e6-c93912691c91" />
     <Project Path="CourseLibrary.Course.Persistence.Abstractions/CourseLibrary.Course.Persistence.Abstractions.csproj" Id="e2a76795-b0b4-4b92-aacb-f906b36ec0e2" />
     <Project Path="CourseLibrary.Course.Persistence/CourseLibrary.Course.Persistence.csproj" Id="0ccc591d-c864-44f5-aae1-a04bc42fa320" />
+    <Project Path="src/app/CourseLibrary.App/CourseLibrary.App.csproj" />
     <Project Path="src/course/CourseLibrary.Api/CourseLibrary.Api.csproj" />
     <Project Path="src/course/CourseLibrary.EventConsumer/CourseLibrary.EventConsumer.csproj" Id="2eec5e3c-03b3-4849-8ec5-52e898cdc842" />
   </Folder>
