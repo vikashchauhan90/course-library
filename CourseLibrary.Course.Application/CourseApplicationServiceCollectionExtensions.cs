@@ -26,23 +26,10 @@ public static class CourseApplicationServiceCollectionExtensions
     {
         ArgumentNullException.ThrowIfNull(services);
 
-        services.AddSingleton<IValidator<GetCourseRequest>, GetCourseValidator>();
-        services.AddSingleton<IValidator<SearchCoursesRequest>, SearchCoursesValidator>();
-        services.AddSingleton<IValidator<CreateCourseOperationRequest>, CreateCourseValidator>();
-        services.AddSingleton<IValidator<UpdateCourseOperationRequest>, UpdateCourseValidator>();
-        services.AddSingleton<IValidator<RetireCourseRequest>, RetireCourseValidator>();
-        services.AddSingleton<IValidator<DeleteCourseRequest>, DeleteCourseValidator>();
-        services.AddSingleton<IValidator<GetCommentRequest>, GetCommentValidator>();
-        services.AddSingleton<IValidator<GetCommentsByCourseRequest>, GetCommentsByCourseValidator>();
-        services.AddSingleton<IValidator<CreateCommentOperationRequest>, CreateCommentValidator>();
-        services.AddSingleton<IValidator<UpdateCommentRequest>, UpdateCommentValidator>();
-        services.AddSingleton<IValidator<DeleteCommentRequest>, DeleteCommentValidator>();
-        services.AddSingleton<IValidator<GetDiscussionRequest>, GetDiscussionValidator>();
-        services.AddSingleton<IValidator<GetDiscussionsByCourseRequest>, GetDiscussionsByCourseValidator>();
-        services.AddSingleton<IValidator<CreateDiscussionRequest>, CreateDiscussionValidator>();
-        services.AddSingleton<IValidator<UpdateDiscussionRequest>, UpdateDiscussionValidator>();
-        services.AddSingleton<IValidator<DeleteDiscussionRequest>, DeleteDiscussionValidator>();
-        services.AddScoped<CourseEventPublisher>();
+        services.AddValidatorsFromAssemblyContaining<GetCourseValidator>(
+            ServiceLifetime.Singleton,
+            includeInternalTypes: true);
+        services.AddScoped<ICourseEventPublisher, CourseEventPublisher>();
         services.AddScoped<IGetCourseOperation, GetCourseOperation>();
         services.AddScoped<ISearchCoursesOperation, SearchCoursesOperation>();
         services.AddScoped<ICreateCourseOperation, CreateCourseOperation>();

@@ -7,6 +7,7 @@ using CourseLibrary.Course.Persistence.Abstractions.Repositories;
 using FluentValidation;
 using Microsoft.Extensions.Logging;
 using CourseLibrary.Course.Application.Operations.Courses;
+using CourseLibrary.Course.Application.Operations.Comments;
 
 namespace CourseLibrary.Course.Application.Operations.Comments.Create;
 
@@ -51,6 +52,7 @@ internal sealed class CreateCommentOperation(
                 CreatedAt = now,
                 UpdatedAt = now
             };
+            logger.PersistingComment(comment.Id.ToString(), courseId);
             await repository.UpsertAsync(comment, cancellationToken);
             return CourseMapper.ToResponse(comment);
         });

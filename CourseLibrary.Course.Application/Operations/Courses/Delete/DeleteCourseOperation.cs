@@ -5,6 +5,7 @@ using CourseLibrary.Course.Domain.ValueObjects;
 using CourseLibrary.Course.Persistence.Abstractions.Repositories;
 using FluentValidation;
 using Microsoft.Extensions.Logging;
+using CourseLibrary.Course.Application.Operations.Courses;
 
 namespace CourseLibrary.Course.Application.Operations.Courses.Delete;
 
@@ -15,7 +16,7 @@ public interface IDeleteCourseOperation
 
 internal sealed class DeleteCourseOperation(
     ICourseRepository repository,
-    CourseEventPublisher eventPublisher,
+    ICourseEventPublisher eventPublisher,
     IValidator<DeleteCourseRequest> validator,
     ILogger<DeleteCourseOperation> logger) : IDeleteCourseOperation
 {
@@ -25,7 +26,13 @@ internal sealed class DeleteCourseOperation(
             ValidationErrors.ThrowIfInvalid(await validator.ValidateAsync(new DeleteCourseRequest(courseId, actorId), cancellationToken));
             var id = OperationInput.CourseId(courseId);
             var course = await repository.GetByIdAsync(id, cancellationToken);
-            if (course is null || course.DeletedAt is not null)
+            if (course is null)
+            {
+                logger.CourseNotFoundForDeletion(id);
+                return false;
+            }
+
+            if (course.DeletedAt is not null)
             {
                 return false;
             }
@@ -33,6 +40,7 @@ internal sealed class DeleteCourseOperation(
             CourseAuthorization.EnsureAuthor(course, actorId);
             var now = DateTimeOffset.UtcNow;
             var deleted = course with { DeletedAt = now, UpdatedAt = now };
+            logger.DeletingCourse(deleted.Id);
             await repository.UpsertAsync(deleted, cancellationToken);
             await eventPublisher.PublishAsync(deleted, actorId, CourseEventType.Deleted, now,
             [

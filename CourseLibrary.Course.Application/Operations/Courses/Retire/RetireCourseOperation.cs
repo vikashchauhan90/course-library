@@ -7,6 +7,7 @@ using CourseLibrary.Course.Domain.ValueObjects;
 using CourseLibrary.Course.Persistence.Abstractions.Repositories;
 using FluentValidation;
 using Microsoft.Extensions.Logging;
+using CourseLibrary.Course.Application.Operations.Courses;
 
 namespace CourseLibrary.Course.Application.Operations.Courses.Retire;
 
@@ -17,7 +18,7 @@ public interface IRetireCourseOperation
 
 internal sealed class RetireCourseOperation(
     ICourseRepository repository,
-    CourseEventPublisher eventPublisher,
+    ICourseEventPublisher eventPublisher,
     IValidator<RetireCourseRequest> validator,
     ILogger<RetireCourseOperation> logger) : IRetireCourseOperation
 {
@@ -36,6 +37,7 @@ internal sealed class RetireCourseOperation(
 
             var now = DateTimeOffset.UtcNow;
             var retired = course with { RetiredAt = now, UpdatedAt = now };
+            logger.RetiringCourse(retired.Id);
             await repository.UpsertAsync(retired, cancellationToken);
             await eventPublisher.PublishAsync(retired, actorId, CourseEventType.Retired, now,
             [

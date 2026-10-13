@@ -1,7 +1,7 @@
 using CourseLibrary.Course.Domain.ValueObjects;
 using CourseLibrary.Core.Domain.Exceptions;
 
-namespace CourseLibrary.Course.Application.Operations;
+namespace CourseLibrary.Course.Application.Core;
 
 internal static class OperationInput
 {

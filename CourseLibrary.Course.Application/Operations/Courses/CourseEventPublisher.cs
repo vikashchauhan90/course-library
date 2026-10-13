@@ -5,11 +5,16 @@ using CourseLibrary.Course.Domain.Events;
 using CourseLibrary.Course.Domain.ValueObjects;
 using CourseLibrary.Platform.Messaging.Abstractions;
 using CourseLibrary.Platform.Serialization.Abstractions;
+using Microsoft.Extensions.Logging;
 using CourseEntity = CourseLibrary.Course.Domain.Entities.Course;
 
 namespace CourseLibrary.Course.Application.Operations.Courses;
 
-internal sealed class CourseEventPublisher(IEventPublisher eventPublisher, ISerializerFactory serializerFactory)
+internal sealed class CourseEventPublisher(
+    IEventPublisher eventPublisher,
+    ISerializerFactory serializerFactory,
+    ILogger<CourseEventPublisher> logger)
+    : ICourseEventPublisher
 {
     public async Task PublishAsync(
         CourseEntity course,
@@ -53,5 +58,7 @@ internal sealed class CourseEventPublisher(IEventPublisher eventPublisher, ISeri
                 }
             },
             cancellationToken);
+
+        logger.CourseEventPublished(eventKind, course.Id);
     }
 }

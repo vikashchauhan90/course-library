@@ -7,6 +7,7 @@ using CourseLibrary.Course.Domain.ValueObjects;
 using FluentValidation;
 using Microsoft.Extensions.Logging;
 using CourseLibrary.Course.Application.Operations.Courses;
+using CourseLibrary.Course.Application.Operations.Comments;
 
 namespace CourseLibrary.Course.Application.Operations.Comments.Update;
 
@@ -29,6 +30,7 @@ internal sealed class UpdateCommentOperation(
             var existing = await repository.GetByIdAsync(id, parentCourseId, cancellationToken)
                 ?? throw new DataNotFoundException($"Comment '{commentId}' was not found.");
             var updated = existing with { Content = content, UpdatedAt = DateTimeOffset.UtcNow };
+            logger.UpdatingComment(updated.Id.ToString());
             await repository.UpsertAsync(updated, cancellationToken);
             return CourseMapper.ToResponse(updated);
         });

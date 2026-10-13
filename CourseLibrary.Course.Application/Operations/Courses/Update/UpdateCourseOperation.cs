@@ -8,6 +8,7 @@ using CourseLibrary.Course.Domain.ValueObjects;
 using CourseLibrary.Course.Persistence.Abstractions.Repositories;
 using FluentValidation;
 using Microsoft.Extensions.Logging;
+using CourseLibrary.Course.Application.Operations.Courses;
 
 namespace CourseLibrary.Course.Application.Operations.Courses.Update;
 
@@ -22,7 +23,7 @@ public interface IUpdateCourseOperation
 
 internal sealed class UpdateCourseOperation(
     ICourseRepository repository,
-    CourseEventPublisher eventPublisher,
+    ICourseEventPublisher eventPublisher,
     IValidator<UpdateCourseOperationRequest> validator,
     ILogger<UpdateCourseOperation> logger) : IUpdateCourseOperation
 {
@@ -43,6 +44,7 @@ internal sealed class UpdateCourseOperation(
 
             var now = DateTimeOffset.UtcNow;
             var updated = course with { Title = input.Title, Description = input.Description, UpdatedAt = now };
+            logger.UpdatingCourse(updated.Id);
             await repository.UpsertAsync(updated, cancellationToken);
             var changes = new List<AuditEntry>();
             CourseAuditEntry.AddIfChanged(changes, nameof(updated.Title), course.Title, updated.Title);

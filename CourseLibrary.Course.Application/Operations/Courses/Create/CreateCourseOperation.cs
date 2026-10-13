@@ -6,6 +6,7 @@ using CourseLibrary.Course.Domain.ValueObjects;
 using CourseLibrary.Course.Persistence.Abstractions.Repositories;
 using FluentValidation;
 using Microsoft.Extensions.Logging;
+using CourseLibrary.Course.Application.Operations.Courses;
 
 namespace CourseLibrary.Course.Application.Operations.Courses.Create;
 
@@ -19,7 +20,7 @@ public interface ICreateCourseOperation
 
 internal sealed class CreateCourseOperation(
     ICourseRepository repository,
-    CourseEventPublisher eventPublisher,
+    ICourseEventPublisher eventPublisher,
     IValidator<CreateCourseOperationRequest> validator,
     ILogger<CreateCourseOperation> logger) : ICreateCourseOperation
 {
@@ -45,6 +46,7 @@ internal sealed class CreateCourseOperation(
                 UpdatedAt = now
             };
 
+            logger.PersistingCourse(course.Id, course.AuthorId.ToString());
             await repository.UpsertAsync(course, cancellationToken);
             await eventPublisher.PublishAsync(course, actorId, CourseEventType.Created, now,
             [

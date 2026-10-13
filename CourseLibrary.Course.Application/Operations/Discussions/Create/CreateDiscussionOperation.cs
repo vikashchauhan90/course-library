@@ -7,6 +7,7 @@ using CourseLibrary.Course.Persistence.Abstractions.Repositories;
 using FluentValidation;
 using Microsoft.Extensions.Logging;
 using CourseLibrary.Course.Application.Operations.Courses;
+using CourseLibrary.Course.Application.Operations.Discussions;
 
 namespace CourseLibrary.Course.Application.Operations.Discussions.Create;
 
@@ -34,6 +35,7 @@ internal sealed class CreateDiscussionOperation(
                 CreatedAt = now,
                 UpdatedAt = now
             };
+            logger.PersistingDiscussion(discussion.Id.ToString(), courseId);
             await repository.UpsertAsync(discussion, cancellationToken);
             return CourseMapper.ToResponse(discussion);
         });

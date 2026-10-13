@@ -7,6 +7,7 @@ using CourseLibrary.Course.Persistence.Abstractions.Repositories;
 using FluentValidation;
 using Microsoft.Extensions.Logging;
 using CourseLibrary.Course.Application.Operations.Courses;
+using CourseLibrary.Course.Application.Operations.Discussions;
 
 namespace CourseLibrary.Course.Application.Operations.Discussions.Update;
 
@@ -39,6 +40,7 @@ internal sealed class UpdateDiscussionOperation(
             var existing = await repository.GetByIdAsync(id, parentCourseId, cancellationToken)
                 ?? throw new DataNotFoundException($"Discussion '{discussionId}' was not found.");
             var updated = existing with { Title = title, Description = description, UpdatedAt = DateTimeOffset.UtcNow };
+            logger.UpdatingDiscussion(updated.Id.ToString());
             await repository.UpsertAsync(updated, cancellationToken);
             return CourseMapper.ToResponse(updated);
         });

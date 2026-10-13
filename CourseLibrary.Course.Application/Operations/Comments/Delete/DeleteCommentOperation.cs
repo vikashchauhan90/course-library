@@ -4,6 +4,7 @@ using CourseLibrary.Course.Persistence.Abstractions.Repositories;
 using CourseLibrary.Course.Domain.ValueObjects;
 using FluentValidation;
 using Microsoft.Extensions.Logging;
+using CourseLibrary.Course.Application.Operations.Comments;
 
 namespace CourseLibrary.Course.Application.Operations.Comments.Delete;
 
@@ -21,9 +22,17 @@ internal sealed class DeleteCommentOperation(
         => CourseApplicationOperation.ExecuteResultAsync(logger, "comments.delete", async () =>
         {
             ValidationErrors.ThrowIfInvalid(await validator.ValidateAsync(new DeleteCommentRequest(commentId, courseId), cancellationToken));
-            return await repository.DeleteAsync(
-                OperationInput.CommentId(commentId),
+            var id = OperationInput.CommentId(commentId);
+            logger.DeletingComment(id.ToString());
+            var deleted = await repository.DeleteAsync(
+                id,
                 OperationInput.CourseId(courseId),
                 cancellationToken);
+            if (!deleted)
+            {
+                logger.CommentNotFoundForDeletion(id.ToString());
+            }
+
+            return deleted;
         });
 }

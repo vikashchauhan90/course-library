@@ -4,6 +4,7 @@ using CourseLibrary.Course.Domain.ValueObjects;
 using CourseLibrary.Course.Persistence.Abstractions.Repositories;
 using FluentValidation;
 using Microsoft.Extensions.Logging;
+using CourseLibrary.Course.Application.Operations.Discussions;
 
 namespace CourseLibrary.Course.Application.Operations.Discussions.Delete;
 
@@ -21,9 +22,17 @@ internal sealed class DeleteDiscussionOperation(
         => CourseApplicationOperation.ExecuteResultAsync(logger, "discussions.delete", async () =>
         {
             ValidationErrors.ThrowIfInvalid(await validator.ValidateAsync(new DeleteDiscussionRequest(discussionId, courseId), cancellationToken));
-            return await repository.DeleteAsync(
-                OperationInput.DiscussionId(discussionId),
+            var id = OperationInput.DiscussionId(discussionId);
+            logger.DeletingDiscussion(id.ToString());
+            var deleted = await repository.DeleteAsync(
+                id,
                 OperationInput.CourseId(courseId),
                 cancellationToken);
+            if (!deleted)
+            {
+                logger.DiscussionNotFoundForDeletion(id.ToString());
+            }
+
+            return deleted;
         });
 }
