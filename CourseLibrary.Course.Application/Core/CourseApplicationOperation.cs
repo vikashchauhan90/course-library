@@ -1,10 +1,10 @@
 using System.Diagnostics;
 using CourseLibrary.Core.Domain.Exceptions;
 using CourseLibrary.Core.Results;
-using CourseLibrary.Course.Application.Operations;
+using CourseLibrary.Course.Application.Observability;
 using Microsoft.Extensions.Logging;
 
-namespace CourseLibrary.Course.Application.Observability;
+namespace CourseLibrary.Course.Application.Core;
 
 internal static class CourseApplicationOperation
 {

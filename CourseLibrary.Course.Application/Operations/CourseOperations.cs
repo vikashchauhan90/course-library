@@ -1,4 +1,3 @@
-using CourseLibrary.Course.Application.Observability;
 using CourseLibrary.Course.Contracts.DTOs;
 using CourseLibrary.Course.Contracts.Pagination;
 using CourseLibrary.Course.Domain.Entities;
@@ -14,6 +13,7 @@ using System.Collections.Immutable;
 using System.Diagnostics;
 using FluentValidation;
 using CourseEntity = CourseLibrary.Course.Domain.Entities.Course;
+using CourseLibrary.Course.Application.Core;
 
 namespace CourseLibrary.Course.Application.Operations;
 

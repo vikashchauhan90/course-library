@@ -1,4 +1,3 @@
-using CourseLibrary.Course.Application.Observability;
 using CourseLibrary.Course.Contracts.DTOs;
 using CourseLibrary.Course.Domain.Entities;
 using CourseLibrary.Course.Domain.ValueObjects;
@@ -7,6 +6,7 @@ using CourseLibrary.Core.Domain.Exceptions;
 using CourseLibrary.Core.Results;
 using FluentValidation;
 using Microsoft.Extensions.Logging;
+using CourseLibrary.Course.Application.Core;
 
 namespace CourseLibrary.Course.Application.Operations;
 

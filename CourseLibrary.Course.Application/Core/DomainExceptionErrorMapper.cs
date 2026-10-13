@@ -1,7 +1,7 @@
 using CourseLibrary.Core.Domain.Exceptions;
 using CourseLibrary.Core.Results;
 
-namespace CourseLibrary.Course.Application.Operations;
+namespace CourseLibrary.Course.Application.Core;
 
 internal static class DomainExceptionErrorMapper
 {
