@@ -1,4 +1,4 @@
-﻿using CourseLibrary.Domain.Exceptions;
+﻿using CourseLibrary.Core.Domain.Exceptions;
 using Microsoft.Azure.Cosmos;
 using System.Net;
 
@@ -6,7 +6,7 @@ namespace CourseLibrary.Course.Persistence.Data.Extensions;
 
 internal static class CosmosExceptionExtensions
 {
-    public static BaseException ToApplicationException(
+    public static DomainException ToApplicationException(
         this CosmosException exception)
     {
         ArgumentNullException.ThrowIfNull(exception);
@@ -39,7 +39,7 @@ internal static class CosmosExceptionExtensions
                     exception),
 
             HttpStatusCode.BadRequest =>
-                new DataRequestException(
+                new DataAccessException(
                     "The data service rejected the request.",
                     exception),
 

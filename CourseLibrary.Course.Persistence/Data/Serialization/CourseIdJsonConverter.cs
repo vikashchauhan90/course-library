@@ -1,4 +1,4 @@
-﻿using CourseLibrary.Domain.ValueObjects;
+using CourseLibrary.Course.Domain.ValueObjects;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -14,7 +14,7 @@ public sealed class CourseIdJsonConverter : JsonConverter<CourseId>
         Type typeToConvert,
         JsonSerializerOptions options)
     {
-        var value = reader.GetGuid();
+        var value = reader.GetString() ?? string.Empty;
 
         return new CourseId(value);
     }

@@ -1,10 +1,8 @@
 using CourseLibrary.Course.Persistence.Data.Configurations;
 using CourseLibrary.Course.Persistence.Data.Extensions;
-using CourseLibrary.Infrastructure.Configuration.Cosmos;
-using CourseLibrary.Infrastructure.Cosmos;
-using CourseLibrary.Infrastructure.Observability.Traces;
-using CourseLibrary.Models;
-using Microsoft.AspNetCore.Http;
+using CourseLibrary.Course.Contracts.Pagination;
+using CourseLibrary.Course.Persistence.Observability;
+using CourseLibrary.Platform.Observability.Traces;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -23,15 +21,18 @@ public class CosmosRepository<TDocument, TKey>
     private readonly ICosmosDocumentConfiguration<TDocument> _configuration;
     private readonly CosmosOptions _options;
     private readonly CosmosClient _client;
+    private readonly CosmosActivitySource _activitySource;
     public CosmosRepository(
         CosmosClient client,
         IOptions<CosmosOptions> options,
         ICosmosDocumentConfiguration<TDocument> configuration,
+        CosmosActivitySource activitySource,
         ILogger<CosmosRepository<TDocument, TKey>> logger)
     {
         ArgumentNullException.ThrowIfNull(client);
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(configuration);
+        ArgumentNullException.ThrowIfNull(activitySource);
         ArgumentNullException.ThrowIfNull(logger);
 
         ArgumentException.ThrowIfNullOrWhiteSpace(
@@ -46,6 +47,7 @@ public class CosmosRepository<TDocument, TKey>
         _configuration = configuration;
         _options = options.Value;
         _client = client;
+        _activitySource = activitySource;
         _logger = logger;
 
         _container = new Lazy<Container>(
@@ -67,7 +69,7 @@ public class CosmosRepository<TDocument, TKey>
         ArgumentException.ThrowIfNullOrWhiteSpace(partitionKey);
 
         using var activity =
-         ActivitySources.Infrastructure.StartActivity(
+         _activitySource.StartActivity(
              "Cosmos.GetItem",
              ActivityKind.Client);
 
@@ -93,7 +95,7 @@ public class CosmosRepository<TDocument, TKey>
         {
             activity?.SetTag(
              "http.response.status_code",
-             StatusCodes.Status404NotFound);
+             404);
 
             _logger.DocumentNotFound(
                  "ReadItem",
@@ -123,7 +125,7 @@ public class CosmosRepository<TDocument, TKey>
         ArgumentNullException.ThrowIfNull(query);
 
         using var activity =
-        ActivitySources.Infrastructure.StartActivity(
+        _activitySource.StartActivity(
             "Cosmos.Query",
             ActivityKind.Client);
 
@@ -196,7 +198,7 @@ public class CosmosRepository<TDocument, TKey>
         }
 
         using var activity =
-       ActivitySources.Infrastructure.StartActivity(
+       _activitySource.StartActivity(
            "Cosmos.QueryPage",
            ActivityKind.Client);
 
@@ -284,7 +286,7 @@ public class CosmosRepository<TDocument, TKey>
 
 
         using var activity =
-        ActivitySources.Infrastructure.StartActivity(
+        _activitySource.StartActivity(
             "Cosmos.UpsertItem",
             ActivityKind.Client);
 
@@ -325,7 +327,7 @@ public class CosmosRepository<TDocument, TKey>
         ArgumentException.ThrowIfNullOrWhiteSpace(partitionKey);
 
         using var activity =
-       ActivitySources.Infrastructure.StartActivity(
+       _activitySource.StartActivity(
            "Cosmos.DeleteItem",
            ActivityKind.Client);
 
@@ -352,7 +354,7 @@ public class CosmosRepository<TDocument, TKey>
         {
             activity?.SetTag(
             "http.response.status_code",
-            StatusCodes.Status404NotFound);
+            404);
 
             _logger.DocumentNotFound(
                  "DeleteItem",

@@ -12,14 +12,10 @@ internal static class ValueObjectJsonConverters
         };
 
         options.Converters.Add(new AuthorIdJsonConverter());
-        options.Converters.Add(new AuditActionJsonConverter());
-        options.Converters.Add(new CodeJsonConverter());
         options.Converters.Add(new CommentIdJsonConverter());
         options.Converters.Add(new CourseEventTypeJsonConverter());
         options.Converters.Add(new CourseIdJsonConverter());
         options.Converters.Add(new DiscussionIdJsonConverter());
-        options.Converters.Add(new DqlMessageStatusJsonConverter());
-        options.Converters.Add(new MoneyJsonConverter());
 
         return options;
     }

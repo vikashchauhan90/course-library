@@ -51,6 +51,15 @@ public static class MessagingExtensions
                 clientOptions);
         });
 
+        services.AddSingleton<TableServiceClient>(sp =>
+        {
+            var options = sp
+                .GetRequiredService<IOptions<AzureStorageOptions>>()
+                .Value;
+
+            return new TableServiceClient(options.ConnectionString);
+        });
+
         services.AddScoped<IEventPublisher, ServiceBusEventPublisher>();
 
 

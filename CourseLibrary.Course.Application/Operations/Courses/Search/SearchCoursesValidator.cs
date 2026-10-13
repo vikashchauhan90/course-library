@@ -8,5 +8,5 @@ internal sealed class SearchCoursesValidator : AbstractValidator<SearchCoursesRe
 {
     public SearchCoursesValidator()
         => RuleFor(request => request.PageSize)
-            .GreaterThan(0);
+            .InclusiveBetween(1, 100);
 }

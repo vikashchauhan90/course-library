@@ -6,6 +6,7 @@ using CourseLibrary.Course.Persistence.Abstractions.Repositories;
 using FluentValidation;
 using Microsoft.Extensions.Logging;
 using CourseLibrary.Course.Application.Operations.Courses;
+using CourseLibrary.Course.Domain.Repositories;
 
 namespace CourseLibrary.Course.Application.Operations.Discussions.GetByCourse;
 

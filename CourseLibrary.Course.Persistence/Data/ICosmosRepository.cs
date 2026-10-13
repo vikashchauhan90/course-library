@@ -1,4 +1,4 @@
-using CourseLibrary.Models;
+using CourseLibrary.Course.Contracts.Pagination;
 using Microsoft.Azure.Cosmos;
 
 namespace CourseLibrary.Course.Persistence.Data;

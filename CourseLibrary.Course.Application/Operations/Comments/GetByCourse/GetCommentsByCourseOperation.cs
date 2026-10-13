@@ -6,6 +6,7 @@ using CourseLibrary.Course.Domain.ValueObjects;
 using FluentValidation;
 using Microsoft.Extensions.Logging;
 using CourseLibrary.Course.Application.Operations.Courses;
+using CourseLibrary.Course.Domain.Repositories;
 
 namespace CourseLibrary.Course.Application.Operations.Comments.GetByCourse;
 

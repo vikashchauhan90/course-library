@@ -1,31 +1,33 @@
-using CourseLibrary.Application.Abstractions.Repositories;
-using CourseLibrary.Domain.Entities;
-using CourseLibrary.Domain.ValueObjects;
-using CourseLibrary.Models;
-using CourseLibrary.Models.Course;
+using CourseLibrary.Course.Contracts.DTOs;
+using CourseLibrary.Course.Contracts.Pagination;
+using CourseLibrary.Course.Domain.Entities;
+using CourseLibrary.Course.Domain.Repositories;
+using CourseLibrary.Course.Domain.ValueObjects;
+using CourseLibrary.Course.Persistence.Abstractions.Repositories;
+using CourseEntity = CourseLibrary.Course.Domain.Entities.Course;
 
 namespace CourseLibrary.Course.Persistence.Data;
 
 public sealed class CosmosCourseRepository : ICourseRepository
 {
-    private readonly ICosmosRepository<Course, CourseId> _repository;
+    private readonly ICosmosRepository<CourseEntity, CourseId> _repository;
 
-    public CosmosCourseRepository(ICosmosRepository<Course, CourseId> repository)
+    public CosmosCourseRepository(ICosmosRepository<CourseEntity, CourseId> repository)
     {
         _repository = repository;
     }
 
-    public async Task<Course?> GetByIdAsync(CourseId courseId, CancellationToken cancellationToken = default)
+    public async Task<CourseEntity?> GetByIdAsync(CourseId courseId, CancellationToken cancellationToken = default)
     {
         var query = new Microsoft.Azure.Cosmos.QueryDefinition(
             "SELECT TOP 1 * FROM c WHERE c.id = @courseId")
-            .WithParameter("@courseId", courseId);
+            .WithParameter("@courseId", courseId.ToString());
 
         return (await _repository.QueryAsync(query, cancellationToken: cancellationToken))
             .SingleOrDefault();
     }
 
-    public Task<PageResult<Course>> GetByAuthorAsync(
+    public Task<PageResult<CourseEntity>> GetByAuthorAsync(
         AuthorId authorId,
         int pageSize,
         string? continuationToken,
@@ -33,7 +35,7 @@ public sealed class CosmosCourseRepository : ICourseRepository
     {
         var query = new Microsoft.Azure.Cosmos.QueryDefinition(
             "SELECT * FROM c WHERE c.authorId = @authorId ORDER BY c.updatedAt DESC")
-            .WithParameter("@authorId", authorId);
+            .WithParameter("@authorId", authorId.ToString());
 
         return _repository.QueryPageAsync(
             query,
@@ -43,7 +45,7 @@ public sealed class CosmosCourseRepository : ICourseRepository
             cancellationToken);
     }
 
-    public Task<PageResult<Course>> SearchAsync(
+    public Task<PageResult<CourseEntity>> SearchAsync(
         CourseSearchCriteria criteria,
         int pageSize,
         string? continuationToken = null,
@@ -87,7 +89,7 @@ public sealed class CosmosCourseRepository : ICourseRepository
             cancellationToken: cancellationToken);
     }
 
-    public Task UpsertAsync(Course course, CancellationToken cancellationToken = default)
+    public Task UpsertAsync(CourseEntity course, CancellationToken cancellationToken = default)
         => _repository.UpsertAsync(course, cancellationToken);
 
     public Task<bool> DeleteAsync(CourseId courseId, AuthorId partitionKey, CancellationToken cancellationToken = default)

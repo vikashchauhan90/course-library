@@ -1,8 +1,15 @@
 using CourseLibrary.Course.Persistence.Data;
 using CourseLibrary.Course.Persistence.Data.Configurations;
+using CourseLibrary.Course.Persistence.Data.Serialization;
+using CourseLibrary.Course.Persistence.Observability;
+using CourseLibrary.Course.Domain.Entities;
+using CourseLibrary.Course.Domain.ValueObjects;
+using CourseLibrary.Course.Persistence.Abstractions.Repositories;
+using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using CourseLibrary.Course.Domain.Repositories;
 
 namespace CourseLibrary.Course.Persistence;
 
@@ -40,6 +47,7 @@ public static class CosmosRepositoryExtensions
                 clientOptions);
         });
 
+        services.AddSingleton<CosmosActivitySource>();
 
     }
 
@@ -48,7 +56,7 @@ public static class CosmosRepositoryExtensions
     {
         // Register document configurations
         services.AddCosmosDocumentConfiguration<Comment, CommentConfiguration>();
-        services.AddCosmosDocumentConfiguration<Course, CourseConfiguration>();
+        services.AddCosmosDocumentConfiguration<CourseLibrary.Course.Domain.Entities.Course, CourseConfiguration>();
         services.AddCosmosDocumentConfiguration<CourseAuditEntry, CourseAuditEntryConfiguration>();
         services.AddCosmosDocumentConfiguration<Discussion, DiscussionConfiguration>();
 

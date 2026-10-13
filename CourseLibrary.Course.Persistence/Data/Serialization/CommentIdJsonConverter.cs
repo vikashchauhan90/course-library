@@ -1,4 +1,4 @@
-using CourseLibrary.Domain.ValueObjects;
+using CourseLibrary.Course.Domain.ValueObjects;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -11,7 +11,7 @@ public sealed class CommentIdJsonConverter : JsonConverter<CommentId>
         Type typeToConvert,
         JsonSerializerOptions options)
     {
-        return new CommentId(reader.GetGuid());
+        return new CommentId(reader.GetString() ?? string.Empty);
     }
 
     public override void Write(

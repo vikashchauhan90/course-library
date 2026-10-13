@@ -1,4 +1,4 @@
-﻿using CourseLibrary.Domain.Entities;
+﻿using CourseLibrary.Course.Domain.Entities;
 
 namespace CourseLibrary.Course.Persistence.Data.Configurations;
 

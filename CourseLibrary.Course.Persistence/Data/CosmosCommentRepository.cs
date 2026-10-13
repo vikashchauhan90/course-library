@@ -1,6 +1,7 @@
-using CourseLibrary.Application.Abstractions.Repositories;
-using CourseLibrary.Domain.Entities;
-using CourseLibrary.Domain.ValueObjects;
+using CourseLibrary.Course.Domain.Entities;
+using CourseLibrary.Course.Domain.Repositories;
+using CourseLibrary.Course.Domain.ValueObjects;
+using CourseLibrary.Course.Persistence.Abstractions.Repositories;
 
 namespace CourseLibrary.Course.Persistence.Data;
 
