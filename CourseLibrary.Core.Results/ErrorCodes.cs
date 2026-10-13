@@ -7,6 +7,7 @@ public static class ErrorCodes
     public const string Validation = "validation";
 
     public const string Conflict = "conflict";
+    public const string Unprocessable = "unprocessable";
 
     public const string Unauthorized = "unauthorized";
 

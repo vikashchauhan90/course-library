@@ -19,4 +19,11 @@ internal static partial class CourseApplicationLogs
         Exception exception,
         string operation,
         double elapsedMilliseconds);
+
+    [LoggerMessage(7005, LogLevel.Warning, "Application operation {Operation} was rejected with error {ErrorCode} after {ElapsedMilliseconds} ms.")]
+    public static partial void OperationRejected(
+        this ILogger logger,
+        string operation,
+        string errorCode,
+        double elapsedMilliseconds);
 }

@@ -5,6 +5,8 @@ using CourseLibrary.Course.Domain.Entities;
 using CourseLibrary.Course.Domain.Events;
 using CourseLibrary.Course.Domain.ValueObjects;
 using CourseLibrary.Course.Persistence.Abstractions.Repositories;
+using CourseLibrary.Core.Domain.Exceptions;
+using CourseLibrary.Core.Results;
 using CourseLibrary.Platform.Messaging.Abstractions;
 using CourseLibrary.Platform.Serialization.Abstractions;
 using Microsoft.Extensions.Logging;
@@ -22,21 +24,17 @@ public sealed class CourseOperations(
     ISerializerFactory serializerFactory,
     ILogger<CourseOperations> logger)
 {
-    public Task<CourseResponse?> GetAsync(
+    public Task<Result<CourseResponse>> GetAsync(
         string courseId,
         CancellationToken cancellationToken = default)
-    {
-        var id = OperationInput.CourseId(courseId);
-        return CourseApplicationOperation.ExecuteAsync(
+        => CourseApplicationOperation.ExecuteResultAsync(
             logger,
             "courses.get",
             async () =>
             {
-                var course = await courseRepository.GetByIdAsync(id, cancellationToken);
-                if (course is null)
-                {
-                    return null;
-                }
+                var id = OperationInput.CourseId(courseId);
+                var course = await courseRepository.GetByIdAsync(id, cancellationToken)
+                    ?? throw new DataNotFoundException($"Course '{courseId}' was not found.");
 
                 var commentsTask = commentRepository.GetByCourseAsync(id, cancellationToken);
                 var discussionsTask = discussionRepository.GetByCourseAsync(id, cancellationToken);
@@ -47,22 +45,23 @@ public sealed class CourseOperations(
                     (await commentsTask).Select(CourseMapper.ToResponse).ToArray(),
                     (await discussionsTask).Select(CourseMapper.ToResponse).ToArray());
             });
-    }
 
-    public Task<PageResult<CourseResponse>> SearchAsync(
+    public Task<Result<PageResult<CourseResponse>>> SearchAsync(
         CourseSearchCriteria? criteria,
         int pageSize = 20,
         string? continuationToken = null,
         CancellationToken cancellationToken = default)
-    {
-        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(pageSize);
-        var searchCriteria = criteria ?? new CourseSearchCriteria(null, null, false, false);
-
-        return CourseApplicationOperation.ExecuteAsync(
+        => CourseApplicationOperation.ExecuteResultAsync(
             logger,
             "courses.search",
             async () =>
             {
+                if (pageSize <= 0)
+                {
+                    throw new BadRequestException("Page size must be greater than zero.");
+                }
+
+                var searchCriteria = criteria ?? new CourseSearchCriteria(null, null, false, false);
                 var page = await courseRepository.SearchAsync(
                     searchCriteria,
                     pageSize,
@@ -70,25 +69,27 @@ public sealed class CourseOperations(
                     cancellationToken);
                 return page.Map(course => CourseMapper.ToResponse(course));
             });
-    }
 
-    public Task<CourseResponse> CreateAsync(
+    public Task<Result<CourseResponse>> CreateAsync(
         CreateCourseRequest request,
         string actorId,
         CancellationToken cancellationToken = default)
-    {
-        ArgumentNullException.ThrowIfNull(request);
-        OperationInput.Required(request.Title, nameof(request.Title));
-        OperationInput.Required(request.Description, nameof(request.Description));
-        OperationInput.Required(request.AuthorId, nameof(request.AuthorId));
-        OperationInput.Required(request.AuthorName, nameof(request.AuthorName));
-        OperationInput.Required(actorId, nameof(actorId));
-
-        return CourseApplicationOperation.ExecuteAsync(
+        => CourseApplicationOperation.ExecuteResultAsync(
             logger,
             "courses.create",
             async () =>
             {
+                if (request is null)
+                {
+                    throw new BadRequestException("Course request is required.");
+                }
+
+                OperationInput.Required(request.Title, nameof(request.Title));
+                OperationInput.Required(request.Description, nameof(request.Description));
+                OperationInput.Required(request.AuthorId, nameof(request.AuthorId));
+                OperationInput.Required(request.AuthorName, nameof(request.AuthorName));
+                OperationInput.Required(actorId, nameof(actorId));
+
                 var now = DateTimeOffset.UtcNow;
                 var course = new CourseEntity
                 {
@@ -119,30 +120,28 @@ public sealed class CourseOperations(
 
                 return CourseMapper.ToResponse(course);
             });
-    }
 
-    public Task<CourseResponse?> UpdateAsync(
+    public Task<Result<CourseResponse>> UpdateAsync(
         string courseId,
         UpdateCourseRequest request,
         string actorId,
         CancellationToken cancellationToken = default)
-    {
-        var id = OperationInput.CourseId(courseId);
-        ArgumentNullException.ThrowIfNull(request);
-        OperationInput.Required(request.Title, nameof(request.Title));
-        OperationInput.Required(request.Description, nameof(request.Description));
-        OperationInput.Required(actorId, nameof(actorId));
-
-        return CourseApplicationOperation.ExecuteAsync(
+        => CourseApplicationOperation.ExecuteResultAsync(
             logger,
             "courses.update",
             async () =>
             {
-                var course = await courseRepository.GetByIdAsync(id, cancellationToken);
-                if (course is null)
+                var id = OperationInput.CourseId(courseId);
+                if (request is null)
                 {
-                    return null;
+                    throw new BadRequestException("Course request is required.");
                 }
+
+                OperationInput.Required(request.Title, nameof(request.Title));
+                OperationInput.Required(request.Description, nameof(request.Description));
+                OperationInput.Required(actorId, nameof(actorId));
+                var course = await courseRepository.GetByIdAsync(id, cancellationToken)
+                    ?? throw new DataNotFoundException($"Course '{courseId}' was not found.");
 
                 EnsureAuthor(course, actorId);
                 var now = DateTimeOffset.UtcNow;
@@ -177,26 +176,20 @@ public sealed class CourseOperations(
 
                 return CourseMapper.ToResponse(updated);
             });
-    }
 
-    public Task<CourseResponse?> RetireAsync(
+    public Task<Result<CourseResponse>> RetireAsync(
         string courseId,
         string actorId,
         CancellationToken cancellationToken = default)
-    {
-        var id = OperationInput.CourseId(courseId);
-        OperationInput.Required(actorId, nameof(actorId));
-
-        return CourseApplicationOperation.ExecuteAsync(
+        => CourseApplicationOperation.ExecuteResultAsync(
             logger,
             "courses.retire",
             async () =>
             {
-                var course = await courseRepository.GetByIdAsync(id, cancellationToken);
-                if (course is null)
-                {
-                    return null;
-                }
+                var id = OperationInput.CourseId(courseId);
+                OperationInput.Required(actorId, nameof(actorId));
+                var course = await courseRepository.GetByIdAsync(id, cancellationToken)
+                    ?? throw new DataNotFoundException($"Course '{courseId}' was not found.");
 
                 EnsureAuthor(course, actorId);
                 if (course.RetiredAt is not null)
@@ -220,21 +213,18 @@ public sealed class CourseOperations(
 
                 return CourseMapper.ToResponse(retired);
             });
-    }
 
-    public Task<bool> DeleteAsync(
+    public Task<Result<bool>> DeleteAsync(
         string courseId,
         string actorId,
         CancellationToken cancellationToken = default)
-    {
-        var id = OperationInput.CourseId(courseId);
-        OperationInput.Required(actorId, nameof(actorId));
-
-        return CourseApplicationOperation.ExecuteAsync(
+        => CourseApplicationOperation.ExecuteResultAsync(
             logger,
             "courses.delete",
             async () =>
             {
+                var id = OperationInput.CourseId(courseId);
+                OperationInput.Required(actorId, nameof(actorId));
                 var course = await courseRepository.GetByIdAsync(id, cancellationToken);
                 if (course is null)
                 {
@@ -260,10 +250,8 @@ public sealed class CourseOperations(
                         Updated(nameof(deleted.UpdatedAt), deleted.UpdatedAt)
                     ],
                     cancellationToken);
-
                 return true;
             });
-    }
 
     private async Task PublishEventAsync(
         CourseEntity course,
@@ -315,7 +303,7 @@ public sealed class CourseOperations(
     {
         if (!string.Equals(course.AuthorId.Value, actorId, StringComparison.Ordinal))
         {
-            throw new UnauthorizedAccessException("The current user is not authorized to modify this course.");
+            throw new ForbiddenException("The current user is not authorized to modify this course.");
         }
     }
 

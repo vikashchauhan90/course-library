@@ -26,6 +26,25 @@ public sealed record Error(
             ErrorType.Validation,
             errors);
 
+    public static Error Unprocessable(
+        string message,
+        IReadOnlyDictionary<string, string[]>? errors = null)
+        => Create(
+            ErrorCodes.Unprocessable,
+            message,
+            ErrorType.BusinessRule,
+            errors);
+
+    public static Error Unprocessable(
+       string code,
+       string message,
+       IReadOnlyDictionary<string, string[]>? errors = null)
+       => Create(
+           code,
+           message,
+           ErrorType.BusinessRule,
+           errors);
+
     public static Error NotFound(
         string message,
         IReadOnlyDictionary<string, string[]>? errors = null)
