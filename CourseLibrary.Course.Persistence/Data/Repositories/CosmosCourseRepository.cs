@@ -6,7 +6,7 @@ using CourseLibrary.Course.Domain.ValueObjects;
 using CourseLibrary.Course.Persistence.Abstractions.Repositories;
 using CourseEntity = CourseLibrary.Course.Domain.Entities.Course;
 
-namespace CourseLibrary.Course.Persistence.Data;
+namespace CourseLibrary.Course.Persistence.Data.Repositories;
 
 public sealed class CosmosCourseRepository : ICourseRepository
 {

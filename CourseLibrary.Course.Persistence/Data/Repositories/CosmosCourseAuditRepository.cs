@@ -2,7 +2,7 @@ using CourseLibrary.Course.Domain.Entities;
 using CourseLibrary.Course.Domain.Repositories;
 using CourseLibrary.Course.Persistence.Abstractions.Repositories;
 
-namespace CourseLibrary.Course.Persistence.Data;
+namespace CourseLibrary.Course.Persistence.Data.Repositories;
 
 public sealed class CosmosCourseAuditRepository(ICosmosRepository<CourseAuditEntry, string> repository) : ICourseAuditRepository
 {

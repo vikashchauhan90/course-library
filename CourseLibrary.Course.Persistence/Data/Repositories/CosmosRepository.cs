@@ -9,7 +9,7 @@ using Microsoft.Extensions.Options;
 using System.Diagnostics;
 using System.Net;
 
-namespace CourseLibrary.Course.Persistence.Data;
+namespace CourseLibrary.Course.Persistence.Data.Repositories;
 
 public class CosmosRepository<TDocument, TKey>
     : ICosmosRepository<TDocument, TKey>

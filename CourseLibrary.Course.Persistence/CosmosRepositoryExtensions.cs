@@ -1,4 +1,3 @@
-using CourseLibrary.Course.Persistence.Data;
 using CourseLibrary.Course.Persistence.Data.Configurations;
 using CourseLibrary.Course.Persistence.Data.Serialization;
 using CourseLibrary.Course.Persistence.Observability;
@@ -10,6 +9,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using CourseLibrary.Course.Domain.Repositories;
+using CourseLibrary.Course.Persistence.Data.Repositories;
 
 namespace CourseLibrary.Course.Persistence;
 

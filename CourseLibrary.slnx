@@ -15,7 +15,6 @@
     <Project Path="CourseLibrary.Course.Contracts/CourseLibrary.Course.Contracts.csproj" Id="da96a083-dbe5-4c7f-b654-3f1be89aaa96" />
     <Project Path="CourseLibrary.Course.Domain/CourseLibrary.Course.Domain.csproj" Id="66bce27e-3e54-4f4e-a158-474c80355492" />
     <Project Path="CourseLibrary.Course.EventConsumer/CourseLibrary.Course.EventConsumer.csproj" Id="8cc9f7c7-e165-4923-b7e6-c93912691c91" />
-    <Project Path="CourseLibrary.Course.Persistence.Abstractions/CourseLibrary.Course.Persistence.Abstractions.csproj" Id="e2a76795-b0b4-4b92-aacb-f906b36ec0e2" />
     <Project Path="CourseLibrary.Course.Persistence/CourseLibrary.Course.Persistence.csproj" Id="0ccc591d-c864-44f5-aae1-a04bc42fa320" />
     <Project Path="src/app/CourseLibrary.App/CourseLibrary.App.csproj" />
     <Project Path="src/course/CourseLibrary.Api/CourseLibrary.Api.csproj" />

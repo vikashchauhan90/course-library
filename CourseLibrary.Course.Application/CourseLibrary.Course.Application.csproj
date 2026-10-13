@@ -17,7 +17,7 @@
 	  <ProjectReference Include="..\CourseLibrary.Core.Results\CourseLibrary.Core.Results.csproj" />
 	  <ProjectReference Include="..\CourseLibrary.Course.Contracts\CourseLibrary.Course.Contracts.csproj" />
 	  <ProjectReference Include="..\CourseLibrary.Course.Domain\CourseLibrary.Course.Domain.csproj" />
-	  <ProjectReference Include="..\CourseLibrary.Course.Persistence.Abstractions\CourseLibrary.Course.Persistence.Abstractions.csproj" />
+	  <ProjectReference Include="..\CourseLibrary.Course.Persistence\CourseLibrary.Course.Persistence.csproj" />
 	  <ProjectReference Include="..\CourseLibrary.Platform.Caching\CourseLibrary.Platform.Caching.csproj" />
 	  <ProjectReference Include="..\CourseLibrary.Platform.Messaging\CourseLibrary.Platform.Messaging.csproj" />
 	  <ProjectReference Include="..\CourseLibrary.Platform.Observability\CourseLibrary.Platform.Observability.csproj" />

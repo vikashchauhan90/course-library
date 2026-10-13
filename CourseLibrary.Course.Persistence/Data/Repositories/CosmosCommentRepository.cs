@@ -3,7 +3,7 @@ using CourseLibrary.Course.Domain.Repositories;
 using CourseLibrary.Course.Domain.ValueObjects;
 using CourseLibrary.Course.Persistence.Abstractions.Repositories;
 
-namespace CourseLibrary.Course.Persistence.Data;
+namespace CourseLibrary.Course.Persistence.Data.Repositories;
 
 public sealed class CosmosCommentRepository : ICommentRepository
 {

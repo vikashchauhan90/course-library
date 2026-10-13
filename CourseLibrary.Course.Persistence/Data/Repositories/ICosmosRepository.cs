@@ -1,7 +1,7 @@
 using CourseLibrary.Course.Contracts.Pagination;
 using Microsoft.Azure.Cosmos;
 
-namespace CourseLibrary.Course.Persistence.Data;
+namespace CourseLibrary.Course.Persistence.Data.Repositories;
 
 public interface ICosmosRepository<TDocument, TKey>
     where TDocument : class

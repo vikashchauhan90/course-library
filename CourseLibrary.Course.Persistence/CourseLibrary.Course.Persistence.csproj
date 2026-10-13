@@ -16,7 +16,6 @@
     <ProjectReference Include="..\CourseLibrary.Core.Domain.Exceptions\CourseLibrary.Core.Domain.Exceptions.csproj" />
     <ProjectReference Include="..\CourseLibrary.Course.Contracts\CourseLibrary.Course.Contracts.csproj" />
     <ProjectReference Include="..\CourseLibrary.Course.Domain\CourseLibrary.Course.Domain.csproj" />
-    <ProjectReference Include="..\CourseLibrary.Course.Persistence.Abstractions\CourseLibrary.Course.Persistence.Abstractions.csproj" />
     <ProjectReference Include="..\CourseLibrary.Platform.Observability\CourseLibrary.Platform.Observability.csproj" />
   </ItemGroup>
 
