@@ -2,7 +2,7 @@ using CourseLibrary.Course.Contracts.DTOs;
 using CourseLibrary.Course.Domain.Entities;
 using CourseEntity = CourseLibrary.Course.Domain.Entities.Course;
 
-namespace CourseLibrary.Course.Application.Operations;
+namespace CourseLibrary.Course.Application.Operations.Courses;
 
 internal static class CourseMapper
 {
