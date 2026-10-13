@@ -28,7 +28,4 @@
     <PackageReference Include="OpenTelemetry.Instrumentation.SqlClient" Version="1.18.0" />
     <PackageReference Include="Microsoft.Extensions.Telemetry" Version="10.10.0" />
   </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\CourseLibrary.Application\CourseLibrary.Application.csproj" />
-  </ItemGroup>
 </Project>

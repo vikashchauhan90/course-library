@@ -11,8 +11,8 @@ public sealed record Course : IEntity<CourseId>, IAuditableEntity
     public required string Description { get; init; }
     public required AuthorId AuthorId { get; init; }
     public required string AuthorName { get; init; }
-    public required DateTimeOffset CreatedAt { get; init; }
-    public DateTimeOffset? UpdatedAt { get; init; }
-    public DateTimeOffset? DeletedAt { get; init; }
+    public required DateTimeOffset CreatedAt { get; set; }
+    public DateTimeOffset? UpdatedAt { get; set; }
+    public DateTimeOffset? DeletedAt { get; set; }
     public DateTimeOffset? RetiredAt { get; init; }
 }

@@ -13,7 +13,7 @@ public sealed record CourseAuditEntry : IEntity<string>, IAuditableEntity
     public DateTimeOffset OccurredAt { get; init; } = DateTimeOffset.UtcNow;
     public IReadOnlyList<AuditEntry>? ChangedProperties { get; init; }
     public string? ActorId { get; init; }
-    public required DateTimeOffset CreatedAt { get; init; }
-    public DateTimeOffset? UpdatedAt { get; init; }
-    public DateTimeOffset? DeletedAt { get; init; }
+    public required DateTimeOffset CreatedAt { get; set; }
+    public DateTimeOffset? UpdatedAt { get; set; }
+    public DateTimeOffset? DeletedAt { get; set; }
 }
