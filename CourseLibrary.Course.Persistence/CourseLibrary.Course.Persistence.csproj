@@ -9,14 +9,13 @@
     <PackageReference Include="Microsoft.Azure.Cosmos" Version="3.63.0" />
     <PackageReference Include="Microsoft.Extensions.Options.DataAnnotations" Version="10.0.12" />
     <PackageReference Include="Azure.Identity" Version="1.21.0" />
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\CourseLibrary.Core.Domain.Exceptions\CourseLibrary.Core.Domain.Exceptions.csproj" />
     <ProjectReference Include="..\CourseLibrary.Course.Contracts\CourseLibrary.Course.Contracts.csproj" />
     <ProjectReference Include="..\CourseLibrary.Course.Domain\CourseLibrary.Course.Domain.csproj" />
     <ProjectReference Include="..\CourseLibrary.Platform.Observability\CourseLibrary.Platform.Observability.csproj" />
+    <ProjectReference Include="..\CourseLibrary.Platform.Persistence.CosmosDB\CourseLibrary.Platform.Persistence.CosmosDB.csproj" />
   </ItemGroup>
 
 </Project>

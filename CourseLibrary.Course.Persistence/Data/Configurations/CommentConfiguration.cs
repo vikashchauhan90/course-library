@@ -1,4 +1,5 @@
 ﻿using CourseLibrary.Course.Domain.Entities;
+using CourseLibrary.Platform.Persistence.CosmosDB.Configurations;
 
 namespace CourseLibrary.Course.Persistence.Data.Configurations;
 

@@ -1,13 +1,15 @@
-using CourseLibrary.Course.Persistence.Data.Configurations;
-using CourseLibrary.Course.Persistence.Data.Serialization;
-using CourseLibrary.Course.Persistence.Observability;
 using CourseLibrary.Course.Domain.Entities;
 using CourseLibrary.Course.Domain.ValueObjects;
+using CourseLibrary.Course.Persistence.Data.Configurations;
+using CourseLibrary.Course.Persistence.Data.Repositories;
+using CourseLibrary.Course.Persistence.Data.Serialization;
+using CourseLibrary.Course.Persistence.Observability;
+using CourseLibrary.Platform.Persistence.CosmosDB;
+using CourseLibrary.Platform.Persistence.CosmosDB.Configurations;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
-using CourseLibrary.Course.Persistence.Data.Repositories;
 
 namespace CourseLibrary.Course.Persistence;
 

@@ -1,5 +1,4 @@
-﻿namespace CourseLibrary.Course.Persistence.Data.Configurations;
-
+﻿namespace CourseLibrary.Platform.Persistence.CosmosDB.Configurations;
 
 public interface ICosmosDocumentConfiguration
 {
