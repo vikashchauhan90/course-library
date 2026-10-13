@@ -2,21 +2,19 @@
 
 namespace CourseLibrary.Platform.Observability.Traces;
 
-public abstract class ActivitySourceBase : IDisposable
+public abstract class ActivitySourceBase
 {
-    private readonly Lazy<ActivitySource> _activitySource;
+    private readonly ActivitySource _activitySource;
 
     protected ActivitySourceBase(string sourceName)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(sourceName);
 
-        _activitySource = new(
-            () => new ActivitySource(sourceName),
-            LazyThreadSafetyMode.ExecutionAndPublication);
+        _activitySource = new ActivitySource(sourceName);
     }
 
     protected ActivitySource ActivitySource =>
-        _activitySource.Value;
+        _activitySource;
 
     public Activity? StartActivity(
         string activityName,
@@ -24,14 +22,4 @@ public abstract class ActivitySourceBase : IDisposable
         => ActivitySource.StartActivity(
             activityName,
             kind);
-
-    public void Dispose()
-    {
-        if (_activitySource.IsValueCreated)
-        {
-            _activitySource.Value.Dispose();
-        }
-
-        GC.SuppressFinalize(this);
-    }
 }

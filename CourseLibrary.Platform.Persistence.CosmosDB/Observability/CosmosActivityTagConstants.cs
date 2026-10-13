@@ -1,6 +1,6 @@
 namespace CourseLibrary.Platform.Persistence.CosmosDB.Observability;
 
-public static class CosmosActivityTagConstants
+internal static class CosmosActivityTagConstants
 {
     public const string DbSystem = "db.system";
     public const string DbNamespace = "db.namespace";

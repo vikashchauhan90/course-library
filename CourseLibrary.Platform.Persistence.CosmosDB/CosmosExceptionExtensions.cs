@@ -5,7 +5,7 @@ using Microsoft.Azure.Cosmos;
 
 namespace CourseLibrary.Platform.Persistence.CosmosDB;
 
-internal static class CosmosExceptionExtensions
+public static class CosmosExceptionExtensions
 {
     public static DomainException ToApplicationException(
         this CosmosException exception)

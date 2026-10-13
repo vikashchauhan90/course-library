@@ -2,24 +2,18 @@
 
 namespace CourseLibrary.Platform.Observability;
 
-public abstract class MeterBase : IDisposable
+public abstract class MeterBase
 {
-    private readonly Lazy<Meter> _meter;
+    private readonly Meter _meter;
 
     protected MeterBase(string meterName)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(meterName);
 
-        MeterName = meterName;
-
-        _meter = new(
-            () => new Meter(MeterName),
-            LazyThreadSafetyMode.ExecutionAndPublication);
+        _meter = new Meter(meterName);
     }
 
-    protected string MeterName { get; }
-
-    protected Meter Meter => _meter.Value;
+    protected Meter Meter => _meter;
 
     protected Counter<T> CreateCounter<T>(
         string name,
@@ -74,14 +68,4 @@ public abstract class MeterBase : IDisposable
             observeValue,
             unit,
             description);
-
-    public void Dispose()
-    {
-        if (_meter.IsValueCreated)
-        {
-            _meter.Value.Dispose();
-        }
-
-        GC.SuppressFinalize(this);
-    }
 }

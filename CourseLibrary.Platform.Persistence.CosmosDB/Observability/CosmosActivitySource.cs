@@ -2,12 +2,18 @@ using CourseLibrary.Platform.Observability.Traces;
 
 namespace CourseLibrary.Platform.Persistence.CosmosDB.Observability;
 
-public sealed class CosmosActivitySource : ActivitySourceBase
+internal sealed class CosmosActivitySource : ActivitySourceBase
 {
-    public const string DefaultSourceName = "CourseLibrary.Platform.Persistence.CosmosDB";
+    public const string ActivitySourceName = "CourseLibrary.Platform.Persistence.CosmosDB";
 
-    public CosmosActivitySource()
-        : base(DefaultSourceName)
+    private static readonly Lazy<CosmosActivitySource> SharedInstance = new(
+        static () => new CosmosActivitySource(),
+        LazyThreadSafetyMode.ExecutionAndPublication);
+
+    public static CosmosActivitySource Shared => SharedInstance.Value;
+
+    private CosmosActivitySource()
+        : base(ActivitySourceName)
     {
     }
 }

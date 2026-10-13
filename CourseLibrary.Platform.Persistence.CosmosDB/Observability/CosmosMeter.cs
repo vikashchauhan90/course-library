@@ -4,8 +4,9 @@ using CourseLibrary.Platform.Observability;
 
 namespace CourseLibrary.Platform.Persistence.CosmosDB.Observability;
 
-public sealed class CosmosMeter : MeterBase
+internal sealed class CosmosMeter : MeterBase
 {
+    public const string MeterName = "CourseLibrary.Platform.Persistence.CosmosDB";
     private static readonly Lazy<CosmosMeter> SharedInstance = new(
         static () => new CosmosMeter(),
         LazyThreadSafetyMode.ExecutionAndPublication);
@@ -18,7 +19,7 @@ public sealed class CosmosMeter : MeterBase
     private readonly Histogram<double> _requestCharge;
 
     private CosmosMeter()
-        : base(CosmosMetricConstants.MeterName)
+        : base(MeterName)
     {
         _operations = CreateCounter<long>(
             CosmosMetricConstants.OperationsInstrumentName,

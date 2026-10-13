@@ -19,20 +19,18 @@ public class CosmosRepository<TDocument, TKey>
     private readonly ICosmosDocumentConfiguration<TDocument> _configuration;
     private readonly CosmosOptions _options;
     private readonly CosmosClient _client;
-    private readonly CosmosActivitySource _activitySource;
-    private static readonly CosmosMeter Metrics = CosmosMeter.Shared;
+    private static readonly CosmosActivitySource ActivitySource = CosmosActivitySource.Shared;
+    private static readonly CosmosMeter Meter = CosmosMeter.Shared;
 
     public CosmosRepository(
         CosmosClient client,
         IOptions<CosmosOptions> options,
         ICosmosDocumentConfiguration<TDocument> configuration,
-        CosmosActivitySource activitySource,
         ILogger<CosmosRepository<TDocument, TKey>> logger)
     {
         ArgumentNullException.ThrowIfNull(client);
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(configuration);
-        ArgumentNullException.ThrowIfNull(activitySource);
         ArgumentNullException.ThrowIfNull(logger);
 
         ArgumentException.ThrowIfNullOrWhiteSpace(
@@ -47,7 +45,6 @@ public class CosmosRepository<TDocument, TKey>
         _configuration = configuration;
         _options = options.Value;
         _client = client;
-        _activitySource = activitySource;
         _logger = logger;
 
         _container = new Lazy<Container>(
@@ -69,13 +66,13 @@ public class CosmosRepository<TDocument, TKey>
         ArgumentException.ThrowIfNullOrWhiteSpace(partitionKey);
 
         using var activity =
-         _activitySource.StartActivity(
-             "Cosmos.GetItem",
+         ActivitySource.StartActivity(
+            CosmosActivityNames.GetItem,
              ActivityKind.Client);
         var startedAt = Stopwatch.GetTimestamp();
 
         activity.SetCosmosOperation(
-            "ReadItem",
+            OperationNames.GetItem,
             _configuration.ContainerName,
             Container.Database.Id);
 
@@ -86,7 +83,7 @@ public class CosmosRepository<TDocument, TKey>
                 new PartitionKey(partitionKey),
                 cancellationToken: cancellationToken);
 
-            RecordSuccess(activity, "ReadItem", startedAt, response.RequestCharge);
+            RecordSuccess(activity, CosmosActivityNames.GetItem, startedAt, response.RequestCharge);
 
             return response.Resource;
         }
@@ -95,7 +92,7 @@ public class CosmosRepository<TDocument, TKey>
         {
             RecordNotFound(
                 activity,
-                "ReadItem",
+                CosmosActivityNames.GetItem,
                 startedAt,
                 ex.RequestCharge,
                 id.ToString() ?? string.Empty);
@@ -104,17 +101,17 @@ public class CosmosRepository<TDocument, TKey>
         }
         catch (CosmosException ex)
         {
-            RecordFailure(activity, "ReadItem", startedAt, ex);
+            RecordFailure(activity, CosmosActivityNames.GetItem, startedAt, ex);
             throw ex.ToApplicationException();
         }
         catch (OperationCanceledException ex)
         {
-            RecordFailure(activity, "ReadItem", startedAt, ex);
+            RecordFailure(activity, CosmosActivityNames.GetItem, startedAt, ex);
             throw;
         }
         catch (Exception ex)
         {
-            RecordFailure(activity, "ReadItem", startedAt, ex);
+            RecordFailure(activity, CosmosActivityNames.GetItem, startedAt, ex);
             throw;
         }
     }
@@ -127,13 +124,13 @@ public class CosmosRepository<TDocument, TKey>
         ArgumentNullException.ThrowIfNull(query);
 
         using var activity =
-        _activitySource.StartActivity(
-            "Cosmos.Query",
+        ActivitySource.StartActivity(
+            CosmosActivityNames.QueryItems,
             ActivityKind.Client);
         var startedAt = Stopwatch.GetTimestamp();
 
         activity.SetCosmosOperation(
-            "Query",
+            OperationNames.QueryItems,
             _configuration.ContainerName,
             Container.Database.Id);
 
@@ -163,7 +160,7 @@ public class CosmosRepository<TDocument, TKey>
                 totalRequestCharge += response.RequestCharge;
             }
 
-            RecordSuccess(activity, "Query", startedAt, totalRequestCharge);
+            RecordSuccess(activity, CosmosActivityNames.QueryItems, startedAt, totalRequestCharge);
 
             activity?.SetTag(
                 CosmosActivityTagConstants.ResultCount,
@@ -173,17 +170,17 @@ public class CosmosRepository<TDocument, TKey>
         }
         catch (CosmosException ex)
         {
-            RecordFailure(activity, "Query", startedAt, ex);
+            RecordFailure(activity, CosmosActivityNames.QueryItems, startedAt, ex);
             throw ex.ToApplicationException();
         }
         catch (OperationCanceledException ex)
         {
-            RecordFailure(activity, "Query", startedAt, ex);
+            RecordFailure(activity, CosmosActivityNames.QueryItems, startedAt, ex);
             throw;
         }
         catch (Exception ex)
         {
-            RecordFailure(activity, "Query", startedAt, ex);
+            RecordFailure(activity, CosmosActivityNames.QueryItems, startedAt, ex);
             throw;
         }
     }
@@ -206,13 +203,13 @@ public class CosmosRepository<TDocument, TKey>
         }
 
         using var activity =
-       _activitySource.StartActivity(
-           "Cosmos.QueryPage",
+       ActivitySource.StartActivity(
+           CosmosActivityNames.QueryPage,
            ActivityKind.Client);
         var startedAt = Stopwatch.GetTimestamp();
 
         activity.SetCosmosOperation(
-            "QueryPage",
+            OperationNames.QueryPage,
             _configuration.ContainerName,
             Container.Database.Id);
 
@@ -245,7 +242,7 @@ public class CosmosRepository<TDocument, TKey>
             if (!iterator.HasMoreResults)
             {
                 activity?.SetTag(CosmosActivityTagConstants.ResultCount, 0);
-                RecordSuccess(activity, "QueryPage", startedAt, 0);
+                RecordSuccess(activity, CosmosActivityNames.QueryPage, startedAt, 0);
 
                 return new PageResult<TDocument>(
                     [],
@@ -265,7 +262,7 @@ public class CosmosRepository<TDocument, TKey>
             activity?.SetTag(
                 CosmosActivityTagConstants.HasNextPage,
                 !string.IsNullOrWhiteSpace(nextToken));
-            RecordSuccess(activity, "QueryPage", startedAt, response.RequestCharge);
+            RecordSuccess(activity, CosmosActivityNames.QueryPage, startedAt, response.RequestCharge);
 
             return new PageResult<TDocument>(
                 items,
@@ -274,17 +271,17 @@ public class CosmosRepository<TDocument, TKey>
         }
         catch (CosmosException ex)
         {
-            RecordFailure(activity, "QueryPage", startedAt, ex);
+            RecordFailure(activity, CosmosActivityNames.QueryPage, startedAt, ex);
             throw ex.ToApplicationException();
         }
         catch (OperationCanceledException ex)
         {
-            RecordFailure(activity, "QueryPage", startedAt, ex);
+            RecordFailure(activity, CosmosActivityNames.QueryPage, startedAt, ex);
             throw;
         }
         catch (Exception ex)
         {
-            RecordFailure(activity, "QueryPage", startedAt, ex);
+            RecordFailure(activity, CosmosActivityNames.QueryPage, startedAt, ex);
             throw;
         }
     }
@@ -300,13 +297,13 @@ public class CosmosRepository<TDocument, TKey>
 
 
         using var activity =
-        _activitySource.StartActivity(
-            "Cosmos.UpsertItem",
+        ActivitySource.StartActivity(
+            CosmosActivityNames.UpsertItem,
             ActivityKind.Client);
         var startedAt = Stopwatch.GetTimestamp();
 
         activity.SetCosmosOperation(
-            "UpsertItem",
+            OperationNames.UpsertItem,
             _configuration.ContainerName,
             Container.Database.Id);
 
@@ -319,21 +316,21 @@ public class CosmosRepository<TDocument, TKey>
                     partitionKey),
                 cancellationToken: cancellationToken);
 
-            RecordSuccess(activity, "UpsertItem", startedAt, response.RequestCharge);
+            RecordSuccess(activity, OperationNames.UpsertItem, startedAt, response.RequestCharge);
         }
         catch (CosmosException ex)
         {
-            RecordFailure(activity, "UpsertItem", startedAt, ex);
+            RecordFailure(activity, OperationNames.UpsertItem, startedAt, ex);
             throw ex.ToApplicationException();
         }
         catch (OperationCanceledException ex)
         {
-            RecordFailure(activity, "UpsertItem", startedAt, ex);
+            RecordFailure(activity, OperationNames.UpsertItem, startedAt, ex);
             throw;
         }
         catch (Exception ex)
         {
-            RecordFailure(activity, "UpsertItem", startedAt, ex);
+            RecordFailure(activity, OperationNames.UpsertItem, startedAt, ex);
             throw;
         }
     }
@@ -346,13 +343,13 @@ public class CosmosRepository<TDocument, TKey>
         ArgumentException.ThrowIfNullOrWhiteSpace(partitionKey);
 
         using var activity =
-       _activitySource.StartActivity(
-           "Cosmos.DeleteItem",
+       ActivitySource.StartActivity(
+           CosmosActivityNames.DeleteItem,
            ActivityKind.Client);
         var startedAt = Stopwatch.GetTimestamp();
 
         activity.SetCosmosOperation(
-            "DeleteItem",
+            OperationNames.DeleteItem,
             _configuration.ContainerName,
             Container.Database.Id);
 
@@ -364,7 +361,7 @@ public class CosmosRepository<TDocument, TKey>
                new PartitionKey(partitionKey),
                cancellationToken: cancellationToken);
 
-            RecordSuccess(activity, "DeleteItem", startedAt, response.RequestCharge);
+            RecordSuccess(activity, OperationNames.DeleteItem, startedAt, response.RequestCharge);
 
             return true;
         }
@@ -373,7 +370,7 @@ public class CosmosRepository<TDocument, TKey>
         {
             RecordNotFound(
                 activity,
-                "DeleteItem",
+                OperationNames.DeleteItem,
                 startedAt,
                 ex.RequestCharge,
                 id.ToString() ?? string.Empty);
@@ -382,17 +379,17 @@ public class CosmosRepository<TDocument, TKey>
         }
         catch (CosmosException ex)
         {
-            RecordFailure(activity, "DeleteItem", startedAt, ex);
+            RecordFailure(activity, OperationNames.DeleteItem, startedAt, ex);
             throw ex.ToApplicationException();
         }
         catch (OperationCanceledException ex)
         {
-            RecordFailure(activity, "DeleteItem", startedAt, ex);
+            RecordFailure(activity, OperationNames.DeleteItem, startedAt, ex);
             throw;
         }
         catch (Exception ex)
         {
-            RecordFailure(activity, "DeleteItem", startedAt, ex);
+            RecordFailure(activity, OperationNames.DeleteItem, startedAt, ex);
             throw;
         }
     }
@@ -404,7 +401,7 @@ public class CosmosRepository<TDocument, TKey>
         double requestCharge)
     {
         activity.RecordSuccess(requestCharge);
-        Metrics.RecordOperation(
+        Meter.RecordOperation(
             operation,
             "success",
             Stopwatch.GetElapsedTime(startedAt).TotalMilliseconds,
@@ -423,7 +420,7 @@ public class CosmosRepository<TDocument, TKey>
         string id)
     {
         activity.RecordNotFound();
-        Metrics.RecordOperation(
+        Meter.RecordOperation(
             operation,
             "not_found",
             Stopwatch.GetElapsedTime(startedAt).TotalMilliseconds,
@@ -442,14 +439,14 @@ public class CosmosRepository<TDocument, TKey>
             ? "cancelled"
             : exception.GetType().Name;
 
-        Metrics.RecordOperation(
+        Meter.RecordOperation(
             operation,
             failureType == "cancelled" ? "cancelled" : "failure",
             Stopwatch.GetElapsedTime(startedAt).TotalMilliseconds,
             exception is CosmosException cosmosException
                 ? cosmosException.RequestCharge
                 : null);
-        Metrics.RecordFailure(operation, failureType);
+        Meter.RecordFailure(operation, failureType);
 
         if (exception is OperationCanceledException)
         {
