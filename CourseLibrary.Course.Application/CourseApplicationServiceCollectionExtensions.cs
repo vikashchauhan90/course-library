@@ -1,4 +1,5 @@
 using CourseLibrary.Course.Application.Operations;
+using FluentValidation;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace CourseLibrary.Course.Application;
@@ -9,9 +10,10 @@ public static class CourseApplicationServiceCollectionExtensions
     {
         ArgumentNullException.ThrowIfNull(services);
 
-        services.AddScoped<CourseOperations>();
-        services.AddScoped<CommentOperations>();
-        services.AddScoped<DiscussionOperations>();
+        services.AddSingleton<IValidator<OperationValidationInput>, OperationValidationInputValidator>();
+        services.AddScoped<ICourseOperations, CourseOperations>();
+        services.AddScoped<ICommentOperations, CommentOperations>();
+        services.AddScoped<IDiscussionOperations, DiscussionOperations>();
 
         return services;
     }

@@ -5,13 +5,15 @@ using CourseLibrary.Course.Domain.ValueObjects;
 using CourseLibrary.Course.Persistence.Abstractions.Repositories;
 using CourseLibrary.Core.Domain.Exceptions;
 using CourseLibrary.Core.Results;
+using FluentValidation;
 using Microsoft.Extensions.Logging;
 
 namespace CourseLibrary.Course.Application.Operations;
 
-public sealed class DiscussionOperations(
+internal sealed class DiscussionOperations(
     IDiscussionRepository repository,
-    ILogger<DiscussionOperations> logger)
+    ILogger<DiscussionOperations> logger,
+    IValidator<OperationValidationInput> validator) : IDiscussionOperations
 {
     public Task<Result<DiscussionResponse>> GetAsync(
         string discussionId,
@@ -22,6 +24,11 @@ public sealed class DiscussionOperations(
             "discussions.get",
             async () =>
             {
+                await OperationValidation.ValidateAsync(
+                    validator,
+                    cancellationToken,
+                    OperationValidation.Identifier(nameof(discussionId), discussionId),
+                    OperationValidation.Identifier(nameof(courseId), courseId));
                 var id = OperationInput.DiscussionId(discussionId);
                 var parentCourseId = OperationInput.CourseId(courseId);
                 var discussion = await repository.GetByIdAsync(id, parentCourseId, cancellationToken);
@@ -37,6 +44,10 @@ public sealed class DiscussionOperations(
             "discussions.get_by_course",
             async () =>
             {
+                await OperationValidation.ValidateAsync(
+                    validator,
+                    cancellationToken,
+                    OperationValidation.Identifier(nameof(courseId), courseId));
                 var id = OperationInput.CourseId(courseId);
                 var discussions = await repository.GetByCourseAsync(id, cancellationToken);
                 return (IReadOnlyList<DiscussionResponse>)discussions
@@ -54,9 +65,13 @@ public sealed class DiscussionOperations(
             "discussions.create",
             async () =>
             {
+                await OperationValidation.ValidateAsync(
+                    validator,
+                    cancellationToken,
+                    OperationValidation.Identifier(nameof(courseId), courseId),
+                    OperationValidation.Required(nameof(title), title),
+                    OperationValidation.Required(nameof(description), description));
                 var parentCourseId = OperationInput.CourseId(courseId);
-                OperationInput.Required(title, nameof(title));
-                OperationInput.Required(description, nameof(description));
 
                 var now = DateTimeOffset.UtcNow;
                 var discussion = new Discussion
@@ -84,10 +99,15 @@ public sealed class DiscussionOperations(
             "discussions.update",
             async () =>
             {
+                await OperationValidation.ValidateAsync(
+                    validator,
+                    cancellationToken,
+                    OperationValidation.Identifier(nameof(discussionId), discussionId),
+                    OperationValidation.Identifier(nameof(courseId), courseId),
+                    OperationValidation.Required(nameof(title), title),
+                    OperationValidation.Required(nameof(description), description));
                 var id = OperationInput.DiscussionId(discussionId);
                 var parentCourseId = OperationInput.CourseId(courseId);
-                OperationInput.Required(title, nameof(title));
-                OperationInput.Required(description, nameof(description));
                 var existing = await repository.GetByIdAsync(id, parentCourseId, cancellationToken)
                     ?? throw new DataNotFoundException($"Discussion '{discussionId}' was not found.");
 
@@ -111,6 +131,11 @@ public sealed class DiscussionOperations(
             "discussions.delete",
             async () =>
             {
+                await OperationValidation.ValidateAsync(
+                    validator,
+                    cancellationToken,
+                    OperationValidation.Identifier(nameof(discussionId), discussionId),
+                    OperationValidation.Identifier(nameof(courseId), courseId));
                 var id = OperationInput.DiscussionId(discussionId);
                 var parentCourseId = OperationInput.CourseId(courseId);
                 return await repository.DeleteAsync(id, parentCourseId, cancellationToken);

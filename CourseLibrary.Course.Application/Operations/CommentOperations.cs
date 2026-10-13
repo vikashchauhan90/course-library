@@ -5,13 +5,15 @@ using CourseLibrary.Course.Domain.ValueObjects;
 using CourseLibrary.Course.Persistence.Abstractions.Repositories;
 using CourseLibrary.Core.Domain.Exceptions;
 using CourseLibrary.Core.Results;
+using FluentValidation;
 using Microsoft.Extensions.Logging;
 
 namespace CourseLibrary.Course.Application.Operations;
 
-public sealed class CommentOperations(
+internal sealed class CommentOperations(
     ICommentRepository repository,
-    ILogger<CommentOperations> logger)
+    ILogger<CommentOperations> logger,
+    IValidator<OperationValidationInput> validator) : ICommentOperations
 {
     public Task<Result<CommentResponse>> GetAsync(
         string commentId,
@@ -22,6 +24,11 @@ public sealed class CommentOperations(
             "comments.get",
             async () =>
             {
+                await OperationValidation.ValidateAsync(
+                    validator,
+                    cancellationToken,
+                    OperationValidation.Identifier(nameof(commentId), commentId),
+                    OperationValidation.Identifier(nameof(courseId), courseId));
                 var id = OperationInput.CommentId(commentId);
                 var parentCourseId = OperationInput.CourseId(courseId);
                 var comment = await repository.GetByIdAsync(id, parentCourseId, cancellationToken);
@@ -37,6 +44,10 @@ public sealed class CommentOperations(
             "comments.get_by_course",
             async () =>
             {
+                await OperationValidation.ValidateAsync(
+                    validator,
+                    cancellationToken,
+                    OperationValidation.Identifier(nameof(courseId), courseId));
                 var id = OperationInput.CourseId(courseId);
                 var comments = await repository.GetByCourseAsync(id, cancellationToken);
                 return (IReadOnlyList<CommentResponse>)comments
@@ -55,9 +66,14 @@ public sealed class CommentOperations(
             "comments.create",
             async () =>
             {
+                await OperationValidation.ValidateAsync(
+                    validator,
+                    cancellationToken,
+                    OperationValidation.Identifier(nameof(courseId), courseId),
+                    OperationValidation.Required(nameof(authorId), authorId),
+                    OperationValidation.Required(nameof(content), content),
+                    OperationValidation.OptionalIdentifier(nameof(parentCommentId), parentCommentId));
                 var parentCourseId = OperationInput.CourseId(courseId);
-                OperationInput.Required(authorId, nameof(authorId));
-                OperationInput.Required(content, nameof(content));
                 CommentId? parsedParentId = null;
                 if (!string.IsNullOrWhiteSpace(parentCommentId))
                 {
@@ -90,9 +106,14 @@ public sealed class CommentOperations(
             "comments.update",
             async () =>
             {
+                await OperationValidation.ValidateAsync(
+                    validator,
+                    cancellationToken,
+                    OperationValidation.Identifier(nameof(commentId), commentId),
+                    OperationValidation.Identifier(nameof(courseId), courseId),
+                    OperationValidation.Required(nameof(content), content));
                 var id = OperationInput.CommentId(commentId);
                 var parentCourseId = OperationInput.CourseId(courseId);
-                OperationInput.Required(content, nameof(content));
                 var existing = await repository.GetByIdAsync(id, parentCourseId, cancellationToken)
                     ?? throw new DataNotFoundException($"Comment '{commentId}' was not found.");
 
@@ -115,6 +136,11 @@ public sealed class CommentOperations(
             "comments.delete",
             async () =>
             {
+                await OperationValidation.ValidateAsync(
+                    validator,
+                    cancellationToken,
+                    OperationValidation.Identifier(nameof(commentId), commentId),
+                    OperationValidation.Identifier(nameof(courseId), courseId));
                 var id = OperationInput.CommentId(commentId);
                 var parentCourseId = OperationInput.CourseId(courseId);
                 return await repository.DeleteAsync(id, parentCourseId, cancellationToken);

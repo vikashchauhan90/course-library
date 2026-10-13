@@ -12,17 +12,19 @@ using CourseLibrary.Platform.Serialization.Abstractions;
 using Microsoft.Extensions.Logging;
 using System.Collections.Immutable;
 using System.Diagnostics;
+using FluentValidation;
 using CourseEntity = CourseLibrary.Course.Domain.Entities.Course;
 
 namespace CourseLibrary.Course.Application.Operations;
 
-public sealed class CourseOperations(
+internal sealed class CourseOperations(
     ICourseRepository courseRepository,
     ICommentRepository commentRepository,
     IDiscussionRepository discussionRepository,
     IEventPublisher eventPublisher,
     ISerializerFactory serializerFactory,
-    ILogger<CourseOperations> logger)
+    ILogger<CourseOperations> logger,
+    IValidator<OperationValidationInput> validator) : ICourseOperations
 {
     public Task<Result<CourseResponse>> GetAsync(
         string courseId,
@@ -32,6 +34,10 @@ public sealed class CourseOperations(
             "courses.get",
             async () =>
             {
+                await OperationValidation.ValidateAsync(
+                    validator,
+                    cancellationToken,
+                    OperationValidation.Identifier(nameof(courseId), courseId));
                 var id = OperationInput.CourseId(courseId);
                 var course = await courseRepository.GetByIdAsync(id, cancellationToken)
                     ?? throw new DataNotFoundException($"Course '{courseId}' was not found.");
@@ -56,10 +62,10 @@ public sealed class CourseOperations(
             "courses.search",
             async () =>
             {
-                if (pageSize <= 0)
-                {
-                    throw new BadRequestException("Page size must be greater than zero.");
-                }
+                await OperationValidation.ValidateAsync(
+                    validator,
+                    cancellationToken,
+                    OperationValidation.PositiveInteger(nameof(pageSize), pageSize));
 
                 var searchCriteria = criteria ?? new CourseSearchCriteria(null, null, false, false);
                 var page = await courseRepository.SearchAsync(
@@ -79,25 +85,25 @@ public sealed class CourseOperations(
             "courses.create",
             async () =>
             {
-                if (request is null)
-                {
-                    throw new BadRequestException("Course request is required.");
-                }
+                await OperationValidation.ValidateAsync(
+                    validator,
+                    cancellationToken,
+                    OperationValidation.Required(nameof(request), request is null ? null : "provided"),
+                    OperationValidation.Required(nameof(request.Title), request?.Title),
+                    OperationValidation.Required(nameof(request.Description), request?.Description),
+                    OperationValidation.Required(nameof(request.AuthorId), request?.AuthorId),
+                    OperationValidation.Required(nameof(request.AuthorName), request?.AuthorName),
+                    OperationValidation.Required(nameof(actorId), actorId));
 
-                OperationInput.Required(request.Title, nameof(request.Title));
-                OperationInput.Required(request.Description, nameof(request.Description));
-                OperationInput.Required(request.AuthorId, nameof(request.AuthorId));
-                OperationInput.Required(request.AuthorName, nameof(request.AuthorName));
-                OperationInput.Required(actorId, nameof(actorId));
-
+                var validatedRequest = request!;
                 var now = DateTimeOffset.UtcNow;
                 var course = new CourseEntity
                 {
                     Id = CourseId.New(),
-                    Title = request.Title,
-                    Description = request.Description,
-                    AuthorId = request.AuthorId,
-                    AuthorName = request.AuthorName,
+                    Title = validatedRequest.Title,
+                    Description = validatedRequest.Description,
+                    AuthorId = validatedRequest.AuthorId,
+                    AuthorName = validatedRequest.AuthorName,
                     CreatedAt = now,
                     UpdatedAt = now
                 };
@@ -131,15 +137,17 @@ public sealed class CourseOperations(
             "courses.update",
             async () =>
             {
-                var id = OperationInput.CourseId(courseId);
-                if (request is null)
-                {
-                    throw new BadRequestException("Course request is required.");
-                }
+                await OperationValidation.ValidateAsync(
+                    validator,
+                    cancellationToken,
+                    OperationValidation.Identifier(nameof(courseId), courseId),
+                    OperationValidation.Required(nameof(request), request is null ? null : "provided"),
+                    OperationValidation.Required(nameof(request.Title), request?.Title),
+                    OperationValidation.Required(nameof(request.Description), request?.Description),
+                    OperationValidation.Required(nameof(actorId), actorId));
 
-                OperationInput.Required(request.Title, nameof(request.Title));
-                OperationInput.Required(request.Description, nameof(request.Description));
-                OperationInput.Required(actorId, nameof(actorId));
+                var validatedRequest = request!;
+                var id = OperationInput.CourseId(courseId);
                 var course = await courseRepository.GetByIdAsync(id, cancellationToken)
                     ?? throw new DataNotFoundException($"Course '{courseId}' was not found.");
 
@@ -147,8 +155,8 @@ public sealed class CourseOperations(
                 var now = DateTimeOffset.UtcNow;
                 var updated = course with
                 {
-                    Title = request.Title,
-                    Description = request.Description,
+                    Title = validatedRequest.Title,
+                    Description = validatedRequest.Description,
                     UpdatedAt = now
                 };
 
@@ -186,8 +194,12 @@ public sealed class CourseOperations(
             "courses.retire",
             async () =>
             {
+                await OperationValidation.ValidateAsync(
+                    validator,
+                    cancellationToken,
+                    OperationValidation.Identifier(nameof(courseId), courseId),
+                    OperationValidation.Required(nameof(actorId), actorId));
                 var id = OperationInput.CourseId(courseId);
-                OperationInput.Required(actorId, nameof(actorId));
                 var course = await courseRepository.GetByIdAsync(id, cancellationToken)
                     ?? throw new DataNotFoundException($"Course '{courseId}' was not found.");
 
@@ -223,8 +235,12 @@ public sealed class CourseOperations(
             "courses.delete",
             async () =>
             {
+                await OperationValidation.ValidateAsync(
+                    validator,
+                    cancellationToken,
+                    OperationValidation.Identifier(nameof(courseId), courseId),
+                    OperationValidation.Required(nameof(actorId), actorId));
                 var id = OperationInput.CourseId(courseId);
-                OperationInput.Required(actorId, nameof(actorId));
                 var course = await courseRepository.GetByIdAsync(id, cancellationToken);
                 if (course is null)
                 {
