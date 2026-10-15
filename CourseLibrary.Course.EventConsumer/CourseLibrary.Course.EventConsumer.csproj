@@ -25,5 +25,16 @@
 	  <PackageReference Include="OpenTelemetry.Instrumentation.SqlClient" Version="1.18.0" />
 	  <PackageReference Include="Microsoft.Extensions.Telemetry" Version="10.10.0" />
   </ItemGroup>
-	
+
+  <ItemGroup>
+    <ProjectReference Include="..\CourseLibrary.Course.Application\CourseLibrary.Course.Application.csproj" />
+    <ProjectReference Include="..\CourseLibrary.Course.Domain\CourseLibrary.Course.Domain.csproj" />
+    <ProjectReference Include="..\CourseLibrary.Course.Persistence\CourseLibrary.Course.Persistence.csproj" />
+    <ProjectReference Include="..\CourseLibrary.Platform.Messaging\CourseLibrary.Platform.Messaging.csproj" />
+    <ProjectReference Include="..\CourseLibrary.Platform.Observability\CourseLibrary.Platform.Observability.csproj" />
+    <ProjectReference Include="..\CourseLibrary.Platform.Persistence.CosmosDB\CourseLibrary.Platform.Persistence.CosmosDB.csproj" />
+    <ProjectReference Include="..\CourseLibrary.Platform.Resilience\CourseLibrary.Platform.Resilience.csproj" />
+    <ProjectReference Include="..\CourseLibrary.Platform.Serialization\CourseLibrary.Platform.Serialization.csproj" />
+  </ItemGroup>
+
 </Project>
