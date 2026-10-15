@@ -1,5 +1,4 @@
-﻿using CourseLibrary.Platform.Observability.Traces;
-using CourseLibrary.Platform.Serialization.Observability;
+﻿using CourseLibrary.Platform.Serialization.Observability;
 using CourseLibrary.Platform.Serialization.Abstractions;
 using MessagePack;
 using MessagePack.Resolvers;
@@ -12,7 +11,7 @@ internal sealed class MessagePackSerializer<T> : ISerializer<T>
         MessagePackSerializerOptions.Standard
             .WithResolver(ContractlessStandardResolver.Instance);
 
-    private static readonly PlatformActivitySource ActivitySources = new();
+    private static readonly SerializationActivitySource ActivitySources = SerializationActivitySource.Shared;
     private static readonly SerializationMeter Metrics = SerializationMeter.Shared;
     public byte[] Serialize(T value)
     {

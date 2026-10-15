@@ -1,5 +1,4 @@
 using CourseLibrary.Platform.Observability;
-using System.Diagnostics;
 using System.Diagnostics.Metrics;
 
 namespace CourseLibrary.Platform.Serialization.Observability;
@@ -15,7 +14,7 @@ internal sealed class SerializationMeter : MeterBase
     private readonly Counter<long> _operations;
 
     private SerializationMeter()
-        : base(SerializationMeterConstants.MeterName)
+        : base(SerializationTelemetry.MeterName)
     {
         _operations = CreateCounter<long>(
             SerializationMeterConstants.OperationsInstrumentName,

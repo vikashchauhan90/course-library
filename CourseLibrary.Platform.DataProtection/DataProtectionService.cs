@@ -1,5 +1,4 @@
 ﻿using CourseLibrary.Platform.DataProtection.Observability;
-using CourseLibrary.Platform.Observability.Traces;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
@@ -12,7 +11,7 @@ internal sealed class DataProtectionService(
     : IDataProtectionService
 {
     private const string Purpose = "CourseLibrary.DataProtection";
-    private static readonly PlatformActivitySource ActivitySources = new();
+    private static readonly DataProtectionActivitySource ActivitySources = DataProtectionActivitySource.Shared;
     private static readonly DataProtectionMeter Metrics = DataProtectionMeter.Shared;
 
     private readonly IDataProtector _protector =

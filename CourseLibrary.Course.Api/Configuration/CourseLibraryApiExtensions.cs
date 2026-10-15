@@ -9,11 +9,15 @@ using CourseLibrary.Course.Application.Observability;
 using CourseLibrary.Course.Persistence;
 using CourseLibrary.Course.Persistence.Observability;
 using CourseLibrary.Platform.AspNetCore.RequestContext;
+using CourseLibrary.Platform.Caching.Observability;
 using CourseLibrary.Platform.Messaging;
+using CourseLibrary.Platform.Messaging.Observability;
 using CourseLibrary.Platform.Observability.Metrics;
+using CourseLibrary.Platform.Persistence.CosmosDB.Observability;
 using CourseLibrary.Platform.Resilience;
 using CourseLibrary.Platform.Resilience.Observability;
 using CourseLibrary.Platform.Serialization;
+using CourseLibrary.Platform.Serialization.Observability;
 using CourseLibrary.Platform.Observability.Traces;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.ResponseCompression;
@@ -134,8 +138,11 @@ public static class CourseLibraryApiExtensions
                     .AddSource(CourseApplicationActivitySourceConstants.ActivitySourceName)
                     .AddSource(CourseActivitySource.ActivitySourceName)
                     .AddSource(ResilienceTelemetry.ActivitySourceName)
+                    .AddSource(SerializationTelemetry.ActivitySourceName)
                     .AddSource(PlatformActivitySource.DefaultSourceName)
-                    .AddSource(CosmosActivitySource.DefaultSourceName)
+                    .AddSource(CacheTelemetry.ActivitySourceName)
+                    .AddSource(MessagingTelemetry.ActivitySourceName)
+                    .AddSource(CosmosTelemetry.ActivitySourceName)
                     .AddAspNetCoreInstrumentation(options => options.RecordException = true)
                     .AddHttpClientInstrumentation(options => options.RecordException = true);
 
@@ -154,6 +161,10 @@ public static class CourseLibraryApiExtensions
                     .AddMeter(CourseApplicationMetricConstants.MeterName)
                     .AddMeter(CourseMeter.MeterName)
                     .AddMeter(ResilienceTelemetry.MeterName)
+                    .AddMeter(SerializationTelemetry.MeterName)
+                    .AddMeter(CacheTelemetry.MeterName)
+                    .AddMeter(MessagingTelemetry.MeterName)
+                    .AddMeter(CosmosTelemetry.MeterName)
                     .AddMeter(PlatformMeter.DefaultMeterName)
                     .AddMeter("Microsoft.AspNetCore.Hosting")
                     .AddMeter("Microsoft.AspNetCore.Server.Kestrel")

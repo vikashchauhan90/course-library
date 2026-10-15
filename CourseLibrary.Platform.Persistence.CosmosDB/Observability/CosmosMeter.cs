@@ -6,7 +6,6 @@ namespace CourseLibrary.Platform.Persistence.CosmosDB.Observability;
 
 internal sealed class CosmosMeter : MeterBase
 {
-    public const string MeterName = "CourseLibrary.Platform.Persistence.CosmosDB";
     private static readonly Lazy<CosmosMeter> SharedInstance = new(
         static () => new CosmosMeter(),
         LazyThreadSafetyMode.ExecutionAndPublication);
@@ -19,7 +18,7 @@ internal sealed class CosmosMeter : MeterBase
     private readonly Histogram<double> _requestCharge;
 
     private CosmosMeter()
-        : base(MeterName)
+        : base(CosmosTelemetry.MeterName)
     {
         _operations = CreateCounter<long>(
             CosmosMetricConstants.OperationsInstrumentName,

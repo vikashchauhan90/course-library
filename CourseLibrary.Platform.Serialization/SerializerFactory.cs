@@ -1,5 +1,5 @@
-﻿using CourseLibrary.Platform.Observability.Traces;
-using CourseLibrary.Platform.Serialization.Abstractions;
+﻿using CourseLibrary.Platform.Serialization.Abstractions;
+using CourseLibrary.Platform.Serialization.Observability;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace CourseLibrary.Platform.Serialization;
@@ -7,7 +7,7 @@ namespace CourseLibrary.Platform.Serialization;
 internal sealed class SerializerFactory(
     IServiceProvider serviceProvider) : ISerializerFactory
 {
-    private static readonly PlatformActivitySource ActivitySources = new();
+    private static readonly SerializationActivitySource ActivitySources = SerializationActivitySource.Shared;
     public ISerializer<T> Create<T>(SerializerType type)
     {
         using var activity = ActivitySources.StartActivity(

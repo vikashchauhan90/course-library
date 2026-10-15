@@ -1,5 +1,4 @@
-﻿using CourseLibrary.Platform.Observability.Traces;
-using CourseLibrary.Platform.Serialization.Observability;
+﻿using CourseLibrary.Platform.Serialization.Observability;
 using CourseLibrary.Platform.Serialization.Abstractions;
 using System.Text.Json;
 
@@ -8,7 +7,7 @@ namespace CourseLibrary.Platform.Serialization.Serializers;
 internal sealed class SystemTextJsonSerializer<T>(
     JsonSerializerOptions options) : ISerializer<T>
 {
-    private static readonly PlatformActivitySource ActivitySources = new();
+    private static readonly SerializationActivitySource ActivitySources = SerializationActivitySource.Shared;
     private static readonly SerializationMeter Metrics = SerializationMeter.Shared;
     public byte[] Serialize(T value)
     {

@@ -2,7 +2,6 @@
 using CourseLibrary.Platform.Messaging.Abstractions;
 using CourseLibrary.Platform.Messaging.Configurations;
 using CourseLibrary.Platform.Messaging.Observability;
-using CourseLibrary.Platform.Observability.Traces;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
@@ -14,7 +13,7 @@ internal sealed class AzureTableDqlMessageStore(
      ILogger<AzureTableDqlMessageStore> logger)
     : IDqlMessageStore
 {
-    private static readonly PlatformActivitySource ActivitySources = new();
+    private static readonly MessagingActivitySource ActivitySources = MessagingActivitySource.Shared;
     private static readonly MessagingMeter Metrics = MessagingMeter.Shared;
 
     public async Task StoreAsync(

@@ -1,7 +1,6 @@
 ﻿
 using CourseLibrary.Platform.Caching.Abstractions;
 using CourseLibrary.Platform.Caching.Observability;
-using CourseLibrary.Platform.Observability.Traces;
 using Microsoft.Extensions.Logging;
 using StackExchange.Redis;
 using System.Diagnostics;
@@ -18,7 +17,7 @@ internal sealed class FusionCacheProvider(
     private static readonly Func<CancellationToken, Task<byte[]?>> EmptyFactory =
    static _ => Task.FromResult<byte[]?>(null!);
 
-    private static readonly PlatformActivitySource ActivitySources = new();
+    private static readonly CacheActivitySource ActivitySources = CacheActivitySource.Shared;
     private static readonly CacheMeter Metrics = CacheMeter.Shared;
     public async Task<byte[]?> GetAsync(
     string key,

@@ -1,7 +1,6 @@
 ﻿using Azure.Messaging.ServiceBus;
 using CourseLibrary.Platform.Messaging.Abstractions;
 using CourseLibrary.Platform.Messaging.Observability;
-using CourseLibrary.Platform.Observability.Traces;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 
@@ -15,8 +14,7 @@ internal sealed class ServiceBusEventPublisher(
     private const string ActivityName = "ServiceBusEventPublisher.PublishAsync";
     private const int RecommendedStandardTierMessageSize = 256 * 1024;
 
-    private static readonly ActivitySource ActivitySource =
-        new(PlatformActivitySource.DefaultSourceName);
+    private static readonly MessagingActivitySource ActivitySource = MessagingActivitySource.Shared;
     private static readonly MessagingMeter Metrics = MessagingMeter.Shared;
 
     public async Task PublishAsync(

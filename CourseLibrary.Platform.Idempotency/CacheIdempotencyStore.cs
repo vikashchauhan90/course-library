@@ -1,7 +1,6 @@
 ﻿using CourseLibrary.Platform.Caching.Abstractions;
 using CourseLibrary.Platform.Idempotency.Abstractions;
 using CourseLibrary.Platform.Idempotency.Observability;
-using CourseLibrary.Platform.Observability.Traces;
 using CourseLibrary.Platform.Serialization.Abstractions;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
@@ -18,7 +17,7 @@ internal sealed class CacheIdempotencyStore(
         serializerFactory.Create<IdempotencyEntry>(
             SerializerType.Json);
 
-    private static readonly PlatformActivitySource ActivitySources = new();
+    private static readonly IdempotencyActivitySource ActivitySources = IdempotencyActivitySource.Shared;
     private static readonly IdempotencyMeter Metrics = IdempotencyMeter.Shared;
 
     public async Task<IdempotencyEntry?> GetAsync(

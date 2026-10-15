@@ -17,7 +17,7 @@ public sealed class CacheMeter : MeterBase
     private readonly Counter<long> _misses;
 
     private CacheMeter()
-        : base(CacheMetricConstants.MeterName)
+        : base(CacheTelemetry.MeterName)
     {
         _lookups = CreateCounter<long>(
             CacheMetricConstants.LookupsInstrumentName,
