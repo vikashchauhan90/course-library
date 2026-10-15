@@ -131,6 +131,7 @@ public static class CourseLibraryApiExtensions
             {
                 tracing
                     .AddSource(CourseApplicationActivitySourceConstants.ActivitySourceName)
+                    .AddSource(CourseActivitySource.ActivitySourceName)
                     .AddSource(PlatformActivitySource.DefaultSourceName)
                     .AddSource(CosmosActivitySource.DefaultSourceName)
                     .AddAspNetCoreInstrumentation(options => options.RecordException = true)
@@ -149,6 +150,7 @@ public static class CourseLibraryApiExtensions
             {
                 metrics
                     .AddMeter(CourseApplicationMetricConstants.MeterName)
+                    .AddMeter(CourseMeter.MeterName)
                     .AddMeter(PlatformMeter.DefaultMeterName)
                     .AddMeter("Microsoft.AspNetCore.Hosting")
                     .AddMeter("Microsoft.AspNetCore.Server.Kestrel")

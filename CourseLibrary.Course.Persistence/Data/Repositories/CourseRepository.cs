@@ -2,6 +2,7 @@ using CourseLibrary.Core.Results;
 using CourseLibrary.Course.Contracts.DTOs;
 using CourseLibrary.Course.Domain.ValueObjects;
 using CourseLibrary.Course.Persistence.Data.Repositories.Abstractions;
+using CourseLibrary.Course.Persistence.Observability;
 using CourseLibrary.Platform.Persistence.CosmosDB;
 using CourseLibrary.Platform.Persistence.CosmosDB.Configurations;
 using CourseLibrary.Platform.Persistence.CosmosDB.Repositories;
@@ -26,11 +27,17 @@ internal sealed class CourseRepository
 
     public async Task<Domain.Entities.Course?> GetByIdAsync(CourseId courseId, CancellationToken cancellationToken = default)
     {
-        var query = new QueryDefinition(
-            "SELECT TOP 1 * FROM c WHERE c.id = @courseId")
-            .WithParameter("@courseId", courseId.Value);
+        return await CourseRepositoryObservability.ExecuteAsync(
+            nameof(CourseRepository),
+            nameof(GetByIdAsync),
+            () =>
+            {
+                var query = new QueryDefinition(
+                    "SELECT TOP 1 * FROM c WHERE c.id = @courseId")
+                    .WithParameter("@courseId", courseId.Value);
 
-        return await base.SingleOrDefaultAsync(query, cancellationToken: cancellationToken);
+                return base.SingleOrDefaultAsync(query, cancellationToken: cancellationToken);
+            });
     }
 
     public Task<PageResult<Domain.Entities.Course>> GetByAuthorAsync(
@@ -38,63 +45,80 @@ internal sealed class CourseRepository
         int pageSize,
         string? continuationToken,
         CancellationToken cancellationToken = default)
-    {
-        var query = new QueryDefinition(
-            "SELECT * FROM c WHERE c.authorId = @authorId ORDER BY c.updatedAt DESC")
-            .WithParameter("@authorId", authorId.Value);
+        => CourseRepositoryObservability.ExecuteAsync(
+            nameof(CourseRepository),
+            nameof(GetByAuthorAsync),
+            () =>
+            {
+                var query = new QueryDefinition(
+                    "SELECT * FROM c WHERE c.authorId = @authorId ORDER BY c.updatedAt DESC")
+                    .WithParameter("@authorId", authorId.Value);
 
-        return base.QueryPageAsync(
-            query,
-            partitionKey: authorId.Value,
-            continuationToken,
-            pageSize,
-            cancellationToken);
-    }
+                return base.QueryPageAsync(
+                    query,
+                    partitionKey: authorId.Value,
+                    continuationToken,
+                    pageSize,
+                    cancellationToken);
+            });
 
     public Task<PageResult<Domain.Entities.Course>> SearchAsync(
         CourseSearchCriteria criteria,
         int pageSize,
         string? continuationToken = null,
         CancellationToken cancellationToken = default)
-    {
-        var predicates = new List<string>();
-        var sql = "SELECT * FROM c";
-        var parameters = new List<(string Name, object Value)>();
+        => CourseRepositoryObservability.ExecuteAsync(
+            nameof(CourseRepository),
+            nameof(SearchAsync),
+            () =>
+            {
+                var predicates = new List<string>();
+                var sql = "SELECT * FROM c";
+                var parameters = new List<(string Name, object Value)>();
 
-        if (!string.IsNullOrWhiteSpace(criteria.SearchTerm))
-        {
-            predicates.Add("(CONTAINS(c.title, @searchTerm, true) OR CONTAINS(c.description, @searchTerm, true))");
-            parameters.Add(("@searchTerm", criteria.SearchTerm));
-        }
+                if (!string.IsNullOrWhiteSpace(criteria.SearchTerm))
+                {
+                    predicates.Add("(CONTAINS(c.title, @searchTerm, true) OR CONTAINS(c.description, @searchTerm, true))");
+                    parameters.Add(("@searchTerm", criteria.SearchTerm));
+                }
 
-        if (!string.IsNullOrWhiteSpace(criteria.AuthorId))
-        {
-            predicates.Add("c.authorId = @authorId");
-            parameters.Add(("@authorId", criteria.AuthorId));
-        }
+                if (!string.IsNullOrWhiteSpace(criteria.AuthorId))
+                {
+                    predicates.Add("c.authorId = @authorId");
+                    parameters.Add(("@authorId", criteria.AuthorId));
+                }
 
-        if (!criteria.IncludeDeleted)
-            predicates.Add("(NOT IS_DEFINED(c.deletedAt) OR IS_NULL(c.deletedAt))");
+                if (!criteria.IncludeDeleted)
+                    predicates.Add("(NOT IS_DEFINED(c.deletedAt) OR IS_NULL(c.deletedAt))");
 
-        if (!criteria.IncludeRetired)
-            predicates.Add("(NOT IS_DEFINED(c.retiredAt) OR IS_NULL(c.retiredAt))");
+                if (!criteria.IncludeRetired)
+                    predicates.Add("(NOT IS_DEFINED(c.retiredAt) OR IS_NULL(c.retiredAt))");
 
-        if (predicates.Count > 0)
-            sql += " WHERE " + string.Join(" AND ", predicates);
+                if (predicates.Count > 0)
+                    sql += " WHERE " + string.Join(" AND ", predicates);
 
-        sql += " ORDER BY c.updatedAt DESC";
+                sql += " ORDER BY c.updatedAt DESC";
 
-        var queryDefinition = new QueryDefinition(sql);
-        foreach (var parameter in parameters)
-            queryDefinition = queryDefinition.WithParameter(parameter.Name, parameter.Value);
+                var queryDefinition = new QueryDefinition(sql);
+                foreach (var parameter in parameters)
+                    queryDefinition = queryDefinition.WithParameter(parameter.Name, parameter.Value);
 
-        return base.QueryPageAsync(
-            queryDefinition,
-            continuationToken: !string.IsNullOrWhiteSpace(continuationToken) ? continuationToken : null,
-            pageSize: pageSize,
-            cancellationToken: cancellationToken);
-    }
+                return base.QueryPageAsync(
+                    queryDefinition,
+                    continuationToken: !string.IsNullOrWhiteSpace(continuationToken) ? continuationToken : null,
+                    pageSize: pageSize,
+                    cancellationToken: cancellationToken);
+            });
 
     public Task<bool> DeleteAsync(CourseId courseId, AuthorId partitionKey, CancellationToken cancellationToken = default)
-        => base.DeleteAsync(courseId, partitionKey.Value, cancellationToken);
+        => CourseRepositoryObservability.ExecuteAsync(
+            nameof(CourseRepository),
+            nameof(DeleteAsync),
+            () => base.DeleteAsync(courseId, partitionKey.Value, cancellationToken));
+
+    public new Task UpsertAsync(Domain.Entities.Course course, CancellationToken cancellationToken = default)
+        => CourseRepositoryObservability.ExecuteAsync(
+            nameof(CourseRepository),
+            nameof(UpsertAsync),
+            () => base.UpsertAsync(course, cancellationToken));
 }

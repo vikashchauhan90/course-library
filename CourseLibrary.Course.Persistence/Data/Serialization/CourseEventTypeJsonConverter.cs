@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace CourseLibrary.Course.Persistence.Data.Serialization;
 
-public sealed class CourseEventTypeJsonConverter : JsonConverter<CourseEventType>
+internal sealed class CourseEventTypeJsonConverter : JsonConverter<CourseEventType>
 {
     public override CourseEventType Read(
         ref Utf8JsonReader reader,

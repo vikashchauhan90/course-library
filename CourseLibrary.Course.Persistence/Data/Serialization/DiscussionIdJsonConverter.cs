@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace CourseLibrary.Course.Persistence.Data.Serialization;
 
-public sealed class DiscussionIdJsonConverter : JsonConverter<DiscussionId>
+internal sealed class DiscussionIdJsonConverter : JsonConverter<DiscussionId>
 {
     public override DiscussionId Read(
         ref Utf8JsonReader reader,

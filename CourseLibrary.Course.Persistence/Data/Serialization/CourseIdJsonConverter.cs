@@ -7,7 +7,7 @@ using System.Text.Json.Serialization;
 
 namespace CourseLibrary.Course.Persistence.Data.Serialization;
 
-public sealed class CourseIdJsonConverter : JsonConverter<CourseId>
+internal sealed class CourseIdJsonConverter : JsonConverter<CourseId>
 {
     public override CourseId Read(
         ref Utf8JsonReader reader,

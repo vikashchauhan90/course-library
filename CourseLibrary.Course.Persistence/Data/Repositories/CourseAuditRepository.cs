@@ -1,5 +1,6 @@
 using CourseLibrary.Course.Domain.Entities;
 using CourseLibrary.Course.Persistence.Data.Repositories.Abstractions;
+using CourseLibrary.Course.Persistence.Observability;
 using CourseLibrary.Platform.Persistence.CosmosDB;
 using CourseLibrary.Platform.Persistence.CosmosDB.Configurations;
 using CourseLibrary.Platform.Persistence.CosmosDB.Repositories;
@@ -22,5 +23,8 @@ internal sealed class CourseAuditRepository
     {
     }
     public Task AddAsync(CourseAuditEntry entry, CancellationToken cancellationToken = default)
-        => base.UpsertAsync(entry, cancellationToken);
+        => CourseRepositoryObservability.ExecuteAsync(
+            nameof(CourseAuditRepository),
+            nameof(AddAsync),
+            () => base.UpsertAsync(entry, cancellationToken));
 }
