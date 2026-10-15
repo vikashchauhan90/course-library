@@ -2,9 +2,16 @@
 
 namespace CourseLibrary.Course.Client.Observability;
 
-public sealed class CourseClientActivitySource : ActivitySourceBase
+internal sealed class CourseClientActivitySource : ActivitySourceBase
 {
-    public CourseClientActivitySource() : base(CourseClientActivitySourceConstants.ActivitySourceName)
+    private static readonly Lazy<CourseClientActivitySource> SharedInstance = new(
+        static () => new CourseClientActivitySource(),
+        LazyThreadSafetyMode.ExecutionAndPublication);
+
+    public static CourseClientActivitySource Shared => SharedInstance.Value;
+
+    private CourseClientActivitySource()
+        : base(CourseClientTelemetry.ActivitySourceName)
     {
     }
 }

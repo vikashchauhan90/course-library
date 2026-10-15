@@ -4,7 +4,7 @@ using System.Diagnostics.Metrics;
 
 namespace CourseLibrary.Course.Client.Observability;
 
-public sealed class CourseClientMeter : MeterBase
+internal sealed class CourseClientMeter : MeterBase
 {
     private static readonly Lazy<CourseClientMeter> SharedInstance = new(
         static () => new CourseClientMeter(),
@@ -16,7 +16,7 @@ public sealed class CourseClientMeter : MeterBase
     private readonly Counter<long> _failures;
     private readonly Histogram<double> _duration;
 
-    private CourseClientMeter() : base(CourseClientMeterConstants.MeterName)
+    private CourseClientMeter() : base(CourseClientTelemetry.MeterName)
     {
         _requests = CreateCounter<long>(
             CourseClientMeterConstants.RequestsInstrumentName,

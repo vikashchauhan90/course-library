@@ -5,6 +5,8 @@ using CourseLibrary.Platform.Caching.Observability;
 using CourseLibrary.Platform.DataProtection.Observability;
 using CourseLibrary.Platform.Idempotency.Observability;
 using CourseLibrary.Platform.Messaging.Observability;
+using CourseLibrary.Course.Application.Observability;
+using CourseLibrary.Course.Persistence.Observability;
 using OpenTelemetry;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
@@ -50,6 +52,8 @@ internal static class OpenTelemetryExtensions
                  tracing
                      .AddSource(InfrastructureObservability.Traces.ActivitySources.Infrastructure.Name)
                      .AddSource(ApiObservability.Traces.ActivitySources.Api.Name)
+                     .AddSource(CourseApplicationTelemetry.ActivitySourceName)
+                     .AddSource(CoursePersistenceTelemetry.ActivitySourceName)
                      .AddSource(CacheTelemetry.ActivitySourceName)
                      .AddSource(DataProtectionTelemetry.ActivitySourceName)
                      .AddSource(IdempotencyTelemetry.ActivitySourceName)

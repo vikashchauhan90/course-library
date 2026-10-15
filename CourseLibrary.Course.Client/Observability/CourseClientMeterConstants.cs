@@ -2,7 +2,6 @@
 
 public static class CourseClientMeterConstants
 {
-    public const string MeterName = "CourseLibrary.Course.Client.CourseApi";
 
     public const string RequestsInstrumentName = "course_api.client.requests";
     public const string FailuresInstrumentName = "course_api.client.failures";

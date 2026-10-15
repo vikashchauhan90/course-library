@@ -4,7 +4,7 @@ using System.Diagnostics.Metrics;
 
 namespace CourseLibrary.Course.Application.Observability;
 
-public sealed class CourseApplicationMeter : MeterBase
+internal sealed class CourseApplicationMeter : MeterBase
 {
     private static readonly Lazy<CourseApplicationMeter> SharedInstance = new(
         static () => new CourseApplicationMeter(),
@@ -17,7 +17,7 @@ public sealed class CourseApplicationMeter : MeterBase
     private readonly Histogram<double> _duration;
 
     private CourseApplicationMeter()
-        : base(CourseApplicationMetricConstants.MeterName)
+        : base(CourseApplicationTelemetry.MeterName)
     {
         _operations = CreateCounter<long>(
             CourseApplicationMetricConstants.OperationsInstrumentName,

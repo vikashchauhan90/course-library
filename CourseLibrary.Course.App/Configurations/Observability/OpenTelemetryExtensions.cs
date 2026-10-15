@@ -45,7 +45,7 @@ internal static class OpenTelemetryExtensions
              {
                  tracing
                      .AddSource(ActivitySources.App.Name)
-                     .AddSource(CourseClientActivitySourceConstants.ActivitySourceName)
+                     .AddSource(CourseClientTelemetry.ActivitySourceName)
                      .AddAspNetCoreInstrumentation(options =>
                      {
                          options.RecordException = true;
@@ -60,7 +60,7 @@ internal static class OpenTelemetryExtensions
              {
                  metrics
                      .AddMeter(Meters.App.Name)
-                     .AddMeter(CourseClientMeterConstants.MeterName)
+                     .AddMeter(CourseClientTelemetry.MeterName)
                      .AddMeter("Microsoft.AspNetCore.Hosting")
                      .AddMeter("Microsoft.AspNetCore*")
                      .AddMeter("CourseLibrary*")

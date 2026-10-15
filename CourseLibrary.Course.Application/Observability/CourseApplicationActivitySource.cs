@@ -2,7 +2,7 @@ using CourseLibrary.Platform.Observability.Traces;
 
 namespace CourseLibrary.Course.Application.Observability;
 
-public sealed class CourseApplicationActivitySource : ActivitySourceBase
+internal sealed class CourseApplicationActivitySource : ActivitySourceBase
 {
     private static readonly Lazy<CourseApplicationActivitySource> SharedInstance = new(
         static () => new CourseApplicationActivitySource(),
@@ -11,7 +11,7 @@ public sealed class CourseApplicationActivitySource : ActivitySourceBase
     public static CourseApplicationActivitySource Shared => SharedInstance.Value;
 
     private CourseApplicationActivitySource()
-        : base(CourseApplicationActivitySourceConstants.ActivitySourceName)
+        : base(CourseApplicationTelemetry.ActivitySourceName)
     {
     }
 }

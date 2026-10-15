@@ -16,7 +16,7 @@ internal sealed class CourseApiClient(
     ILogger<CourseApiClient> logger) : ICourseApiClient
 {
     private static readonly JsonSerializerOptions JsonOptions = CreateJsonOptions();
-    private static readonly CourseClientActivitySource ActivitySources = new();
+    private static readonly CourseClientActivitySource ActivitySources = CourseClientActivitySource.Shared;
     private static readonly CourseClientMeter CourseApiMeter = CourseClientMeter.Shared;
 
     public Task<CourseResponse> GetCourseAsync(

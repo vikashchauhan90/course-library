@@ -4,10 +4,8 @@ using System.Diagnostics.Metrics;
 
 namespace CourseLibrary.Course.Persistence.Observability;
 
-public sealed class CourseMeter : MeterBase
+internal sealed class CourseMeter : MeterBase
 {
-    public const string MeterName = "CourseLibrary.Course.Persistence";
-
     private static readonly Lazy<CourseMeter> SharedInstance = new(
         static () => new CourseMeter(),
         LazyThreadSafetyMode.ExecutionAndPublication);
@@ -19,7 +17,7 @@ public sealed class CourseMeter : MeterBase
     internal static CourseMeter Shared => SharedInstance.Value;
 
     private CourseMeter()
-        : base(MeterName)
+        : base(CoursePersistenceTelemetry.MeterName)
     {
         _operations = CreateCounter<long>(
             "course.persistence.repository.operations",

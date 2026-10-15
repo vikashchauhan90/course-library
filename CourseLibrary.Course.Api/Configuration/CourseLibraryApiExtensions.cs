@@ -135,11 +135,11 @@ public static class CourseLibraryApiExtensions
             .WithTracing(tracing =>
             {
                 tracing
-                    .AddSource(CourseApplicationActivitySourceConstants.ActivitySourceName)
-                    .AddSource(CourseActivitySource.ActivitySourceName)
+                    .AddSource(CourseApplicationTelemetry.ActivitySourceName)
+                    .AddSource(CoursePersistenceTelemetry.ActivitySourceName)
                     .AddSource(ResilienceTelemetry.ActivitySourceName)
                     .AddSource(SerializationTelemetry.ActivitySourceName)
-                    .AddSource(PlatformActivitySource.DefaultSourceName)
+                    .AddSource(PlatformActivitySource.ActivitySourceName)
                     .AddSource(CacheTelemetry.ActivitySourceName)
                     .AddSource(MessagingTelemetry.ActivitySourceName)
                     .AddSource(CosmosTelemetry.ActivitySourceName)
@@ -158,14 +158,14 @@ public static class CourseLibraryApiExtensions
             .WithMetrics(metrics =>
             {
                 metrics
-                    .AddMeter(CourseApplicationMetricConstants.MeterName)
-                    .AddMeter(CourseMeter.MeterName)
+                    .AddMeter(CourseApplicationTelemetry.MeterName)
+                    .AddMeter(CoursePersistenceTelemetry.MeterName)
                     .AddMeter(ResilienceTelemetry.MeterName)
                     .AddMeter(SerializationTelemetry.MeterName)
                     .AddMeter(CacheTelemetry.MeterName)
                     .AddMeter(MessagingTelemetry.MeterName)
                     .AddMeter(CosmosTelemetry.MeterName)
-                    .AddMeter(PlatformMeter.DefaultMeterName)
+                    .AddMeter(PlatformMeter.MeterName)
                     .AddMeter("Microsoft.AspNetCore.Hosting")
                     .AddMeter("Microsoft.AspNetCore.Server.Kestrel")
                     .AddAspNetCoreInstrumentation()
