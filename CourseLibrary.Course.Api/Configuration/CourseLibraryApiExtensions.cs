@@ -12,6 +12,7 @@ using CourseLibrary.Platform.AspNetCore.RequestContext;
 using CourseLibrary.Platform.Messaging;
 using CourseLibrary.Platform.Observability.Metrics;
 using CourseLibrary.Platform.Resilience;
+using CourseLibrary.Platform.Resilience.Observability;
 using CourseLibrary.Platform.Serialization;
 using CourseLibrary.Platform.Observability.Traces;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
@@ -132,6 +133,7 @@ public static class CourseLibraryApiExtensions
                 tracing
                     .AddSource(CourseApplicationActivitySourceConstants.ActivitySourceName)
                     .AddSource(CourseActivitySource.ActivitySourceName)
+                    .AddSource(ResilienceTelemetry.ActivitySourceName)
                     .AddSource(PlatformActivitySource.DefaultSourceName)
                     .AddSource(CosmosActivitySource.DefaultSourceName)
                     .AddAspNetCoreInstrumentation(options => options.RecordException = true)
@@ -151,6 +153,7 @@ public static class CourseLibraryApiExtensions
                 metrics
                     .AddMeter(CourseApplicationMetricConstants.MeterName)
                     .AddMeter(CourseMeter.MeterName)
+                    .AddMeter(ResilienceTelemetry.MeterName)
                     .AddMeter(PlatformMeter.DefaultMeterName)
                     .AddMeter("Microsoft.AspNetCore.Hosting")
                     .AddMeter("Microsoft.AspNetCore.Server.Kestrel")

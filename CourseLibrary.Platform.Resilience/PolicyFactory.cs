@@ -1,5 +1,4 @@
-﻿using CourseLibrary.Platform.Observability.Traces;
-using CourseLibrary.Platform.Resilience.Abstractions;
+﻿using CourseLibrary.Platform.Resilience.Abstractions;
 using CourseLibrary.Platform.Resilience.Observability;
 using Microsoft.Extensions.Logging;
 using Polly;
@@ -12,12 +11,12 @@ internal sealed class PolicyFactory(
     ResiliencePipelineProvider<string> provider,
     ILogger<PolicyFactory> logger) : IPolicyFactory
 {
-    private static readonly PlatformActivitySource ActivitySources = new();
-    private static readonly ResilienceMeter Metrics = ResilienceMeter.Shared;
+    private static readonly ResilienceActivitySource ActivitySource = ResilienceActivitySource.Shared;
+    private static readonly ResilienceMeter Meter = ResilienceMeter.Shared;
 
     public ResiliencePipeline Get(string policyName)
     {
-        using var activity = ActivitySources.StartActivity("PolicyFactory.Get");
+        using var activity = ActivitySource.StartActivity("PolicyFactory.Get");
         activity?.SetTag(ResilienceActivityTagConstants.PolicyName, policyName);
         activity?.SetTag(
             ResilienceActivityTagConstants.Operation,
@@ -27,7 +26,7 @@ internal sealed class PolicyFactory(
         {
             var pipeline = provider.GetPipeline(policyName);
             activity?.SetTag(ResilienceActivityTagConstants.Outcome, ResilienceActivityTagConstants.SuccessOutcome);
-            Metrics.RecordOperation(
+            Meter.RecordOperation(
                 ResilienceActivityTagConstants.GetPipelineOperation,
                 ResilienceActivityTagConstants.SuccessOutcome);
             logger.PipelineRetrieved(policyName);
@@ -37,7 +36,7 @@ internal sealed class PolicyFactory(
         {
             activity?.SetTag(ResilienceActivityTagConstants.Outcome, ResilienceActivityTagConstants.ErrorOutcome);
             activity?.SetStatus(ActivityStatusCode.Error, ResilienceActivityTagConstants.ErrorOutcome);
-            Metrics.RecordOperation(
+            Meter.RecordOperation(
                 ResilienceActivityTagConstants.GetPipelineOperation,
                 ResilienceActivityTagConstants.ErrorOutcome);
             logger.PipelineRetrievalFailed(exception, policyName);
@@ -50,7 +49,7 @@ internal sealed class PolicyFactory(
         Func<CancellationToken, ValueTask> operation,
         CancellationToken cancellationToken = default)
     {
-        using var activity = ActivitySources.StartActivity(
+        using var activity = ActivitySource.StartActivity(
            "PolicyFactory.ExecuteAsync");
         activity?.SetTag(ResilienceActivityTagConstants.PolicyName, policyName);
         activity?.SetTag(ResilienceActivityTagConstants.OperationType, "void");
@@ -81,7 +80,7 @@ internal sealed class PolicyFactory(
         Func<CancellationToken, ValueTask<T>> operation,
         CancellationToken cancellationToken = default)
     {
-        using var activity = ActivitySources.StartActivity(
+        using var activity = ActivitySource.StartActivity(
             "PolicyFactory.ExecuteAsync<T>");
         activity?.SetTag(ResilienceActivityTagConstants.PolicyName, policyName);
         activity?.SetTag(ResilienceActivityTagConstants.OperationType, "result");
@@ -121,6 +120,6 @@ internal sealed class PolicyFactory(
             logger.ExecutionSucceeded(policyName);
         }
 
-        Metrics.RecordOperation(ResilienceActivityTagConstants.ExecuteOperation, outcome);
+        Meter.RecordOperation(ResilienceActivityTagConstants.ExecuteOperation, outcome);
     }
 }

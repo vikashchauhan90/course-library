@@ -15,7 +15,7 @@ internal sealed class ResilienceMeter : MeterBase
     private readonly Counter<long> _operations;
 
     private ResilienceMeter()
-        : base(ResilienceMeterConstants.MeterName)
+        : base(ResilienceTelemetry.MeterName)
     {
         _operations = CreateCounter<long>(
             ResilienceMeterConstants.OperationsInstrumentName,
