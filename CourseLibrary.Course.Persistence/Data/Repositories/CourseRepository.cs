@@ -1,6 +1,7 @@
 using CourseLibrary.Core.Results;
 using CourseLibrary.Course.Contracts.DTOs;
 using CourseLibrary.Course.Domain.ValueObjects;
+using CourseLibrary.Course.Persistence.Data.Repositories.Abstractions;
 using CourseLibrary.Platform.Persistence.CosmosDB;
 using CourseLibrary.Platform.Persistence.CosmosDB.Configurations;
 using CourseLibrary.Platform.Persistence.CosmosDB.Repositories;
@@ -10,7 +11,7 @@ using Microsoft.Extensions.Options;
 
 namespace CourseLibrary.Course.Persistence.Data.Repositories;
 
-public sealed class CourseRepository 
+internal sealed class CourseRepository 
     : CosmosRepositoryBase<Domain.Entities.Course, CourseId>,
     ICourseRepository
 {

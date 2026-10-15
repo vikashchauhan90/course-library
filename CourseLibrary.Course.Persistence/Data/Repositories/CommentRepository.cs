@@ -1,5 +1,6 @@
 using CourseLibrary.Course.Domain.Entities;
 using CourseLibrary.Course.Domain.ValueObjects;
+using CourseLibrary.Course.Persistence.Data.Repositories.Abstractions;
 using CourseLibrary.Platform.Persistence.CosmosDB;
 using CourseLibrary.Platform.Persistence.CosmosDB.Configurations;
 using CourseLibrary.Platform.Persistence.CosmosDB.Repositories;
@@ -9,7 +10,7 @@ using Microsoft.Extensions.Options;
 
 namespace CourseLibrary.Course.Persistence.Data.Repositories;
 
-public sealed class CommentRepository
+internal sealed class CommentRepository
     : CosmosRepositoryBase<Comment, CommentId>,
     ICommentRepository
 {

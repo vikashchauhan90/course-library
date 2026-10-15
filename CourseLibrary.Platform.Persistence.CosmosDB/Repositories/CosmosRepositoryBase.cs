@@ -4,7 +4,6 @@ using CourseLibrary.Platform.Persistence.CosmosDB.Observability;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Newtonsoft.Json.Linq;
 using System.Diagnostics;
 using System.Net;
 
@@ -389,22 +388,25 @@ public abstract class CosmosRepositoryBase<TDocument, TKey>
     }
 
     public Task ReplaceAsync(
+        TKey id,
         TDocument item,
         string partitionKey,
         CancellationToken cancellationToken = default)
-        => ReplaceCoreAsync(item, partitionKey, etag: null, cancellationToken);
+        => ReplaceCoreAsync(id, item, partitionKey, etag: null, cancellationToken);
 
     public Task ReplaceAsync(
+        TKey id,
         TDocument item,
         string partitionKey,
         string etag,
         CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(etag);
-        return ReplaceCoreAsync(item, partitionKey, etag, cancellationToken);
+        return ReplaceCoreAsync(id, item, partitionKey, etag, cancellationToken);
     }
 
     private async Task ReplaceCoreAsync(
+        TKey id,
         TDocument item,
         string partitionKey,
         string? etag,
@@ -412,8 +414,7 @@ public abstract class CosmosRepositoryBase<TDocument, TKey>
     {
         ArgumentNullException.ThrowIfNull(item);
         ArgumentException.ThrowIfNullOrWhiteSpace(partitionKey);
-        var id = JObject.FromObject(item).Value<string>("id");
-        ArgumentException.ThrowIfNullOrWhiteSpace(id);
+        ArgumentNullException.ThrowIfNull(id);
 
         using var activity = ActivitySource.StartActivity(
             CosmosActivityNames.ReplaceItem,
@@ -431,7 +432,7 @@ public abstract class CosmosRepositoryBase<TDocument, TKey>
                 : new ItemRequestOptions { IfMatchEtag = etag };
             var response = await Container.ReplaceItemAsync(
                 item,
-                id,
+                id.ToString(),
                 new PartitionKey(partitionKey),
                 requestOptions,
                 cancellationToken);

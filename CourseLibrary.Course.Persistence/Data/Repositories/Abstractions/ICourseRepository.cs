@@ -2,7 +2,7 @@ using CourseLibrary.Core.Results;
 using CourseLibrary.Course.Contracts.DTOs;
 using CourseLibrary.Course.Domain.ValueObjects;
 
-namespace CourseLibrary.Course.Persistence.Data.Repositories;
+namespace CourseLibrary.Course.Persistence.Data.Repositories.Abstractions;
 
 public interface ICourseRepository
 {

@@ -1,15 +1,14 @@
-﻿using CourseEntity = CourseLibrary.Course.Domain.Entities.Course;
-using CourseLibrary.Platform.Persistence.CosmosDB.Configurations;
+﻿using CourseLibrary.Platform.Persistence.CosmosDB.Configurations;
 
 
 namespace CourseLibrary.Course.Persistence.Data.Configurations;
 
-internal class CourseConfiguration: ICosmosDocumentConfiguration<CourseEntity>
+internal class CourseConfiguration: ICosmosDocumentConfiguration<Domain.Entities.Course>
 {
     public string ContainerName => "courses";
     public string PartitionKeyPath => "/authorId";
 
-    public string GetPartitionKey(CourseEntity document)
+    public string GetPartitionKey(Domain.Entities.Course document)
     {
         ArgumentNullException.ThrowIfNull(document);
 

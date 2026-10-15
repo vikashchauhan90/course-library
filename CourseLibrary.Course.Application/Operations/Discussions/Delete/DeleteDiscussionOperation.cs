@@ -1,10 +1,10 @@
 using CourseLibrary.Course.Application.Core;
 using CourseLibrary.Core.Results;
 using CourseLibrary.Course.Domain.ValueObjects;
-using CourseLibrary.Course.Persistence.Data.Repositories;
 using FluentValidation;
 using Microsoft.Extensions.Logging;
 using CourseLibrary.Course.Application.Operations.Discussions;
+using CourseLibrary.Course.Persistence.Data.Repositories.Abstractions;
 
 namespace CourseLibrary.Course.Application.Operations.Discussions.Delete;
 

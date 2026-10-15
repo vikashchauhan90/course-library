@@ -1,4 +1,5 @@
 using CourseLibrary.Course.Domain.Entities;
+using CourseLibrary.Course.Persistence.Data.Repositories.Abstractions;
 using CourseLibrary.Platform.Persistence.CosmosDB;
 using CourseLibrary.Platform.Persistence.CosmosDB.Configurations;
 using CourseLibrary.Platform.Persistence.CosmosDB.Repositories;
@@ -8,7 +9,7 @@ using Microsoft.Extensions.Options;
 
 namespace CourseLibrary.Course.Persistence.Data.Repositories;
 
-public sealed class CourseAuditRepository
+internal sealed class CourseAuditRepository
     : CosmosRepositoryBase<CourseAuditEntry, string>,
     ICourseAuditRepository
 {

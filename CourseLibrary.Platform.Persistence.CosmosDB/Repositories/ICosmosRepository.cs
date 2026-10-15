@@ -32,11 +32,13 @@ public interface ICosmosRepository<TDocument, TKey>
         CancellationToken cancellationToken = default);
 
     Task ReplaceAsync(
+        TKey id,
         TDocument item,
         string partitionKey,
         CancellationToken cancellationToken = default);
 
     Task ReplaceAsync(
+        TKey id,
         TDocument item,
         string partitionKey,
         string etag,
