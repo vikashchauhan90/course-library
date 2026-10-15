@@ -1,8 +1,8 @@
 using CourseLibrary.Course.Domain.Entities;
 using CourseLibrary.Course.Persistence.Data.Configurations;
+using CourseLibrary.Course.Persistence.Data.Configurations.Serialization;
 using CourseLibrary.Course.Persistence.Data.Repositories;
 using CourseLibrary.Course.Persistence.Data.Repositories.Abstractions;
-using CourseLibrary.Course.Persistence.Data.Serialization;
 using CourseLibrary.Platform.Persistence.CosmosDB;
 using CourseLibrary.Platform.Persistence.CosmosDB.Configurations;
 using Microsoft.Azure.Cosmos;

@@ -2,23 +2,21 @@ using CourseLibrary.Course.Domain.ValueObjects;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace CourseLibrary.Course.Persistence.Data.Serialization;
+namespace CourseLibrary.Course.Persistence.Data.Configurations.Serialization;
 
-internal sealed class AuthorIdJsonConverter : JsonConverter<AuthorId>
+internal sealed class DiscussionIdJsonConverter : JsonConverter<DiscussionId>
 {
-    public override AuthorId Read(
+    public override DiscussionId Read(
         ref Utf8JsonReader reader,
         Type typeToConvert,
         JsonSerializerOptions options)
     {
-        var value = reader.GetString();
-
-        return new AuthorId(value ?? string.Empty);
+        return new DiscussionId(reader.GetString() ?? string.Empty);
     }
 
     public override void Write(
         Utf8JsonWriter writer,
-        AuthorId value,
+        DiscussionId value,
         JsonSerializerOptions options)
     {
         writer.WriteStringValue(value.Value);

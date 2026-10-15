@@ -1,27 +1,22 @@
 using CourseLibrary.Course.Domain.ValueObjects;
-using System;
-using System.Collections.Generic;
-using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace CourseLibrary.Course.Persistence.Data.Serialization;
+namespace CourseLibrary.Course.Persistence.Data.Configurations.Serialization;
 
-internal sealed class CourseIdJsonConverter : JsonConverter<CourseId>
+internal sealed class CommentIdJsonConverter : JsonConverter<CommentId>
 {
-    public override CourseId Read(
+    public override CommentId Read(
         ref Utf8JsonReader reader,
         Type typeToConvert,
         JsonSerializerOptions options)
     {
-        var value = reader.GetString() ?? string.Empty;
-
-        return new CourseId(value);
+        return new CommentId(reader.GetString() ?? string.Empty);
     }
 
     public override void Write(
         Utf8JsonWriter writer,
-        CourseId value,
+        CommentId value,
         JsonSerializerOptions options)
     {
         writer.WriteStringValue(value.Value);

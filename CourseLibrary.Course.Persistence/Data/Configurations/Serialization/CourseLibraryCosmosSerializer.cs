@@ -1,7 +1,7 @@
 using Microsoft.Azure.Cosmos;
 using System.Text.Json;
 
-namespace CourseLibrary.Course.Persistence.Data.Serialization;
+namespace CourseLibrary.Course.Persistence.Data.Configurations.Serialization;
 
 internal sealed class CourseLibraryCosmosSerializer(
     JsonSerializerOptions options) : CosmosSerializer
