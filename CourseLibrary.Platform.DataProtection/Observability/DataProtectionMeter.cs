@@ -15,7 +15,7 @@ internal sealed class DataProtectionMeter : MeterBase
     private readonly Counter<long> _operations;
 
     private DataProtectionMeter()
-        : base(DataProtectionMeterConstants.MeterName)
+        : base(DataProtectionTelemetry.MeterName)
     {
         _operations = CreateCounter<long>(
             DataProtectionMeterConstants.OperationsInstrumentName,

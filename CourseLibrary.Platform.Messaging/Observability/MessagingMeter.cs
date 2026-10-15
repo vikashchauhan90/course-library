@@ -17,7 +17,7 @@ internal sealed class MessagingMeter : MeterBase
     private readonly Histogram<long> _messageSize;
 
     private MessagingMeter()
-        : base(MessagingMeterConstants.MeterName)
+        : base(MessagingTelemetry.MeterName)
     {
         _operations = CreateCounter<long>(
             MessagingMeterConstants.OperationsInstrumentName,

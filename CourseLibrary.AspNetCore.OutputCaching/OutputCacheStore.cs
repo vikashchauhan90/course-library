@@ -1,5 +1,4 @@
-﻿using CourseLibrary.Platform.Caching.Abstractions;
-using CourseLibrary.Platform.Observability.Traces;
+using CourseLibrary.Platform.Caching.Abstractions;
 using CourseLibrary.AspNetCore.OutputCaching.Observability;
 using Microsoft.AspNetCore.OutputCaching;
 using Microsoft.Extensions.Logging;
@@ -14,7 +13,7 @@ public sealed class OutputCacheStore(
     ILogger<OutputCacheStore> logger)
     : IOutputCacheStore
 {
-    private static readonly PlatformActivitySource ActivitySources = new();
+    private static readonly OutputCacheActivitySource ActivitySources = OutputCacheActivitySource.Shared;
     private static readonly OutputCacheMeter Metrics = OutputCacheMeter.Shared;
     public async ValueTask<byte[]?> GetAsync(
         string key,

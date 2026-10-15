@@ -15,7 +15,7 @@ internal sealed class OutputCacheMeter : MeterBase
     private readonly Counter<long> _operations;
 
     private OutputCacheMeter()
-        : base(OutputCacheMeterConstants.MeterName)
+        : base(OutputCacheTelemetry.MeterName)
     {
         _operations = CreateCounter<long>(
             OutputCacheMeterConstants.OperationsInstrumentName,

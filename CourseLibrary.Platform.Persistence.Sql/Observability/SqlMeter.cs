@@ -17,7 +17,7 @@ public sealed class SqlMeter : MeterBase
     private readonly Histogram<double> _duration;
 
     private SqlMeter()
-        : base(SqlMetricConstants.MeterName)
+        : base(SqlTelemetry.MeterName)
     {
         _commands = CreateCounter<long>(
             SqlMetricConstants.CommandsInstrumentName,

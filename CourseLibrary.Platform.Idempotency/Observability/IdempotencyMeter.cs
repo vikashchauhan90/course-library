@@ -16,7 +16,7 @@ internal sealed class IdempotencyMeter : MeterBase
     private readonly Histogram<double> _duration;
 
     private IdempotencyMeter()
-        : base(IdempotencyMeterConstants.MeterName)
+        : base(IdempotencyTelemetry.MeterName)
     {
         _operations = CreateCounter<long>(
             IdempotencyMeterConstants.OperationsInstrumentName,
