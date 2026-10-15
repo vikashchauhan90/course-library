@@ -1,49 +1,56 @@
+using CourseLibrary.Core.Results;
 using CourseLibrary.Course.Contracts.DTOs;
-using CourseLibrary.Course.Contracts.Pagination;
-using CourseLibrary.Course.Domain.Entities;
 using CourseLibrary.Course.Domain.ValueObjects;
-using CourseEntity = CourseLibrary.Course.Domain.Entities.Course;
+using CourseLibrary.Platform.Persistence.CosmosDB;
+using CourseLibrary.Platform.Persistence.CosmosDB.Configurations;
+using CourseLibrary.Platform.Persistence.CosmosDB.Repositories;
+using Microsoft.Azure.Cosmos;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace CourseLibrary.Course.Persistence.Data.Repositories;
 
-public sealed class CosmosCourseRepository : ICourseRepository
+public sealed class CourseRepository 
+    : CosmosRepositoryBase<Domain.Entities.Course, CourseId>,
+    ICourseRepository
 {
-    private readonly ICosmosRepository<CourseEntity, CourseId> _repository;
-
-    public CosmosCourseRepository(ICosmosRepository<CourseEntity, CourseId> repository)
+    public CourseRepository(
+    CosmosClient client,
+    IOptions<CosmosOptions> options,
+    ICosmosDocumentConfiguration<Domain.Entities.Course> configuration,
+    ILogger<CourseRepository> logger)
+    : base(client, options, configuration, logger)
     {
-        _repository = repository;
     }
 
-    public async Task<CourseEntity?> GetByIdAsync(CourseId courseId, CancellationToken cancellationToken = default)
+    public async Task<Domain.Entities.Course?> GetByIdAsync(CourseId courseId, CancellationToken cancellationToken = default)
     {
-        var query = new Microsoft.Azure.Cosmos.QueryDefinition(
+        var query = new QueryDefinition(
             "SELECT TOP 1 * FROM c WHERE c.id = @courseId")
-            .WithParameter("@courseId", courseId.ToString());
+            .WithParameter("@courseId", courseId.Value);
 
-        return (await _repository.QueryAsync(query, cancellationToken: cancellationToken))
-            .SingleOrDefault();
+        return await base.SingleOrDefaultAsync(query, cancellationToken: cancellationToken);
     }
 
-    public Task<PageResult<CourseEntity>> GetByAuthorAsync(
+    public Task<PageResult<Domain.Entities.Course>> GetByAuthorAsync(
         AuthorId authorId,
         int pageSize,
         string? continuationToken,
         CancellationToken cancellationToken = default)
     {
-        var query = new Microsoft.Azure.Cosmos.QueryDefinition(
+        var query = new QueryDefinition(
             "SELECT * FROM c WHERE c.authorId = @authorId ORDER BY c.updatedAt DESC")
-            .WithParameter("@authorId", authorId.ToString());
+            .WithParameter("@authorId", authorId.Value);
 
-        return _repository.QueryPageAsync(
+        return base.QueryPageAsync(
             query,
-            partitionKey: authorId.ToString(),
+            partitionKey: authorId.Value,
             continuationToken,
             pageSize,
             cancellationToken);
     }
 
-    public Task<PageResult<CourseEntity>> SearchAsync(
+    public Task<PageResult<Domain.Entities.Course>> SearchAsync(
         CourseSearchCriteria criteria,
         int pageSize,
         string? continuationToken = null,
@@ -76,20 +83,17 @@ public sealed class CosmosCourseRepository : ICourseRepository
 
         sql += " ORDER BY c.updatedAt DESC";
 
-        var queryDefinition = new Microsoft.Azure.Cosmos.QueryDefinition(sql);
+        var queryDefinition = new QueryDefinition(sql);
         foreach (var parameter in parameters)
             queryDefinition = queryDefinition.WithParameter(parameter.Name, parameter.Value);
 
-        return _repository.QueryPageAsync(
+        return base.QueryPageAsync(
             queryDefinition,
             continuationToken: !string.IsNullOrWhiteSpace(continuationToken) ? continuationToken : null,
             pageSize: pageSize,
             cancellationToken: cancellationToken);
     }
 
-    public Task UpsertAsync(CourseEntity course, CancellationToken cancellationToken = default)
-        => _repository.UpsertAsync(course, cancellationToken);
-
     public Task<bool> DeleteAsync(CourseId courseId, AuthorId partitionKey, CancellationToken cancellationToken = default)
-        => _repository.DeleteAsync(courseId, partitionKey.ToString(), cancellationToken);
+        => base.DeleteAsync(courseId, partitionKey.Value, cancellationToken);
 }

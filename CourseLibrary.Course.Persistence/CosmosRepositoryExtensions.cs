@@ -1,12 +1,9 @@
 using CourseLibrary.Course.Domain.Entities;
-using CourseLibrary.Course.Domain.ValueObjects;
 using CourseLibrary.Course.Persistence.Data.Configurations;
 using CourseLibrary.Course.Persistence.Data.Repositories;
 using CourseLibrary.Course.Persistence.Data.Serialization;
-using CourseLibrary.Course.Persistence.Observability;
 using CourseLibrary.Platform.Persistence.CosmosDB;
 using CourseLibrary.Platform.Persistence.CosmosDB.Configurations;
-using PlatformCosmosActivitySource = CourseLibrary.Platform.Persistence.CosmosDB.Observability.CosmosActivitySource;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -39,7 +36,7 @@ public static class CosmosRepositoryExtensions
                     ValueObjectJsonConverters.CreateOptions()),
 
                 ApplicationName =
-                    "CourseLibrary.Infrastructure.Cosmos"
+                    "CourseLibrary.Course.Cosmos"
             };
 
             return new CosmosClient(
@@ -48,9 +45,6 @@ public static class CosmosRepositoryExtensions
                 clientOptions);
         });
 
-        services.AddSingleton<CosmosActivitySource>();
-        services.AddSingleton<PlatformCosmosActivitySource>();
-
     }
 
     public static void AddRepositories(
@@ -58,16 +52,15 @@ public static class CosmosRepositoryExtensions
     {
         // Register document configurations
         services.AddCosmosDocumentConfiguration<Comment, CommentConfiguration>();
-        services.AddCosmosDocumentConfiguration<CourseLibrary.Course.Domain.Entities.Course, CourseConfiguration>();
+        services.AddCosmosDocumentConfiguration<Domain.Entities.Course, CourseConfiguration>();
         services.AddCosmosDocumentConfiguration<CourseAuditEntry, CourseAuditEntryConfiguration>();
         services.AddCosmosDocumentConfiguration<Discussion, DiscussionConfiguration>();
 
         // Register repositories
-        services.AddSingleton(typeof(ICosmosRepository<,>), typeof(CosmosRepository<,>));
-        services.AddSingleton<ICommentRepository, CosmosCommentRepository>();
-        services.AddSingleton<ICourseRepository, CosmosCourseRepository>();
-        services.AddSingleton<ICourseAuditRepository, CosmosCourseAuditRepository>();
-        services.AddSingleton<IDiscussionRepository, CosmosDiscussionRepository>();
+        services.AddSingleton<ICommentRepository, CommentRepository>();
+        services.AddSingleton<ICourseRepository, CourseRepository>();
+        services.AddSingleton<ICourseAuditRepository, CourseAuditRepository>();
+        services.AddSingleton<IDiscussionRepository, DiscussionRepository>();
         
     }
     public static IServiceCollection AddCosmosDocumentConfiguration<TDocument, TConfiguration>(

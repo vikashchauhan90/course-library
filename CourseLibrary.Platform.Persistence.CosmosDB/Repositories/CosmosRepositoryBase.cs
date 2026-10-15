@@ -10,24 +10,24 @@ using System.Net;
 
 namespace CourseLibrary.Platform.Persistence.CosmosDB.Repositories;
 
-public class CosmosRepository<TDocument, TKey>
+public abstract class CosmosRepositoryBase<TDocument, TKey>
     : ICosmosRepository<TDocument, TKey>
     where TDocument : class
     where TKey : notnull
 {
     private readonly Lazy<Container> _container;
-    private readonly ILogger<CosmosRepository<TDocument, TKey>> _logger;
+    private readonly ILogger _logger;
     private readonly ICosmosDocumentConfiguration<TDocument> _configuration;
     private readonly CosmosOptions _options;
     private readonly CosmosClient _client;
     private static readonly CosmosActivitySource ActivitySource = CosmosActivitySource.Shared;
     private static readonly CosmosMeter Meter = CosmosMeter.Shared;
 
-    public CosmosRepository(
+    public CosmosRepositoryBase(
         CosmosClient client,
         IOptions<CosmosOptions> options,
         ICosmosDocumentConfiguration<TDocument> configuration,
-        ILogger<CosmosRepository<TDocument, TKey>> logger)
+        ILogger logger)
     {
         ArgumentNullException.ThrowIfNull(client);
         ArgumentNullException.ThrowIfNull(options);
@@ -55,7 +55,7 @@ public class CosmosRepository<TDocument, TKey>
             LazyThreadSafetyMode.ExecutionAndPublication);
     }
 
-    public Container Container =>
+    protected Container Container =>
         _container.Value;
     public async Task<TDocument?> GetByIdAsync(
         TKey id,
