@@ -14,12 +14,12 @@ internal sealed class CourseEventOrchestrator
         var logger = context.CreateReplaySafeLogger<CourseEventOrchestrator>();
         var input = context.GetInput<OrchestrationInput<CourseEventPayload>>();
 
-        if (input is null)
+        if (input?.Event is null)
         {
             logger.LogError(
-                "CourseEvent orchestration {InstanceId} received no input.",
+                "CourseEvent orchestration {InstanceId} received no event.",
                 context.InstanceId);
-            throw new InvalidOperationException("CourseEvent orchestration input was not provided.");
+            throw new InvalidOperationException("CourseEvent orchestration event was not provided.");
         }
 
         using var scope = logger.BeginScope(new Dictionary<string, object?>

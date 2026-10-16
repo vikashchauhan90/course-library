@@ -6,6 +6,7 @@ using CourseLibrary.Platform.Persistence.CosmosDB.Observability;
 using CourseLibrary.Platform.Resilience.Observability;
 using CourseLibrary.Platform.Serialization.Observability;
 using Microsoft.Extensions.Hosting;
+using OpenTelemetry.Logs;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
@@ -19,11 +20,35 @@ internal static class CourseLibraryEventConsumerObservabilityExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
+        var serviceVersion = typeof(CourseLibraryEventConsumerObservabilityExtensions)
+            .Assembly.GetName().Version?.ToString() ?? "unknown";
+        var resourceBuilder = ResourceBuilder.CreateDefault()
+            .AddService(
+                serviceName: "CourseLibrary.Course.EventConsumer",
+                serviceVersion: serviceVersion,
+                serviceInstanceId: Environment.MachineName);
+
+        builder.Logging.AddOpenTelemetry(logging =>
+        {
+            logging.SetResourceBuilder(resourceBuilder);
+            logging.IncludeScopes = true;
+            logging.IncludeFormattedMessage = true;
+            logging.ParseStateValues = true;
+
+            if (builder.Environment.IsDevelopment())
+            {
+                logging.AddConsoleExporter();
+            }
+            else
+            {
+                logging.AddOtlpExporter();
+            }
+        });
+
         builder.Services.AddOpenTelemetry()
             .ConfigureResource(resource => resource.AddService(
                 serviceName: "CourseLibrary.Course.EventConsumer",
-                serviceVersion: typeof(CourseLibraryEventConsumerObservabilityExtensions)
-                    .Assembly.GetName().Version?.ToString() ?? "unknown",
+                serviceVersion: serviceVersion,
                 serviceInstanceId: Environment.MachineName))
             .WithTracing(tracing =>
             {

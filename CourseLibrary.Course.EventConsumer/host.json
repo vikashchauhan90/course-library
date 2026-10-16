@@ -1,6 +1,31 @@
 {
     "version": "2.0",
+    "telemetryMode": "OpenTelemetry",
+    "extensions": {
+        "serviceBus": {
+            "maxConcurrentCalls": 4
+        },
+        "durableTask": {
+            "maxConcurrentActivityFunctions": 4,
+            "maxConcurrentOrchestratorFunctions": 2,
+            "tracing": {
+                "distributedTracingEnabled": true,
+                "version": "V2"
+            }
+        }
+    },
+    "concurrency": {
+        "dynamicConcurrencyEnabled": true,
+        "snapshotPersistenceEnabled": true
+    },
+    "functionTimeout": "00:05:00",
     "logging": {
+        "logLevel": {
+            "default": "Information",
+            "Host.Results": "Information",
+            "Function": "Information",
+            "Host.Aggregator": "Information"
+        },
         "applicationInsights": {
             "samplingSettings": {
                 "isEnabled": true,
@@ -8,5 +33,11 @@
             },
             "enableLiveMetricsFilters": true
         }
+    },
+    "singleton": {
+        "lockPeriod": "00:00:15",
+        "listenerLockPeriod": "00:01:00",
+        "lockAcquisitionTimeout": "00:01:00",
+        "lockAcquisitionPollingInterval": "00:00:05"
     }
 }
