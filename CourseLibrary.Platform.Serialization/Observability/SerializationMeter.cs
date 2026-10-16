@@ -1,4 +1,5 @@
 using CourseLibrary.Platform.Observability;
+using System.Diagnostics;
 using System.Diagnostics.Metrics;
 
 namespace CourseLibrary.Platform.Serialization.Observability;
