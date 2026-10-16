@@ -40,6 +40,7 @@
     <Project Path="CourseLibrary.Platform.Persistence.CosmosDB/CourseLibrary.Platform.Persistence.CosmosDB.csproj" Id="5cdc0ac2-8b6d-481c-8140-076c814578ed" />
     <Project Path="CourseLibrary.Platform.Persistence.Sql/CourseLibrary.Platform.Persistence.Sql.csproj" Id="47df6da7-41b0-4a73-9d25-c241eae6b169" />
     <Project Path="CourseLibrary.Platform.Resilience/CourseLibrary.Platform.Resilience.csproj" Id="fbebf060-ee50-4cc5-aa60-3d7b837bc904" />
+    <Project Path="CourseLibrary.Platform.Resilience.Distributed/CourseLibrary.Platform.Resilience.Distributed.csproj" />
     <Project Path="CourseLibrary.Platform.Serialization/CourseLibrary.Platform.Serialization.csproj" Id="1352a24b-5afa-4d10-98b1-defd370b5cae" />
   </Folder>
   <Folder Name="/tests/" />
