@@ -9,7 +9,6 @@ using CourseLibrary.Course.Application.Operations.Courses.Retire;
 using CourseLibrary.Course.Application.Operations.Courses.Search;
 using CourseLibrary.Course.Application.Operations.Courses.Update;
 using CourseLibrary.Course.Contracts.DTOs;
-using CourseLibrary.Course.Contracts.Pagination;
 using CourseLibrary.Platform.AspNetCore.RequestContext;
 
 namespace CourseLibrary.Course.Api.Endpoints;

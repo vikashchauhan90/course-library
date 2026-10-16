@@ -4,6 +4,7 @@ using CourseLibrary.Course.Api.Http;
 using CourseLibrary.Course.Application.Operations.Comments.Create;
 using CourseLibrary.Course.Application.Operations.Comments.Delete;
 using CourseLibrary.Course.Application.Operations.Comments.Get;
+using CourseLibrary.Course.Application.Operations.Comments.GetByCourse;
 using CourseLibrary.Course.Application.Operations.Comments.Update;
 
 namespace CourseLibrary.Course.Api.Endpoints;
@@ -13,6 +14,14 @@ public sealed class CommentEndpoints : ICarterModule
     public void AddRoutes(IEndpointRouteBuilder app)
     {
         var group = app.MapApiV1Group("comments", "Comments");
+
+        group.MapGet("/course/{courseId}", async (
+                string courseId,
+                IGetCommentsByCourseOperation operation,
+                CancellationToken cancellationToken) =>
+                (await operation.ExecuteAsync(courseId, cancellationToken)).ToHttpResult())
+            .WithName("GetCommentsByCourse")
+            .HasApiVersion(1.0);
 
         group.MapGet("/{commentId}/{courseId}", async (
                 string commentId,

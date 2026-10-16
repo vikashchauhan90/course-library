@@ -1,6 +1,5 @@
 using CourseLibrary.Course.Application.Core;
 using CourseLibrary.Course.Contracts.DTOs;
-using CourseLibrary.Course.Contracts.Pagination;
 using CourseLibrary.Core.Results;
 using FluentValidation;
 using Microsoft.Extensions.Logging;

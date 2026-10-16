@@ -4,6 +4,7 @@ using CourseLibrary.Course.Api.Http;
 using CourseLibrary.Course.Application.Operations.Discussions.Create;
 using CourseLibrary.Course.Application.Operations.Discussions.Delete;
 using CourseLibrary.Course.Application.Operations.Discussions.Get;
+using CourseLibrary.Course.Application.Operations.Discussions.GetByCourse;
 using CourseLibrary.Course.Application.Operations.Discussions.Update;
 
 namespace CourseLibrary.Course.Api.Endpoints;
@@ -13,6 +14,14 @@ public sealed class DiscussionEndpoints : ICarterModule
     public void AddRoutes(IEndpointRouteBuilder app)
     {
         var group = app.MapApiV1Group("discussions", "Discussions");
+
+        group.MapGet("/course/{courseId}", async (
+                string courseId,
+                IGetDiscussionsByCourseOperation operation,
+                CancellationToken cancellationToken) =>
+                (await operation.ExecuteAsync(courseId, cancellationToken)).ToHttpResult())
+            .WithName("GetDiscussionsByCourse")
+            .HasApiVersion(1.0);
 
         group.MapGet("/{discussionId}/{courseId}", async (
                 string discussionId,
