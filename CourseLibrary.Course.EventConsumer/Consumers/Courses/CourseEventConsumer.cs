@@ -120,8 +120,7 @@ internal sealed class CourseEventConsumer(
             var instanceId = $"course-event-{message.MessageId}";
             var existingInstance = await durableTaskClient.GetInstanceAsync(
                 instanceId,
-                getInputsAndOutputs: false,
-                cancellationToken: cancellationToken);
+                cancellationToken);
 
             if (OrchestrationState.IsActiveInstance(existingInstance))
             {

@@ -1,4 +1,4 @@
-using Microsoft.Azure.DurableTask.Client;
+using Microsoft.DurableTask.Client;
 
 namespace CourseLibrary.Course.EventConsumer.Core;
 

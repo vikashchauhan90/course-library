@@ -1,5 +1,6 @@
-using System.Diagnostics.Metrics;
 using CourseLibrary.Platform.Observability;
+using System.Diagnostics;
+using System.Diagnostics.Metrics;
 
 namespace CourseLibrary.Course.EventConsumer.Observability;
 

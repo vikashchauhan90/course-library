@@ -52,8 +52,6 @@ internal sealed class CourseEventOrchestrator
                 MessageId = input.MessageId,
                 InstanceId = context.InstanceId,
                 Metadata = input.Metadata,
-                ParentActivityId = parentActivityId,
-                ParentTraceState = input.Metadata.TraceState
             });
     }
 }
