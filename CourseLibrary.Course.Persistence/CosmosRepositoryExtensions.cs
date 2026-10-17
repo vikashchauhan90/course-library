@@ -37,7 +37,10 @@ public static class CosmosRepositoryExtensions
                     ValueObjectJsonConverters.CreateOptions()),
 
                 ApplicationName =
-                    "CourseLibrary.Course.Cosmos"
+                    "CourseLibrary.Course.Cosmos",
+
+                MaxRetryAttemptsOnRateLimitedRequests = 3,
+                MaxRetryWaitTimeOnRateLimitedRequests = TimeSpan.FromSeconds(30)
             };
 
             return new CosmosClient(

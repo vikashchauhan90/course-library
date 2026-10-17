@@ -3,7 +3,7 @@
   "telemetryMode": "OpenTelemetry",
   "extensions": {
     "serviceBus": {
-      "maxConcurrentCalls": 4
+      "maxConcurrentCalls": 20
     },
     "durableTask": {
       "maxConcurrentActivityFunctions": 32,
@@ -29,11 +29,6 @@
       },
       "enableLiveMetricsFilters": true
     }
-  },
-  "retry": {
-    "strategy": "fixedDelay",
-    "maxRetryCount": 3,
-    "delayInterval": "00:00:05"
   },
   "singleton": {
     "lockPeriod": "00:00:15",

@@ -2,6 +2,7 @@ using Azure.Messaging.ServiceBus;
 using CourseLibrary.Course.Domain.Events;
 using CourseLibrary.Course.EventConsumer.Core;
 using CourseLibrary.Course.EventConsumer.Observability;
+using CourseLibrary.Course.EventConsumer.RateLimiting;
 using CourseLibrary.Platform.Messaging.Abstractions;
 using CourseLibrary.Platform.Messaging.Observability;
 using CourseLibrary.Platform.Observability.Traces;
@@ -16,6 +17,7 @@ namespace CourseLibrary.Course.EventConsumer.Consumers.Courses;
 
 internal sealed class CourseEventConsumer(
     ISerializerFactory serializerFactory,
+    CourseEventRateLimiter rateLimiter,
     ILogger<CourseEventConsumer> logger)
 {
     private const string TopicName = "CourseEvent";
@@ -85,6 +87,8 @@ internal sealed class CourseEventConsumer(
 
         try
         {
+            await rateLimiter.WaitForMessagePermitAsync(cancellationToken);
+
             foreach (var item in eventMetadata.Baggage)
             {
                 activity?.AddBaggage(item.Key, item.Value);

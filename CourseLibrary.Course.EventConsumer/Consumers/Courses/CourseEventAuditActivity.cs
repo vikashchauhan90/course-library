@@ -1,6 +1,7 @@
 using CourseLibrary.Course.Domain.Entities;
 using CourseLibrary.Course.EventConsumer.Core;
 using CourseLibrary.Course.EventConsumer.Observability;
+using CourseLibrary.Course.EventConsumer.RateLimiting;
 using CourseLibrary.Course.Persistence.Data.Repositories.Abstractions;
 using CourseLibrary.Platform.Observability.Traces;
 using Microsoft.Azure.Functions.Worker;
@@ -11,6 +12,7 @@ namespace CourseLibrary.Course.EventConsumer.Consumers.Courses;
 
 internal sealed class CourseEventAuditActivity(
     ICourseAuditRepository auditRepository,
+    CourseEventRateLimiter rateLimiter,
     ILogger<CourseEventAuditActivity> logger)
 {
     [Function(nameof(CourseEventAuditActivity))]
@@ -55,6 +57,8 @@ internal sealed class CourseEventAuditActivity(
 
         try
         {
+            await rateLimiter.WaitForAuditWritePermitAsync(cancellationToken);
+
             await auditRepository.AddAsync(
                 new CourseAuditEntry
                 {
