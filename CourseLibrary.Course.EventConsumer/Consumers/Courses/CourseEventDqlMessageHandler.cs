@@ -2,9 +2,11 @@ using Azure.Messaging.ServiceBus;
 using CourseLibrary.Course.EventConsumer.Observability;
 using CourseLibrary.Platform.Messaging.Abstractions;
 using CourseLibrary.Platform.Messaging.Observability;
+using CourseLibrary.Platform.Observability.Traces;
 using CourseLibrary.Platform.Serialization.Abstractions;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
@@ -34,37 +36,52 @@ internal sealed class CourseEventDqlMessageHandler(
         CancellationToken cancellationToken)
     {
         var startedAt = Stopwatch.GetTimestamp();
-        var traceParent = ReadStringProperty(message, ServiceBusTraceContext.TraceParent)
-            ?? ReadStringProperty(message, ServiceBusTraceContext.DiagnosticId);
-        var traceState = ReadStringProperty(message, ServiceBusTraceContext.TraceState);
-        ActivityContext? parentContext = null;
-        if (ActivityContext.TryParse(traceParent, traceState, true, out var remoteContext))
+        var propagationContext = ServiceBusTraceContext.Extract(message);
+        var eventMetadata = ServiceBusTraceContext.CreateMetadata(
+            message,
+            propagationContext);
+        var traceParent = eventMetadata.TraceParent;
+        var traceState = eventMetadata.TraceState;
+        var parentContext = propagationContext.ActivityContext;
+        if (parentContext.TraceId == default
+            && ActivityContext.TryParse(
+                traceParent,
+                traceState,
+                isRemote: true,
+                out var remoteContext))
         {
             parentContext = remoteContext;
-        }
-        else
-        {
-            var extractedContext = ServiceBusTraceContext.Extract(message).ActivityContext;
-            if (extractedContext.TraceId != default)
-            {
-                parentContext = extractedContext;
-            }
         }
 
         using var activity = CourseEventConsumerActivitySource.Shared.StartActivity(
             "course.event.deadletter.process",
             ActivityKind.Consumer,
-            parentContext);
+            parentContext.TraceId == default ? null : parentContext);
+
+        using var scope = logger.BeginScope(new Dictionary<string, object?>
+        {
+            [CourseEventConsumerActivityTagConstants.MessagingSystem] = "servicebus",
+            [CourseEventConsumerActivityTagConstants.MessagingDestination] = DeadLetterDestination,
+            [CourseEventConsumerActivityTagConstants.MessagingOperation] = "process",
+            [CourseEventConsumerActivityTagConstants.MessagingMessageId] = message.MessageId,
+            [CourseEventConsumerActivityTagConstants.MessagingCorrelationId] = message.CorrelationId,
+            [CourseEventConsumerActivityTagConstants.MessagingDeliveryCount] = message.DeliveryCount
+        });
 
         try
         {
-            activity?.SetTag("messaging.system", "servicebus");
-            activity?.SetTag("messaging.destination", DeadLetterDestination);
-            activity?.SetTag("messaging.operation.type", "process");
-            activity?.SetTag("messaging.message_id", message.MessageId);
-            activity?.SetTag("messaging.correlation_id", message.CorrelationId);
-            activity?.SetTag("messaging.delivery_count", message.DeliveryCount);
-            activity?.SetTag("messaging.dead_letter.reason", message.DeadLetterReason);
+            foreach (var item in eventMetadata.Baggage)
+            {
+                activity?.AddBaggage(item.Key, item.Value);
+            }
+
+            activity?.SetTag(CourseEventConsumerActivityTagConstants.MessagingSystem, "servicebus");
+            activity?.SetTag(CourseEventConsumerActivityTagConstants.MessagingDestination, DeadLetterDestination);
+            activity?.SetTag(CourseEventConsumerActivityTagConstants.MessagingOperationType, "process");
+            activity?.SetTag(CourseEventConsumerActivityTagConstants.MessagingMessageId, message.MessageId);
+            activity?.SetTag(CourseEventConsumerActivityTagConstants.MessagingCorrelationId, message.CorrelationId);
+            activity?.SetTag(CourseEventConsumerActivityTagConstants.MessagingDeliveryCount, message.DeliveryCount);
+            activity?.SetTag(CourseEventConsumerActivityTagConstants.MessagingDeadLetterReason, message.DeadLetterReason);
 
             var eventType = "Unknown";
             try
@@ -80,10 +97,21 @@ internal sealed class CourseEventDqlMessageHandler(
                     message.MessageId);
             }
 
-            var id = ReadGuidProperty(message, ServiceBusTraceContext.EventId)
+            var id = ReadGuidProperty(
+                    eventMetadata.Properties,
+                    ServiceBusTraceContext.EventId)
                 ?? ParseMessageId(message.MessageId)
                 ?? CreateStableMessageId(message.MessageId);
-            var eventId = ReadGuidProperty(message, ServiceBusTraceContext.EventId) ?? id;
+            var eventId = ReadGuidProperty(
+                eventMetadata.Properties,
+                ServiceBusTraceContext.EventId) ?? id;
+            var eventTypeFromMetadata = ReadStringProperty(
+                eventMetadata.Properties,
+                ServiceBusTraceContext.EventType);
+            if (eventType == "Unknown")
+            {
+                eventType = eventTypeFromMetadata ?? eventType;
+            }
             var record = new DqlMessage
             {
                 Id = id,
@@ -93,6 +121,7 @@ internal sealed class CourseEventDqlMessageHandler(
                 CorrelationId = message.CorrelationId,
                 TraceParent = traceParent,
                 TraceState = traceState,
+                Metadata = eventMetadata,
                 Subject = message.Subject,
                 DeadLetterReason = message.DeadLetterReason,
                 DeadLetterErrorDescription = message.DeadLetterErrorDescription,
@@ -100,24 +129,36 @@ internal sealed class CourseEventDqlMessageHandler(
                 DeadLetteredAt = DateTimeOffset.UtcNow,
                 DeliveryCount = message.DeliveryCount,
                 Payload = Convert.ToBase64String(message.Body.ToArray()),
-                Status = DqlMessageStatus.DeadLettered
+                Status = DqlMessageStatus.Pending
             };
 
             await dqlMessageStore.StoreAsync(record, cancellationToken);
             await messageActions.CompleteMessageAsync(message, cancellationToken);
 
-            activity?.SetTag("messaging.event.type", eventType);
+            activity?.SetTag(CourseEventConsumerActivityTagConstants.MessagingEventType, eventType);
             activity?.SetStatus(ActivityStatusCode.Ok);
             CourseEventConsumerMeter.Shared.RecordMessage(
                 "dead_letter_stored",
                 Stopwatch.GetElapsedTime(startedAt).TotalMilliseconds);
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            activity?.SetTag(CourseEventConsumerActivityTagConstants.MessagingCancelled, true);
+            CourseEventConsumerMeter.Shared.RecordFailure("deadletter.process", "cancelled");
+            CourseEventConsumerMeter.Shared.RecordMessage(
+                "cancelled",
+                Stopwatch.GetElapsedTime(startedAt).TotalMilliseconds);
+            throw;
+        }
         catch (Exception exception)
         {
-            activity?.SetStatus(ActivityStatusCode.Error, exception.GetType().Name);
+            ActivityEnrichmentHelper.RecordException(activity, exception);
             CourseEventConsumerMeter.Shared.RecordFailure(
                 "deadletter.process",
                 exception.GetType().Name);
+            CourseEventConsumerMeter.Shared.RecordMessage(
+                "failure",
+                Stopwatch.GetElapsedTime(startedAt).TotalMilliseconds);
             logger.LogError(
                 exception,
                 "Failed to process DQL message {MessageId}.",
@@ -127,16 +168,14 @@ internal sealed class CourseEventDqlMessageHandler(
     }
 
     private static string? ReadStringProperty(
-        ServiceBusReceivedMessage message,
+        ImmutableDictionary<string, string> properties,
         string name)
-        => message.ApplicationProperties.TryGetValue(name, out var value)
-            ? value as string
-            : null;
+        => properties.TryGetValue(name, out var value) ? value : null;
 
     private static Guid? ReadGuidProperty(
-        ServiceBusReceivedMessage message,
+        ImmutableDictionary<string, string> properties,
         string name)
-        => Guid.TryParse(ReadStringProperty(message, name), out var id)
+        => Guid.TryParse(ReadStringProperty(properties, name), out var id)
             ? id
             : null;
 

@@ -1,4 +1,5 @@
 using CourseLibrary.Course.EventConsumer.Core;
+using CourseLibrary.Course.EventConsumer.Observability;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.DurableTask;
 using Microsoft.Extensions.Logging;
@@ -24,9 +25,20 @@ internal sealed class CourseEventOrchestrator
 
         using var scope = logger.BeginScope(new Dictionary<string, object?>
         {
-            ["durable.orchestration.name"] = nameof(CourseEventOrchestrator),
-            ["durable.instance_id"] = context.InstanceId,
-            ["durable.is_replaying"] = context.IsReplaying
+            [CourseEventConsumerActivityTagConstants.OrchestrationName] = nameof(CourseEventOrchestrator),
+            [CourseEventConsumerActivityTagConstants.OrchestrationInstanceId] = context.InstanceId,
+            [CourseEventConsumerActivityTagConstants.OrchestrationIsReplaying] = context.IsReplaying,
+            [CourseEventConsumerActivityTagConstants.MessagingMessageId] = input.MessageId,
+            [CourseEventConsumerActivityTagConstants.MessagingCorrelationId] = input.Metadata.Properties.TryGetValue(
+                "CorrelationId",
+                out var correlationId)
+                    ? correlationId
+                    : null,
+            [CourseEventConsumerActivityTagConstants.MessagingEventId] = input.Metadata.Properties.TryGetValue(
+                CourseLibrary.Platform.Messaging.Observability.ServiceBusTraceContext.EventId,
+                out var eventId)
+                    ? eventId
+                    : input.Event.EventId
         });
 
         var orchestrationContext = new OrchestrationContext<CourseEventPayload>
@@ -52,6 +64,8 @@ internal sealed class CourseEventOrchestrator
                 MessageId = input.MessageId,
                 InstanceId = context.InstanceId,
                 Metadata = input.Metadata,
+                ParentActivityId = parentActivityId,
+                ParentTraceState = input.Metadata.TraceState
             });
     }
 }

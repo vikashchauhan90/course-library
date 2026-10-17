@@ -27,50 +27,50 @@ internal sealed class CourseEventConsumerMeter : MeterBase
         : base(CourseEventConsumerTelemetry.MeterName)
     {
         _messages = CreateCounter<long>(
-            "course.event_consumer.messages",
+            CourseEventConsumerMeterConstants.Messages,
             "{message}",
             "Number of CourseEvent messages by outcome.");
         _failures = CreateCounter<long>(
-            "course.event_consumer.failures",
+            CourseEventConsumerMeterConstants.Failures,
             "{failure}",
             "Number of failed CourseEvent consumer operations.");
         _duplicates = CreateCounter<long>(
-            "course.event_consumer.duplicates",
+            CourseEventConsumerMeterConstants.Duplicates,
             "{message}",
             "Number of duplicate CourseEvent messages.");
         _orchestrations = CreateCounter<long>(
-            "course.event_consumer.orchestrations",
+            CourseEventConsumerMeterConstants.Orchestrations,
             "{orchestration}",
             "Number of CourseEvent orchestrations started.");
         _activities = CreateCounter<long>(
-            "course.event_consumer.activities",
+            CourseEventConsumerMeterConstants.Activities,
             "{activity}",
             "Number of CourseEvent activities completed or failed.");
         _functionExecutions = CreateCounter<long>(
-            "course.event_consumer.function.executions",
+            CourseEventConsumerMeterConstants.FunctionExecutions,
             "{execution}",
             "Number of Azure Functions executions.");
         _activeFunctions = CreateUpDownCounter<long>(
-            "course.event_consumer.function.active",
+            CourseEventConsumerMeterConstants.ActiveFunctions,
             "{function}",
             "Number of currently executing Azure Functions.");
         _messageDuration = CreateHistogram<double>(
-            "course.event_consumer.message.duration",
+            CourseEventConsumerMeterConstants.MessageDuration,
             "ms",
             "CourseEvent message processing duration.");
         _functionDuration = CreateHistogram<double>(
-            "course.event_consumer.function.duration",
+            CourseEventConsumerMeterConstants.FunctionDuration,
             "ms",
             "Azure Functions execution duration.");
         _activityDuration = CreateHistogram<double>(
-            "course.event_consumer.activity.duration",
+            CourseEventConsumerMeterConstants.ActivityDuration,
             "ms",
             "CourseEvent activity execution duration.");
     }
 
     public void RecordMessage(string outcome, double durationMilliseconds)
     {
-        var tags = new TagList { { "outcome", outcome } };
+        var tags = new TagList { { CourseEventConsumerMeterConstants.Outcome, outcome } };
         _messages.Add(1, tags);
         _messageDuration.Record(durationMilliseconds, tags);
     }
@@ -78,22 +78,25 @@ internal sealed class CourseEventConsumerMeter : MeterBase
     public void RecordFailure(string operation, string failureType)
         => _failures.Add(1, new TagList
         {
-            { "operation", operation },
-            { "error.type", failureType }
+            { CourseEventConsumerMeterConstants.Operation, operation },
+            { CourseEventConsumerMeterConstants.ErrorType, failureType }
         });
 
     public void RecordDuplicate(string status)
-        => _duplicates.Add(1, new TagList { { "status", status } });
+        => _duplicates.Add(1, new TagList { { CourseEventConsumerMeterConstants.Status, status } });
 
     public void RecordOrchestrationStarted(string name)
-        => _orchestrations.Add(1, new TagList { { "orchestration.name", name } });
+        => _orchestrations.Add(1, new TagList
+        {
+            { CourseEventConsumerMeterConstants.OrchestrationName, name }
+        });
 
     public void RecordActivity(string name, string outcome, double durationMilliseconds)
     {
         var tags = new TagList
         {
-            { "activity.name", name },
-            { "outcome", outcome }
+            { CourseEventConsumerMeterConstants.ActivityName, name },
+            { CourseEventConsumerMeterConstants.Outcome, outcome }
         };
         _activities.Add(1, tags);
         _activityDuration.Record(durationMilliseconds, tags);
@@ -101,7 +104,7 @@ internal sealed class CourseEventConsumerMeter : MeterBase
 
     public void RecordFunctionStarted(string name)
     {
-        var tags = new TagList { { "function.name", name } };
+        var tags = new TagList { { CourseEventConsumerMeterConstants.FunctionName, name } };
         _activeFunctions.Add(1, tags);
     }
 
@@ -109,10 +112,13 @@ internal sealed class CourseEventConsumerMeter : MeterBase
     {
         var tags = new TagList
         {
-            { "function.name", name },
-            { "outcome", outcome }
+            { CourseEventConsumerMeterConstants.FunctionName, name },
+            { CourseEventConsumerMeterConstants.Outcome, outcome }
         };
-        _activeFunctions.Add(-1, new TagList { { "function.name", name } });
+        _activeFunctions.Add(-1, new TagList
+        {
+            { CourseEventConsumerMeterConstants.FunctionName, name }
+        });
         _functionExecutions.Add(1, tags);
         _functionDuration.Record(durationMilliseconds, tags);
     }

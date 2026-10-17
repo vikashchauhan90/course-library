@@ -17,6 +17,8 @@ public sealed class DqlMessage
 
     public string? TraceState { get; init; }
 
+    public EventMetadata Metadata { get; init; } = new();
+
     public string? Subject { get; init; }
 
     public string? DeadLetterReason { get; init; }

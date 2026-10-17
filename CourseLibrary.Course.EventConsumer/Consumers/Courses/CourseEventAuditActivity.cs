@@ -2,6 +2,7 @@ using CourseLibrary.Course.Domain.Entities;
 using CourseLibrary.Course.EventConsumer.Core;
 using CourseLibrary.Course.EventConsumer.Observability;
 using CourseLibrary.Course.Persistence.Data.Repositories.Abstractions;
+using CourseLibrary.Platform.Observability.Traces;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
@@ -19,15 +20,38 @@ internal sealed class CourseEventAuditActivity(
     {
         var courseEvent = input.Event.ToDomain();
         var startedAt = Stopwatch.GetTimestamp();
+        using var scope = logger.BeginScope(new Dictionary<string, object?>
+        {
+            [CourseEventConsumerActivityTagConstants.MessagingMessageId] = input.MessageId,
+            [CourseEventConsumerActivityTagConstants.MessagingCorrelationId] =
+                input.Metadata.Properties.TryGetValue("CorrelationId", out var correlationId)
+                    ? correlationId
+                    : null,
+            [CourseEventConsumerActivityTagConstants.OrchestrationInstanceId] = input.InstanceId,
+            [CourseEventConsumerActivityTagConstants.MessagingEventId] = courseEvent.EventId
+        });
+
         using var activity = StartParentActivity(
             "activity.course-audit-event",
             input.ParentActivityId,
             input.ParentTraceState);
 
-        activity?.SetTag("activity.name", nameof(CourseEventAuditActivity));
-        activity?.SetTag("activity.event_type", courseEvent.EventType);
-        activity?.SetTag("activity.course_id", courseEvent.CourseId.ToString());
-        activity?.SetTag("activity.event_id", courseEvent.EventId);
+        activity?.SetTag(
+            CourseEventConsumerActivityTagConstants.ActivityName,
+            nameof(CourseEventAuditActivity));
+        activity?.SetTag(
+            CourseEventConsumerActivityTagConstants.ActivityEventType,
+            courseEvent.EventType);
+        activity?.SetTag(
+            CourseEventConsumerActivityTagConstants.ActivityCourseId,
+            courseEvent.CourseId.ToString());
+        activity?.SetTag(
+            CourseEventConsumerActivityTagConstants.ActivityEventId,
+            courseEvent.EventId);
+        foreach (var item in input.Metadata.Baggage)
+        {
+            activity?.AddBaggage(item.Key, item.Value);
+        }
 
         try
         {
@@ -53,7 +77,7 @@ internal sealed class CourseEventAuditActivity(
         }
         catch (Exception exception)
         {
-            activity?.SetStatus(ActivityStatusCode.Error, exception.GetType().Name);
+            ActivityEnrichmentHelper.RecordException(activity, exception);
             CourseEventConsumerMeter.Shared.RecordActivity(
                 nameof(CourseEventAuditActivity),
                 "failure",

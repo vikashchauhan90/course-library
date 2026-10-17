@@ -1,6 +1,8 @@
-using CourseLibrary.Course.EventConsumer.Configuration;
-using CourseLibrary.Course.EventConsumer.Configuration.Observability;
-using CourseLibrary.Course.EventConsumer.Configuration.Observability.Metrics;
+using CourseLibrary.Course.EventConsumer.Observability;
+using CourseLibrary.Course.EventConsumer.Observability.Metrics;
+using CourseLibrary.Course.Persistence;
+using CourseLibrary.Platform.Messaging;
+using CourseLibrary.Platform.Serialization;
 using Microsoft.Azure.Functions.Worker.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -17,6 +19,9 @@ builder.Services.AddHttpClient();
 builder.AddCourseLibraryEventConsumerObservability();
 builder.UseMiddleware<EventConsumerFunctionMetricsMiddleware>();
 
-builder.Services.AddCourseLibraryEventConsumer(builder.Configuration);
+builder.Services.AddCourseLibrarySerializers();
+builder.Services.AddCourseLibraryServiceBus(builder.Configuration);
+builder.Services.AddCosmosDatabase(builder.Configuration);
+builder.Services.AddRepositories();
 
 builder.Build().Run();

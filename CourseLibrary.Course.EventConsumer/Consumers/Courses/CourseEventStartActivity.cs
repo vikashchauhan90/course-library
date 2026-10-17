@@ -15,6 +15,15 @@ internal sealed class CourseEventStartActivity(
     {
         var previousActivity = Activity.Current;
         Activity.Current = null;
+        using var scope = logger.BeginScope(new Dictionary<string, object?>
+        {
+            [CourseEventConsumerActivityTagConstants.MessagingMessageId] = input.MessageId,
+            [CourseEventConsumerActivityTagConstants.MessagingCorrelationId] =
+                input.Metadata.Properties.TryGetValue("CorrelationId", out var correlationId)
+                    ? correlationId
+                    : null,
+            [CourseEventConsumerActivityTagConstants.OrchestrationInstanceId] = input.InstanceId
+        });
 
         try
         {
@@ -31,14 +40,35 @@ internal sealed class CourseEventStartActivity(
                 return Task.FromResult(input.Metadata.TraceParent);
             }
 
-            activity.SetTag("orchestration.name", input.OrchestrationName);
-            activity.SetTag("orchestration.instance_id", input.InstanceId);
-            activity.SetTag("orchestration.start_time", input.StartTime.ToString("O"));
-            activity.SetTag("orchestration.is_replaying", input.IsReplaying);
-            activity.SetTag("activity.name", nameof(CourseEventStartActivity));
-            activity.SetTag("activity.event_type", nameof(CourseLibrary.Course.Domain.Events.CourseEvent));
-            activity.SetTag("activity.course_id", input.Event.CourseId);
-            activity.SetTag("activity.event_id", input.Event.EventId);
+            activity.SetTag(
+                CourseEventConsumerActivityTagConstants.OrchestrationName,
+                input.OrchestrationName);
+            activity.SetTag(
+                CourseEventConsumerActivityTagConstants.OrchestrationInstanceId,
+                input.InstanceId);
+            activity.SetTag(
+                CourseEventConsumerActivityTagConstants.OrchestrationStartTime,
+                input.StartTime.ToString("O"));
+            activity.SetTag(
+                CourseEventConsumerActivityTagConstants.OrchestrationIsReplaying,
+                input.IsReplaying);
+            activity.SetTag(
+                CourseEventConsumerActivityTagConstants.ActivityName,
+                nameof(CourseEventStartActivity));
+            activity.SetTag(
+                CourseEventConsumerActivityTagConstants.ActivityEventType,
+                nameof(CourseLibrary.Course.Domain.Events.CourseEvent));
+            activity.SetTag(
+                CourseEventConsumerActivityTagConstants.ActivityCourseId,
+                input.Event.CourseId);
+            activity.SetTag(
+                CourseEventConsumerActivityTagConstants.ActivityEventId,
+                input.Event.EventId);
+            foreach (var item in input.Metadata.Baggage)
+            {
+                activity.AddBaggage(item.Key, item.Value);
+            }
+
             activity.SetStatus(ActivityStatusCode.Ok);
 
             return Task.FromResult<string?>(activity.Id);

@@ -9,4 +9,6 @@ public sealed record EventMetadata
     public string? TraceState { get; init; }
     public ImmutableDictionary<string, string> Properties { get; init; }
         = ImmutableDictionary<string, string>.Empty;
+    public ImmutableDictionary<string, string> Baggage { get; init; }
+        = ImmutableDictionary<string, string>.Empty;
 }

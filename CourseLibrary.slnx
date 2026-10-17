@@ -18,7 +18,6 @@
     <Project Path="CourseLibrary.Course.Persistence/CourseLibrary.Course.Persistence.csproj" Id="0ccc591d-c864-44f5-aae1-a04bc42fa320" />
     <Project Path="src/app/CourseLibrary.App/CourseLibrary.App.csproj" />
     <Project Path="src/course/CourseLibrary.Api/CourseLibrary.Api.csproj" />
-    <Project Path="src/course/CourseLibrary.EventConsumer/CourseLibrary.EventConsumer.csproj" Id="2eec5e3c-03b3-4849-8ec5-52e898cdc842" />
   </Folder>
   <Folder Name="/src/gateway/">
     <Project Path="src/gateway/CourseLibrary.Gateway/CourseLibrary.Gateway.csproj" Id="1a2221d9-1ee9-46ad-86ab-4418b473ff66" />

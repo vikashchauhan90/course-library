@@ -5,6 +5,7 @@ using CourseLibrary.Platform.Messaging.Observability;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
+using System.Text.Json;
 
 namespace CourseLibrary.Platform.Messaging;
 
@@ -51,6 +52,7 @@ internal sealed class AzureTableDqlMessageStore(
                 ["CorrelationId"] = message.CorrelationId,
                 ["TraceParent"] = message.TraceParent,
                 ["TraceState"] = message.TraceState,
+                ["Metadata"] = JsonSerializer.Serialize(message.Metadata),
                 ["Subject"] = message.Subject,
                 ["DeadLetterReason"] = message.DeadLetterReason,
                 ["DeadLetterErrorDescription"] =

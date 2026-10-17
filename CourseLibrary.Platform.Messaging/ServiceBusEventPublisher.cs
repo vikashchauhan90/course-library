@@ -116,17 +116,38 @@ internal sealed class ServiceBusEventPublisher(
                     }
                 };
 
+                foreach (var property in @event.Metadata.Properties)
+                {
+                    var isReservedProperty = message.ApplicationProperties.Keys.Any(
+                        key => key.Equals(
+                            property.Key,
+                            StringComparison.OrdinalIgnoreCase));
+                    if (!isReservedProperty)
+                    {
+                        message.ApplicationProperties[property.Key] = property.Value;
+                    }
+                }
+
                 if (activity is not null)
                 {
-                    ServiceBusTraceContext.Inject(message, activity);
+                    ServiceBusTraceContext.Inject(
+                        message,
+                        activity.Context,
+                        @event.Metadata);
                 }
                 else if (hasParentContext)
                 {
-                    ServiceBusTraceContext.Inject(message, parentContext);
+                    ServiceBusTraceContext.Inject(
+                        message,
+                        parentContext,
+                        @event.Metadata);
                 }
                 else if (Activity.Current is { } currentActivity)
                 {
-                    ServiceBusTraceContext.Inject(message, currentActivity);
+                    ServiceBusTraceContext.Inject(
+                        message,
+                        currentActivity.Context,
+                        @event.Metadata);
                 }
 
                 if (payloadSize > RecommendedStandardTierMessageSize)

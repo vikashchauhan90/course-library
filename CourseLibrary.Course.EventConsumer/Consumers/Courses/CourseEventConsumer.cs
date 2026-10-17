@@ -4,6 +4,7 @@ using CourseLibrary.Course.EventConsumer.Core;
 using CourseLibrary.Course.EventConsumer.Observability;
 using CourseLibrary.Platform.Messaging.Abstractions;
 using CourseLibrary.Platform.Messaging.Observability;
+using CourseLibrary.Platform.Observability.Traces;
 using CourseLibrary.Platform.Serialization.Abstractions;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.DurableTask;
@@ -41,42 +42,72 @@ internal sealed class CourseEventConsumer(
         ArgumentNullException.ThrowIfNull(durableTaskClient);
 
         var startedAt = Stopwatch.GetTimestamp();
-        var traceParent = GetTraceProperty(message, ServiceBusTraceContext.TraceParent)
-            ?? GetTraceProperty(message, ServiceBusTraceContext.DiagnosticId);
-        var traceState = GetTraceProperty(message, ServiceBusTraceContext.TraceState);
-        ActivityContext? parentContext = null;
-        if (ActivityContext.TryParse(traceParent, traceState, true, out var remoteContext))
+        var propagationContext = ServiceBusTraceContext.Extract(message);
+        var eventMetadata = ServiceBusTraceContext.CreateMetadata(
+            message,
+            propagationContext);
+        var parentContext = propagationContext.ActivityContext;
+        if (parentContext.TraceId == default
+            && ActivityContext.TryParse(
+                eventMetadata.TraceParent,
+                eventMetadata.TraceState,
+                isRemote: true,
+                out var remoteContext))
         {
             parentContext = remoteContext;
-        }
-        else
-        {
-            var extractedContext = ServiceBusTraceContext.Extract(message).ActivityContext;
-            if (extractedContext.TraceId != default)
-            {
-                parentContext = extractedContext;
-            }
         }
 
         using var scope = logger.BeginScope(new Dictionary<string, object?>
         {
-            ["messaging.system"] = "servicebus",
-            ["messaging.destination"] = TopicName,
-            ["messaging.destination_kind"] = "topic",
-            ["messaging.operation"] = "process",
-            ["messaging.message_id"] = message.MessageId,
-            ["messaging.correlation_id"] = message.CorrelationId,
-            ["messaging.delivery_count"] = message.DeliveryCount
+            [CourseEventConsumerActivityTagConstants.MessagingSystem] = "servicebus",
+            [CourseEventConsumerActivityTagConstants.MessagingDestination] = TopicName,
+            [CourseEventConsumerActivityTagConstants.MessagingDestinationKind] = "topic",
+            [CourseEventConsumerActivityTagConstants.MessagingOperation] = "process",
+            [CourseEventConsumerActivityTagConstants.MessagingMessageId] = message.MessageId,
+            [CourseEventConsumerActivityTagConstants.MessagingCorrelationId] = message.CorrelationId,
+            [CourseEventConsumerActivityTagConstants.MessagingDeliveryCount] = message.DeliveryCount,
+            [CourseEventConsumerActivityTagConstants.MessagingEventId] = eventMetadata.Properties.TryGetValue(
+                ServiceBusTraceContext.EventId,
+                out var eventId)
+                    ? eventId
+                    : null,
+            [CourseEventConsumerActivityTagConstants.MessagingEventType] = eventMetadata.Properties.TryGetValue(
+                ServiceBusTraceContext.EventType,
+                out var eventType)
+                    ? eventType
+                    : null
         });
 
         using var activity = CourseEventConsumerActivitySource.Shared.StartActivity(
             "course.event.process",
             ActivityKind.Consumer,
-            parentContext);
+            parentContext.TraceId == default ? null : parentContext);
 
         try
         {
+            foreach (var item in eventMetadata.Baggage)
+            {
+                activity?.AddBaggage(item.Key, item.Value);
+            }
+
             SetActivityTags(activity, message);
+            if (eventMetadata.Properties.TryGetValue(
+                    ServiceBusTraceContext.EventId,
+                    out var metadataEventId))
+            {
+                activity?.SetTag(
+                    CourseEventConsumerActivityTagConstants.MessagingEventId,
+                    metadataEventId);
+            }
+
+            if (eventMetadata.Properties.TryGetValue(
+                    ServiceBusTraceContext.EventType,
+                    out var metadataEventType))
+            {
+                activity?.SetTag(
+                    CourseEventConsumerActivityTagConstants.MessagingEventType,
+                    metadataEventType);
+            }
 
             CourseEvent? courseEvent;
             try
@@ -115,7 +146,9 @@ internal sealed class CourseEventConsumer(
                 return;
             }
 
-            activity?.SetTag("messaging.event.type", courseEvent.EventKind.ToString());
+            activity?.SetTag(
+                CourseEventConsumerActivityTagConstants.MessagingEventType,
+                courseEvent.EventKind.ToString());
 
             var instanceId = $"course-event-{message.MessageId}";
             var existingInstance = await durableTaskClient.GetInstanceAsync(
@@ -131,7 +164,7 @@ internal sealed class CourseEventConsumer(
                     message.MessageId,
                     instanceId,
                     existingInstance.RuntimeStatus);
-                activity?.SetTag("messaging.duplicate", true);
+                activity?.SetTag(CourseEventConsumerActivityTagConstants.MessagingDuplicate, true);
                 activity?.SetStatus(ActivityStatusCode.Ok, "Duplicate message");
                 await CompleteMessageAsync(message, messageActions, cancellationToken);
                 CourseEventConsumerMeter.Shared.RecordMessage(
@@ -153,11 +186,7 @@ internal sealed class CourseEventConsumer(
             {
                 Event = CourseEventPayload.FromDomain(courseEvent),
                 MessageId = message.MessageId,
-                Metadata = new EventMetadata
-                {
-                    TraceParent = traceParent,
-                    TraceState = traceState
-                }
+                Metadata = eventMetadata
             };
 
             try
@@ -175,7 +204,7 @@ internal sealed class CourseEventConsumer(
             catch (Exception exception) when (IsDuplicateOrchestrationException(exception))
             {
                 CourseEventConsumerMeter.Shared.RecordDuplicate("AlreadyExists");
-                activity?.SetTag("messaging.duplicate", true);
+                activity?.SetTag(CourseEventConsumerActivityTagConstants.MessagingDuplicate, true);
                 activity?.SetStatus(ActivityStatusCode.Ok, "Duplicate orchestration");
                 logger.LogWarning(
                     "CourseEvent message {MessageId} lost the orchestration creation race for {InstanceId}.",
@@ -202,14 +231,18 @@ internal sealed class CourseEventConsumer(
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
+            activity?.SetTag(CourseEventConsumerActivityTagConstants.MessagingCancelled, true);
             CourseEventConsumerMeter.Shared.RecordFailure(
                 "process",
                 "cancelled");
+            CourseEventConsumerMeter.Shared.RecordMessage(
+                "cancelled",
+                Stopwatch.GetElapsedTime(startedAt).TotalMilliseconds);
             throw;
         }
         catch (Exception exception)
         {
-            activity?.SetStatus(ActivityStatusCode.Error, exception.GetType().Name);
+            ActivityEnrichmentHelper.RecordException(activity, exception);
             CourseEventConsumerMeter.Shared.RecordFailure(
                 "process",
                 exception.GetType().Name);
@@ -233,8 +266,12 @@ internal sealed class CourseEventConsumer(
         Exception? exception,
         CancellationToken cancellationToken)
     {
-        activity?.SetTag("messaging.destination", $"{TopicName}/$DeadLetterQueue");
-        activity?.SetTag("messaging.dead_letter.reason", reason);
+        activity?.SetTag(
+            CourseEventConsumerActivityTagConstants.MessagingDestination,
+            $"{TopicName}/$DeadLetterQueue");
+        activity?.SetTag(
+            CourseEventConsumerActivityTagConstants.MessagingDeadLetterReason,
+            reason);
         activity?.SetStatus(ActivityStatusCode.Error, reason);
 
         if (exception is null)
@@ -246,6 +283,7 @@ internal sealed class CourseEventConsumer(
         }
         else
         {
+            ActivityEnrichmentHelper.RecordException(activity, exception);
             logger.LogWarning(
                 exception,
                 "Dead-lettering invalid CourseEvent message {MessageId}. Reason: {Reason}.",
@@ -271,20 +309,13 @@ internal sealed class CourseEventConsumer(
         Activity? activity,
         ServiceBusReceivedMessage message)
     {
-        activity?.SetTag("messaging.system", "servicebus");
-        activity?.SetTag("messaging.message_id", message.MessageId);
-        activity?.SetTag("messaging.correlation_id", message.CorrelationId);
-        activity?.SetTag("messaging.delivery_count", message.DeliveryCount);
-        activity?.SetTag("messaging.destination", TopicName);
-        activity?.SetTag("messaging.destination_kind", "topic");
+        activity?.SetTag(CourseEventConsumerActivityTagConstants.MessagingSystem, "servicebus");
+        activity?.SetTag(CourseEventConsumerActivityTagConstants.MessagingMessageId, message.MessageId);
+        activity?.SetTag(CourseEventConsumerActivityTagConstants.MessagingCorrelationId, message.CorrelationId);
+        activity?.SetTag(CourseEventConsumerActivityTagConstants.MessagingDeliveryCount, message.DeliveryCount);
+        activity?.SetTag(CourseEventConsumerActivityTagConstants.MessagingDestination, TopicName);
+        activity?.SetTag(CourseEventConsumerActivityTagConstants.MessagingDestinationKind, "topic");
     }
-
-    private static string? GetTraceProperty(
-        ServiceBusReceivedMessage message,
-        string propertyName)
-        => message.ApplicationProperties.TryGetValue(propertyName, out var value)
-            ? value as string
-            : null;
 
     private static bool IsDuplicateOrchestrationException(Exception exception)
         => exception.Message.Contains("already exists", StringComparison.OrdinalIgnoreCase)
