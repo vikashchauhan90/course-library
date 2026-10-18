@@ -4,27 +4,16 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Asp.Versioning;
 using Carter;
+using CourseLibrary.Course.Api.Observability;
 using CourseLibrary.Course.Application;
-using CourseLibrary.Course.Application.Observability;
 using CourseLibrary.Course.Persistence;
-using CourseLibrary.Course.Persistence.Observability;
 using CourseLibrary.Platform.AspNetCore.RequestContext;
-using CourseLibrary.Platform.Caching.Observability;
 using CourseLibrary.Platform.Messaging;
-using CourseLibrary.Platform.Messaging.Observability;
-using CourseLibrary.Platform.Observability.Metrics;
-using CourseLibrary.Platform.Persistence.CosmosDB.Observability;
 using CourseLibrary.Platform.Resilience;
-using CourseLibrary.Platform.Resilience.Observability;
 using CourseLibrary.Platform.Serialization;
-using CourseLibrary.Platform.Serialization.Observability;
-using CourseLibrary.Platform.Observability.Traces;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
-using OpenTelemetry.Metrics;
-using OpenTelemetry.Resources;
-using OpenTelemetry.Trace;
 
 namespace CourseLibrary.Course.Api.Configuration;
 
@@ -38,6 +27,7 @@ public static class CourseLibraryApiExtensions
         Activity.ForceDefaultIdFormat = true;
         builder.WebHost.ConfigureKestrel(options => options.AddServerHeader = false);
 
+        builder.Services.AddOptions();
         builder.Services.AddHttpContextAccessor();
         builder.Services.AddHttpClient();
         builder.Services.AddOpenApi();
@@ -88,7 +78,7 @@ public static class CourseLibraryApiExtensions
             options.IncludeSubDomains = true;
             options.Preload = true;
         });
-        builder.AddCourseLibraryOpenTelemetry();
+        builder.AddCourseLibraryApiObservability();
         return builder;
     }
 
@@ -124,65 +114,4 @@ public static class CourseLibraryApiExtensions
         return app;
     }
 
-    private static WebApplicationBuilder AddCourseLibraryOpenTelemetry(this WebApplicationBuilder builder)
-    {
-        builder.Services.AddOpenTelemetry()
-            .ConfigureResource(resource => resource.AddService(
-                serviceName: "CourseLibrary.Course.Api",
-                serviceVersion: typeof(CourseLibraryApiExtensions).Assembly.GetName().Version?.ToString()
-                    ?? "unknown",
-                serviceInstanceId: Environment.MachineName))
-            .WithTracing(tracing =>
-            {
-                tracing
-                    .AddSource(CourseApplicationTelemetry.ActivitySourceName)
-                    .AddSource(CoursePersistenceTelemetry.ActivitySourceName)
-                    .AddSource(ResilienceTelemetry.ActivitySourceName)
-                    .AddSource(SerializationTelemetry.ActivitySourceName)
-                    .AddSource(PlatformActivitySource.ActivitySourceName)
-                    .AddSource(CacheTelemetry.ActivitySourceName)
-                    .AddSource(MessagingTelemetry.ActivitySourceName)
-                    .AddSource(CosmosTelemetry.ActivitySourceName)
-                    .AddAspNetCoreInstrumentation(options => options.RecordException = true)
-                    .AddHttpClientInstrumentation(options => options.RecordException = true);
-
-                if (builder.Environment.IsDevelopment())
-                {
-                    tracing.AddConsoleExporter();
-                }
-                else
-                {
-                    tracing.AddOtlpExporter();
-                }
-            })
-            .WithMetrics(metrics =>
-            {
-                metrics
-                    .AddMeter(CourseApplicationTelemetry.MeterName)
-                    .AddMeter(CoursePersistenceTelemetry.MeterName)
-                    .AddMeter(ResilienceTelemetry.MeterName)
-                    .AddMeter(SerializationTelemetry.MeterName)
-                    .AddMeter(CacheTelemetry.MeterName)
-                    .AddMeter(MessagingTelemetry.MeterName)
-                    .AddMeter(CosmosTelemetry.MeterName)
-                    .AddMeter(PlatformMeter.MeterName)
-                    .AddMeter("Microsoft.AspNetCore.Hosting")
-                    .AddMeter("Microsoft.AspNetCore.Server.Kestrel")
-                    .AddAspNetCoreInstrumentation()
-                    .AddHttpClientInstrumentation()
-                    .AddRuntimeInstrumentation()
-                    .AddProcessInstrumentation();
-
-                if (builder.Environment.IsDevelopment())
-                {
-                    metrics.AddConsoleExporter();
-                }
-                else
-                {
-                    metrics.AddOtlpExporter();
-                }
-            });
-
-        return builder;
-    }
 }
