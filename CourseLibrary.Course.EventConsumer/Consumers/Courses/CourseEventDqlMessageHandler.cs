@@ -18,7 +18,8 @@ internal sealed class CourseEventDqlMessageHandler(
     IDqlMessageStore dqlMessageStore,
     ILogger<CourseEventDqlMessageHandler> logger)
 {
-    private const string DeadLetterDestination = "CourseEvent/$DeadLetterQueue";
+     private const string TopicName = "CourseEvent";
+    private const string DeadLetterSubscription = "CourseEventConsumer/$deadletterqueue";
 
     private readonly ISerializer<CourseLibrary.Course.Domain.Events.CourseEvent> _serializer =
         serializerFactory.Create<CourseLibrary.Course.Domain.Events.CourseEvent>(
@@ -27,10 +28,9 @@ internal sealed class CourseEventDqlMessageHandler(
     [Function(nameof(CourseEventDqlMessageHandler))]
     public async Task RunAsync(
         [ServiceBusTrigger(
-            DeadLetterDestination,
-            "CourseEventConsumer",
-            Connection = "ServiceBusConnection",
-            AutoCompleteMessages = false)]
+            TopicName,
+            DeadLetterSubscription,
+            Connection = "ServiceBusConnection")]
         ServiceBusReceivedMessage message,
         ServiceBusMessageActions messageActions,
         CancellationToken cancellationToken)

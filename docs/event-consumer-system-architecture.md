@@ -3,7 +3,7 @@
 
 **Document status:** Final requirements baseline; production values remain subject to validation where explicitly marked  
 **System:** CourseLibrary asynchronous course-audit event processing  
-**Primary technologies:** .NET isolated Azure Functions, Azure Service Bus, Durable Functions, Azure Cosmos DB, Azure Storage, OpenTelemetry, Microsoft.Extensions.Compliance  
+**Primary technologies:** .NET isolated Azure Functions, Azure Service Bus, Azure Cosmos DB, Azure Storage, OpenTelemetry
 **Date:** 18 October 2026
 
 ---
@@ -12,26 +12,27 @@
 
 This document defines the requirements and target architecture for publishing CourseLibrary business events and persisting audit records asynchronously. It consolidates the agreed requirements for throughput, concurrency, event handling, Cosmos DB protection, retries, dead-letter handling, retention, tracing, redaction, operations, and acceptance.
 
-The design keeps audit persistence outside the synchronous API request path. The API publishes an event to Azure Service Bus. A Service Bus-triggered Azure Function validates the message and schedules one Durable Functions orchestration for that event. The orchestration executes a single audit-write activity. The activity writes an idempotent audit record to a dedicated Cosmos DB container.
+The design keeps audit persistence outside the synchronous API request path. The API publishes an event to Azure Service Bus. The Service Bus-triggered Function validates the event, records an `InProcess` course-history entry, then atomically creates the audit record and `Completed` history entry in the `course-audit` Cosmos DB container. It completes the message only after that transaction succeeds. Failed calls leave the message unsettled for Service Bus retry.
 
-**The processing flow must not fan out into multiple audit activities.** One event results in one orchestration and one logical audit-write operation. This reduces avoidable parallel work, but it does not by itself impose a global write limit: many independent event orchestrations can still execute concurrently, and Function scale-out multiplies per-host concurrency.
+New messages do not use Durable Functions. Existing Durable orchestrations from deployments before this change must be drained and reconciled; their old settlement semantics are not repaired retroactively.
 
-The architecture uses at-least-once delivery with idempotent persistence. It does not claim end-to-end exactly-once execution.
+The consumer provides at-least-once processing with duplicate-safe persistence. It does not claim end-to-end zero loss until the API's business-commit/publication dual-write gap is closed with a transactional outbox.
 
 ## 2. Agreed requirements and capacity targets
 
 | Area | Requirement / target | Notes |
 |---|---|---|
-| API traffic | 10,000 requests per 10 seconds (1,000 requests/second average) | Load-test target, not a demonstrated production result |
-| Event consumer | Up to 2,000 messages per 10 seconds (200 messages/second) | Must be validated against actual event production rate and Cosmos RU consumption |
+| API traffic | 10,000 requests in a 10-second burst, then 500 requests/second sustained | 100% of requests produce events; validate in load test |
+| Event consumer | Proposed 600 completed events/second | 100% of requests emit; 10-second 1,000/s burst followed by 500/s sustained; validate p95 and measured RU/event |
 | Audit storage | Separate Cosmos DB audit container | Container name: `course-audit` |
 | Audit partition key | `/courseId` | Validate partition distribution and hot-partition behavior |
-| Initial Cosmos capacity estimate | Approximately 1,000 RU/second | Starting estimate only; not a proven capacity commitment |
+| Cosmos DB throughput | Not yet sized | The prior 4,286 RU/s estimate assumed one 5-RU write/event; it is invalid for the current read + status-create + transactional-batch path |
 | Message processing | Service Bus topic/subscription and .NET isolated Functions | Subscription: `CourseEventConsumer` |
-| Durable processing | One event per orchestration; no fan-out | One audit-write activity per event |
+| Processing path | Direct Function processing | One Service Bus message per invocation; no Durable handoff |
 | Delivery semantics | At least once | Duplicate delivery and replay must be safe |
-| Service Bus settlement | Manual settlement | Do not complete a message until Durable scheduling has been accepted durably |
-| Sessions | Enabled where required by the current Service Bus configuration | Ordering applies to messages in the same session; it does not serialize later Durable activity execution |
+| Service Bus settlement | Manual settlement | Do not complete a message until the audit and `Completed` history are atomically durable |
+| Subscription delivery limit | 6 deliveries | One initial delivery plus five redeliveries; configure on the Service Bus subscription, not in `host.json` |
+| Sessions | Not enabled by the current Function trigger | No message-ordering guarantee |
 | Active-message retention | Requested 15 days | Confirm selected Service Bus tier/entity limits before implementation |
 | DLQ handling | Capture operational metadata in Azure Table Storage | Preserve the original DLQ message until metadata storage succeeds |
 | DLQ retention | Requested 30 days | Service Bus DLQ messages do not automatically expire after 30 days in the same way as active messages; implement an explicit archive/cleanup policy |
@@ -43,11 +44,30 @@ The architecture uses at-least-once delivery with idempotent persistence. It doe
 The targets are not automatically compatible:
 
 - The API target is 1,000 requests/second.
-- The consumer target is 200 events/second.
-- If every API request produces an event, events arrive at a higher rate than the stated consumer target. The backlog will grow during that traffic pattern.
-- At 200 audit writes/second, 1,000 RU/second allows only 5 RU per write before accounting for indexing, retries, reads, other operations, and a safety margin.
+- The agreed profile is a 10-second peak at 1,000 events/second followed by 500 events/second sustained.
+- The original 200 events/second consumer target is below the sustained arrival rate. Its backlog would grow by 300/s (1.08 million/hour), so long-term latency is unbounded.
+- A proposed 600 events/second capacity creates 4,000 queued events over the 10-second burst from an empty queue. At 500 arrivals/s afterward, the 100/s net drain clears that burst backlog in about 40 seconds, excluding handler overhead.
+- The previous estimate of 4,286 RU/s assumed one 5-RU write/event. It must not be used for the new flow, which performs a duplicate-check read, an `InProcess` status create, and a transactional batch that creates the audit and `Completed` status. Measure RU/event for this entire path, including error cases and SDK retries.
 
-The team must confirm what proportion of API requests emit audit events, measure actual RU consumption per audit write, and load-test sustained throughput. Do not promise 200 audit writes/second from a 1,000 RU/second container without measurements.
+### 2.2 Calculated planning envelope (provisional)
+
+The following arithmetic makes the mismatch actionable; it is not a claim of measured production performance:
+
+- A 10-second burst at 1,000/s produces 10,000 events. At 600 completions/s, 6,000 complete during the burst and approximately 4,000 remain queued.
+- After the burst, 600 completions/s against 500 arrivals/s provides 100/s of net drain, clearing those 4,000 messages in about 40 seconds if there was no pre-existing backlog.
+- Let `R` be the measured Cosmos RU charge per successfully persisted event for the complete path. At 500 events/s, a 30% reserve requires `500 × R / 0.70` configured RU/s. At the proposed 600 events/s recovery rate, it requires `600 × R / 0.70` configured RU/s. Do not substitute the old 5-RU/write assumption for `R`.
+
+The end-to-end SLO is p95 publication-to-persistence under two minutes; no measured Function processing-time distribution is available. Throughput alone cannot establish p95/p99 latency. For concurrency sizing, Little's Law gives the following illustrative average in-flight callback counts:
+
+| Average end-to-end handler time | In flight at 1,000 events/s burst | In flight at 600 events/s capacity | In flight at 500 events/s baseline |
+|---:|---:|---:|---:|
+| 100 ms | 100 | 60 | 50 |
+| 200 ms | 200 | 120 | 100 |
+| 250 ms | 250 | 150 | 125 |
+| 500 ms | 500 | 300 | 250 |
+| 1 second | 1,000 | 600 | 500 |
+
+These values are planning examples, not measured capacity. Measure full handler duration, queue age, successful event rate, RU/event, and end-to-end latency under the full burst and baseline profile. Delayed processing is acceptable; messages remain in Service Bus or the DLQ until their durable writes succeed.
 
 ## 3. Scope
 
@@ -55,7 +75,7 @@ The team must confirm what proportion of API requests emit audit events, measure
 
 - Course business events published by the CourseLibrary API.
 - Azure Service Bus topic/subscription delivery.
-- Durable Functions orchestration and activity execution.
+- Direct Service Bus processing and manual message settlement.
 - Idempotent audit persistence in Cosmos DB.
 - Concurrency limits, backpressure, retry policy, and recovery.
 - Service Bus dead-letter processing and Azure Table metadata storage.
@@ -80,26 +100,21 @@ flowchart LR
 
     Topic --> Sub[Subscription: CourseEventConsumer]
     Sub --> Trigger[CourseEventConsumer Function]
-    Trigger -->|Schedule one orchestration, then complete message| Hub[(Durable Task state and history)]
-    Hub --> Orch[CourseEventOrchestrator]
-    Orch --> Start[CourseEventStartActivity]
-    Orch --> Audit[CourseEventAuditActivity]
-    Audit -->|Idempotent write| AuditDB[(Cosmos DB: course-audit)]
+    Trigger -->|InProcess history; duplicate check| AuditDB[(Cosmos DB: course-audit)]
+    Trigger -->|Transactional batch: audit + Completed| AuditDB
+    Trigger -->|Complete only after commit| Sub
 
     Sub -. Delivery exhausted .-> DLQ[Service Bus subscription DLQ]
     DLQ --> DqlFn[CourseEventDqlMessageHandler]
-    DqlFn --> Table[(Azure Table Storage: DqlMessages)]
-    DqlFn -. Controlled replay process .-> Replay[Authorized replay]
-    Replay --> Topic
+    DqlFn -->|Archive payload before settlement| Table[(Azure Table Storage: DqlMessages)]
+    DqlFn -->|DeadLettered history when valid event| AuditDB
 
     API -. Logs, metrics, traces .-> Telemetry[OpenTelemetry / approved backend]
     Trigger -. Logs, metrics, traces .-> Telemetry
-    Orch -. Logs, metrics, traces .-> Telemetry
-    Audit -. Logs, metrics, traces .-> Telemetry
     DqlFn -. Logs, metrics, traces .-> Telemetry
 ```
 
-The Durable Task state store contains orchestration state and history. It is not the audit system of record. The `course-audit` Cosmos DB container is the system of record for successfully persisted audit records. Azure Table Storage stores DLQ operational metadata; it does not replace the original Service Bus DLQ message.
+The `course-audit` Cosmos DB container is the system of record for persisted audit records and append-only course processing history. Azure Table Storage archives the full DLQ payload and metadata before the original DLQ message is settled. Archival failure leaves that DLQ message available for retry.
 
 ## 5. Component responsibilities
 
@@ -108,17 +123,15 @@ The Durable Task state store contains orchestration state and history. It is not
 | CourseLibrary API | Performs the business operation and publishes a versioned event with a stable event identifier and trace context |
 | `CourseEvent` topic | Distributes published events to configured subscriptions |
 | `CourseEventConsumer` subscription | Delivers events to the consumer and retains messages that exceed delivery handling limits in its DLQ |
-| `CourseEventConsumer` Function | Validates the message, extracts trace context, creates a deterministic orchestration instance ID, schedules the orchestration, and completes the Service Bus message only after scheduling is accepted |
-| `CourseEventOrchestrator` | Coordinates the event processing flow deterministically; does not perform direct network or database I/O |
-| `CourseEventStartActivity` | Establishes the intended activity/trace boundary for the event processing workflow |
-| `CourseEventAuditActivity` | Calls the audit persistence abstraction, applies the approved write-admission control, and performs the idempotent write |
-| `ICourseAuditRepository` | Application-facing abstraction for audit persistence |
-| `CourseAuditEntry` | Audit record model stored in the dedicated audit container |
+| `CourseEventConsumer` Function | Validates the message, records `InProcess`, checks for a prior audit, atomically creates audit plus `Completed` history, and then completes the message |
+| `ICourseAuditRepository` | Creates append-only status entries, reads by event ID, writes audit plus terminal status transactionally, and pages course history |
+| `CourseEventHistoryEntry` | Append-only status record with course/event/message IDs, attempt, timestamp, notes, and error type |
+| `CourseAuditEntry` | Immutable audit record stored in the dedicated audit container |
 | Cosmos DB `course-audit` | Stores persisted audit records, partitioned by `/courseId` |
-| `CourseEventDqlMessageHandler` | Captures DLQ metadata and completes the original DLQ message only after the metadata operation succeeds |
+| `CourseEventDqlMessageHandler` | Stores full DLQ payload in Table Storage, records `DeadLettered` history for parseable events, then completes the original DLQ message |
 | `IDqlMessageStore` | Abstraction for storing DLQ operational metadata |
 | Azure Table Storage `DqlMessages` | Stores operational DLQ metadata for investigation and controlled replay |
-| OpenTelemetry pipeline | Correlates producer, trigger, orchestration, activity, Cosmos write, and failure handling without exporting sensitive payloads |
+| OpenTelemetry pipeline | Correlates producer, trigger, Cosmos writes, status transitions, and DLQ handling without exporting sensitive payloads |
 
 ## 6. Event lifecycle and settlement
 
@@ -126,17 +139,17 @@ The Durable Task state store contains orchestration state and history. It is not
 2. The API performs the business operation according to its existing API contract.
 3. The API publishes a versioned event to the `CourseEvent` topic. The event has a stable event ID and carries W3C trace context where available.
 4. The `CourseEventConsumer` subscription delivers the message to the Function using manual settlement.
-5. The Function validates the message and derives a deterministic orchestration instance ID from the stable event/message identity.
-6. The Function schedules exactly one `CourseEventOrchestrator` instance for that event.
-7. Only after Durable Functions confirms the scheduling handoff has been accepted durably does the Function complete the Service Bus message.
-8. The orchestrator invokes `CourseEventStartActivity` and one `CourseEventAuditActivity`. It must not fan out into multiple audit activities.
-9. The audit activity writes the audit record to Cosmos DB through `ICourseAuditRepository`.
-10. Duplicate execution or replay must not create duplicate logical audit records or replace an immutable record with different content.
-11. Failures after the Service Bus message has been completed are handled by Durable retry and explicit failed-orchestration recovery. They do not automatically return the completed Service Bus message to the DLQ.
+5. The Function validates the message and reads `course-audit` by `(eventId, courseId)`. If an audit already exists after a previous commit/settlement ambiguity, it completes the duplicate safely.
+6. The Function appends an `InProcess` history record with the Service Bus delivery count.
+7. It atomically creates the immutable audit record and `Completed` history record in one Cosmos transactional batch in the same `/courseId` partition.
+8. Only after the batch succeeds does it complete the Service Bus message. Any persistence failure is rethrown so the broker redelivers.
+9. The subscription is configured with `MaxDeliveryCount=6` (initial attempt plus five retries); exhausted messages enter the subscription DLQ.
+10. The DLQ handler archives the original payload and metadata to Table Storage, appends `DeadLettered` history when deserialization succeeds, and only then completes the DLQ message.
+11. Invalid primary messages are explicitly dead-lettered immediately. They remain recoverable in the DLQ even if a course history entry cannot be derived.
 
-**Important settlement boundary:** completing the Service Bus message means Durable scheduling was accepted. It does not mean the audit record has been written. This distinction must be visible in monitoring and operational recovery procedures.
+**Important settlement boundary:** Service Bus completion means both the audit record and `Completed` status have been committed. The audit and status writes are atomic; Service Bus settlement is not part of the Cosmos transaction. Duplicate delivery after a successful batch is expected and handled by the audit lookup.
 
-If orchestration scheduling fails, the trigger must fail without completing the Service Bus message. If the audit activity later fails permanently, the system needs a documented way to identify and recover the failed orchestration because the original Service Bus message has already been completed.
+The producer's direct API publish still has a dual-write gap with the business database. A transactional outbox is required before claiming end-to-end zero loss from business commit through audit persistence.
 
 ## 7. Event contract and idempotency
 
@@ -157,19 +170,19 @@ The actual event contract must follow the existing CourseLibrary event model and
 ### 7.1 Idempotency requirements
 
 - Use a stable event ID as the logical identity of the audit record.
-- Derive the Durable instance ID deterministically from the stable event/message identity, within the platform's instance-ID constraints.
-- A repeated schedule attempt must have a defined outcome and must not silently create an unrelated orchestration for the same event.
-- The audit write must use create/conditional-write semantics or an equivalent duplicate-safe design.
+- Use the event ID as the immutable audit document ID within the course partition.
+- Create, rather than upsert, the audit record and history entries. A conflict is treated as success only when the audit record for the same event already exists.
+- The audit and `Completed` status must be written in one transactional batch. Service Bus redelivery after a successful Cosmos commit must not create a second audit record.
 - Do not rely on an unconditional upsert if it can replace an existing audit record with different content.
 - Define how a duplicate with the same event ID but different payload is detected, reported, and investigated.
-- Retain enough event identity and status to reconcile a failed orchestration with the original event.
+- Retain enough event identity and append-only statuses to reconcile attempts and DLQ disposition with the original event.
 - Trace IDs, correlation IDs, timestamps, and random retry IDs must not be used as substitutes for the stable event ID.
 
 ## 8. Producer consistency
 
 Publishing an event after a business database commit creates a dual-write gap: the business operation can succeed while event publication fails.
 
-For audit events that cannot be discarded, prefer a transactional outbox where it is feasible within the business data store's transaction boundary. A separate dispatcher publishes pending outbox entries and records successful publication. If direct publication is retained, document and accept the residual event-loss risk and provide bounded retries and explicit failure reporting.
+Because audit events cannot be discarded, implement a transactional outbox within the business data store's transaction boundary before claiming end-to-end zero loss. A separate dispatcher publishes pending outbox entries and records successful publication. The current API publishes directly after a business commit, so an event can be lost in that producer-side failure window until the outbox exists.
 
 A Cosmos DB transactional batch cannot atomically commit arbitrary writes across separate containers. If the business data and outbox use Cosmos DB, the selected design must respect the supported container and logical-partition transaction boundary. The outbox is a consistency control, not an assumption that all cross-service writes become atomic.
 
@@ -181,16 +194,16 @@ Concurrency must protect Cosmos DB from excess load. Per-host settings alone are
 
 The target processing shape is:
 
-- One event per orchestration.
-- No fan-out.
-- One logical audit-write activity per event.
+- One event per Service Bus function invocation.
+- No Durable handoff for new events.
+- One append-only `InProcess` record, then one atomic audit-plus-`Completed` write per successful event.
 - Low initial per-host concurrency.
 - Bounded scale-out.
 - A global/distributed write-admission control when a strict aggregate Cosmos RU budget is required.
 
 ### 9.2 Initial per-host configuration baseline
 
-Use the following as a conservative starting point, subject to the exact installed Azure Functions Service Bus and Durable extension versions and the selected hosting plan. Verify the property names and session behavior against those versions before deployment.
+The active Function project is `CourseLibrary.Course.EventConsumer`. Its current local rate limiter defaults to 20 message permits/second and 20 audit-write permits/second per worker process. Each successful event consumes two audit-write permits (initial status create and final transactional batch), plus a duplicate-check read; thus the local limiter caps a process at no more than 10 successfully completed events/second before accounting for other bottlenecks. `host.json` controls per-host callback concurrency, not aggregate throughput. The checked-in baseline below bounds local work and prevents prefetch from locking messages while waiting for Cosmos.
 
 ```json
 {
@@ -198,47 +211,58 @@ Use the following as a conservative starting point, subject to the exact install
   "extensions": {
     "serviceBus": {
       "prefetchCount": 0,
-      "maxConcurrentCalls": 1,
-      "maxConcurrentSessions": 1,
-      "maxConcurrentCallsPerSession": 1,
-      "maxAutoLockRenewalDuration": "00:05:00",
-      "autoCompleteMessages": false
+      "maxConcurrentCalls": 4,
+      "maxAutoLockRenewalDuration": "00:05:00"
     },
     "durableTask": {
-      "maxConcurrentActivityFunctions": 1,
-      "maxConcurrentOrchestratorFunctions": 1
+      "maxConcurrentActivityFunctions": 4,
+      "maxConcurrentOrchestratorFunctions": 2
     }
+  },
+  "concurrency": {
+    "dynamicConcurrencyEnabled": false
   }
 }
 ```
 
 Notes:
 
-- The session-specific properties apply only when the selected Service Bus trigger binding and extension version support them and sessions are enabled on the entity.
-- `maxConcurrentCalls` and the session-specific settings must be checked for their exact meaning in the installed extension version; do not assume every setting independently caps all session-trigger execution.
-- Durable concurrency values are per worker/host instance. They are not global caps.
-- These values intentionally prioritize protecting the audit database over maximum throughput. Raise them only after representative load tests and RU measurements.
-- Keep dynamic concurrency disabled for the initial baseline if predictable, fixed local limits are required. Dynamic concurrency is not a strict global Cosmos RU budget.
-- Configure and verify the maximum Function instance count for the selected hosting plan.
+- The Service Bus trigger permits at most 4 concurrent callbacks per host. Its lock is renewed for up to five minutes and the Function timeout is five minutes. Long processing may still cause duplicate delivery; idempotency is mandatory.
+- Durable activity/orchestrator limits remain only to allow previously scheduled workflows to drain. New messages do not schedule orchestrations.
+- With four callbacks/host and two audit permits/event, reaching 600 completed events/second requires at least 60 single-process-equivalent workers based on the 20 permits/second local write limiter. This is a mathematical minimum, not a deployment recommendation; the actual Cosmos RU/event, Function duration, Flex scale response, retries, and database budget may require a lower rate or greater capacity.
+- At 600 events/second, Little's Law gives 120 concurrent callbacks if measured mean handler time is 200 ms. Four callbacks/host would therefore require 30 single-process-equivalent hosts for this latency condition; the local limiter may require more. For any measured mean handler time `T` seconds, required concurrent callbacks are `600 × T`.
+- The consumer's local limiter does not enforce a global Cosmos budget. The repository contains no Azure resource IaC or deployed Flex maximum scale-out. Before production, set the plan's maximum instances/worker processes using measured RU/event and the approved safety reserve; subtract always-ready and extra worker processes from the allowed total.
+- The old 4,286 RU/s value is not a valid target for this implementation. If `R` is measured RU/event for the full path, configure at least `arrival-or-drain events/s × R / 0.70` RU/s for a 30% reserve, subject to partition limits and competing workloads.
+- Keep dynamic concurrency disabled until database-aware behavior is validated.
+
+| Worker processes (illustration only) | Concurrent Service Bus callbacks | Maximum audit permits/s | Maximum completed events/s from two permits/event |
+|---:|---:|---:|---:|
+| 1 | 4 | 20 | 10 |
+| 3 | 12 | 60 | 30 |
+| 30 | 120 | 600 | 300 |
+| 60 | 240 | 1,200 | 600 |
+
+This table shows only the local rate limiter; it does not prove that the Cosmos RU budget or platform can support the resulting event rate. Flex scale groups and worker processes must be measured and configured externally.
 
 ### 9.3 Sessions and ordering
 
 Service Bus sessions provide ordered handling for messages that share a session ID, subject to the service's session semantics. Multiple session IDs can be processed concurrently.
 
-The current Function flow completes the Service Bus message after Durable scheduling. Therefore, serial delivery of messages does **not** guarantee serial execution of their later Durable activities. A session lock does not remain held while the orchestration later writes to Cosmos DB.
+The current trigger does not configure or require sessions. There is no ordering guarantee across events. If strict per-course ordering is required, it must be designed separately; the current append-only history records arrival/processing order but do not serialize competing messages.
 
 If strict global sequential persistence is required, the design must serialize the actual persistence operation, not merely the scheduling trigger. This would reduce throughput and must be an explicit business requirement. The default design here does not claim strict global ordering of audit writes.
 
 ### 9.4 Global admission control
 
-A per-process semaphore, token bucket, or limiter is multiplied when Functions scale out. It cannot enforce a strict global database budget on its own.
+A per-process semaphore, token bucket, or limiter is multiplied when Functions scale out. The current `CourseEventRateLimiter` is process-local: with a default 20 operations/second rate, `N` processes can admit up to `20N` audit-write permits/second (at most `10N` successful events/second because each successful event takes two permits). It cannot enforce a strict global database budget on its own. A verified hard cap on host instances and worker processes can bound aggregate pressure conditionally; otherwise a truly distributed limiter is required.
 
-Where the Cosmos RU ceiling must be strictly enforced, implement a shared/distributed admission-control mechanism at the audit-write boundary:
+Where the Cosmos RU ceiling must be strictly enforced, either bound the total worker-process count using measured RU/event and a verified platform cap, or implement a shared/distributed admission-control mechanism at the audit-write boundary:
 
 - A distributed rate budget controls the number of writes admitted over time.
 - A distributed semaphore controls the number of writes in flight.
 - These controls solve different problems and should not be treated as interchangeable.
 - Set the budget from measured RU/write, available RU/s, other workloads, retry overhead, and an approved safety margin.
+- Calculate the process cap from the approved RU budget and measured RU/write; include each worker process, not merely each Function App.
 - Handle Cosmos throttling (HTTP 429) with the SDK's retry guidance and avoid multiplying retries at every layer.
 - When capacity is unavailable, apply backpressure and let durable work wait/retry rather than allowing unbounded concurrent writes.
 - Ensure the mechanism remains effective across scale-out and is observable.
@@ -253,30 +277,28 @@ Load tests must cover:
 - Function scale-out and scale-in.
 - Backlog accumulation and controlled backlog drain.
 - Partition-key skew and hot partitions.
-- Duplicate deliveries, duplicate orchestration scheduling, and activity retries.
-- Durable storage load and orchestration history growth.
+- Duplicate deliveries, concurrent duplicate messages, and settlement failure after Cosmos commit.
+- Append-only status-history growth and the added RU/write cost.
 - Recovery time after the downstream database becomes healthy.
 
-Measure events/second, successful audit writes/second, end-to-end audit latency, oldest message age, queue/subscription depth, failed orchestration count, Cosmos RU consumption, 429 rate, retry count, and per-partition distribution.
+Measure events/second, successful audit writes/second, RU/event, end-to-end audit latency, oldest message age, queue/subscription depth, history writes, Cosmos 429 rate, retry count, and per-partition distribution.
 
 ## 10. Retry, failure, and recovery
 
-Use bounded retries with exponential backoff and jitter for transient failures. Honor server-provided retry hints where supported. Avoid an uncontrolled retry storm across Service Bus redelivery, Durable activity retry, Cosmos SDK retry, and manual replay.
+Use the Cosmos SDK's bounded transient retries and honor its server-provided retry hints. On function failure, leave the message unsettled so Service Bus applies delivery-count retry; do not add a separate unbounded application retry loop. Avoid retry amplification and rate-limit any future operational replay.
 
 | Failure | Required behavior |
 |---|---|
-| Invalid event/schema | Reject or dead-letter with a safe reason code; do not log the raw payload |
-| Temporary Service Bus failure | Let the trigger fail so normal Service Bus delivery retry can occur |
-| Durable scheduling failure | Do not complete the Service Bus message |
-| Duplicate scheduling/delivery | Resolve deterministically using stable event identity; avoid creating duplicate logical work |
+| Invalid event/schema | Explicitly dead-letter with a safe reason code; do not log the raw payload |
+| Cosmos write/read failure | Rethrow without settling; Service Bus redelivers |
+| Duplicate delivery after commit | Read audit by event ID and complete the duplicate without upserting |
 | Cosmos DB throttling | Respect SDK retry guidance, apply write admission/backpressure, and emit throttling metrics |
-| Cosmos DB unavailable | Retry within the configured budget; keep Durable failure visible and alert on age/count |
-| Permanent audit activity failure | Mark/identify the orchestration as failed and use an explicit recovery or replay process |
-| Function host recycle | Allow platform redelivery/replay behavior; idempotency prevents duplicate audit records |
-| DLQ metadata storage failure | Do not complete the original DLQ message |
+| Cosmos DB unavailable | Leave the Service Bus message unsettled; after one initial delivery and five redeliveries, it moves to the subscription DLQ |
+| Function host recycle or lost settlement response | Allow broker redelivery; the committed audit ID makes the retry safe |
+| DLQ Table or history storage failure | Do not complete the original DLQ message |
 | Telemetry backend unavailable | Business processing should continue where exporter configuration permits; use bounded buffering and export-health monitoring |
 
-Define the retry count, maximum elapsed time, poison-message behavior, and ownership of manual recovery in configuration and runbooks. Do not allow repeated manual replay to bypass idempotency.
+Configure `MaxDeliveryCount=6` on the `CourseEventConsumer` Service Bus subscription. This value is configured on the Service Bus entity, not in `host.json`; no infrastructure-as-code for the entity currently exists in this repository. Poison messages are dead-lettered immediately. Define the ownership of manual replay in runbooks; the current implementation archives DLQ messages but does not implement a replay worker.
 
 ## 11. Dead-letter handling and retention
 
@@ -290,7 +312,7 @@ The requested DLQ retention is 30 days. Do not assume that Service Bus automatic
 
 ### 11.3 DLQ metadata
 
-`CourseEventDqlMessageHandler` must store operational metadata using `IDqlMessageStore` in the `DqlMessages` Azure Table Storage table before completing the original DLQ message.
+`CourseEventDqlMessageHandler` stores the original payload and operational metadata using `IDqlMessageStore` in `DqlMessages`, then stores `DeadLettered` course history for parseable events, before completing the original DLQ message.
 
 Capture only what operations needs, such as:
 - Original message ID and event ID when available.
@@ -300,7 +322,7 @@ Capture only what operations needs, such as:
 - Correlation/trace identifiers.
 - Processing status, investigation ownership, and replay status.
 
-Do not treat a base64 payload as protected storage. If a copy of the payload is necessary for a governed archive, apply data classification, access controls, encryption, retention, and deletion requirements explicitly. Avoid storing full payloads in Table Storage by default.
+The current archive stores the full payload as base64. Base64 is not encryption; restrict Table access, encrypt at rest, and define payload retention/deletion. The Table upsert is idempotent for repeated DLQ-handler delivery. Malformed messages without a usable course ID are retained in Table Storage even though course-scoped history cannot be written.
 
 If metadata persistence fails, leave the original DLQ message uncompleted so the operation can be retried. Replay must be authorized, traceable, idempotent, and rate-limited. Preserve enough history to prevent repeated replay loops.
 
@@ -315,7 +337,9 @@ If metadata persistence fails, leave the original DLQ message uncompleted so the
 - Validate indexing policy and payload size against the audit query requirements.
 - Monitor RU consumption, throttling, storage growth, partition distribution, write latency, and failed writes.
 - Confirm whether throughput is provisioned or autoscale and establish an approved budget and safety margin.
-- Treat 1,000 RU/s as an initial estimate, not a guarantee of 200 writes/second.
+- Measure RU/event for the complete read + `InProcess` create + audit/`Completed` transactional batch; the former 4,286 RU/s single-write estimate is invalid. For measured `R` RU/event, provision at least `events/s × R / 0.70` for a 30% reserve, subject to partition and competing-work limits.
+- Keep the audit and history documents in the same `/courseId` partition so the completion batch is atomic.
+- `GET /api/v1/courses/{courseId}/history` returns paginated event states, attempt, notes, and error type.
 
 The audit container is separate from the business data container. Do not assume cross-container transactional consistency.
 
@@ -323,24 +347,24 @@ The audit container is separate from the business data container. Do not assume 
 
 ### 13.1 Tracing
 
-Propagate W3C `traceparent` and `tracestate` where present and permitted. Use baggage only for approved, low-risk metadata. Preserve the trace relationship across the API publisher, Service Bus message, trigger, Durable orchestration, activities, Cosmos write, and DLQ processing.
+Propagate W3C `traceparent` and `tracestate` where present and permitted. Use baggage only for approved, low-risk metadata. Preserve the trace relationship across the API publisher, Service Bus message, trigger, Cosmos writes, status transitions, and DLQ processing.
 
-Use the existing CourseLibrary activity sources and metrics where appropriate. Avoid duplicate spans for the same logical operation and keep Durable orchestration replay behavior in mind when instrumenting orchestrators. Orchestrator code must remain deterministic and must not perform direct I/O.
+Use the existing CourseLibrary activity sources and metrics where appropriate. Record Cosmos RU charge and latency for the `InProcess` create and completion batch so the RU/event planning input can be measured.
 
 ### 13.2 Structured logs and metrics
 
-Logs should describe state transitions and failures using stable event IDs, event types, orchestration IDs, correlation IDs, trace IDs, attempt counts, elapsed time, and safe error categories. Do not log access tokens, secrets, connection strings, or raw event payloads.
+Logs should describe state transitions and failures using stable event IDs, message IDs, correlation IDs, trace IDs, attempt counts, elapsed time, and safe error categories. Do not log access tokens, secrets, connection strings, or raw event payloads.
 
 Required operational signals include:
 - Published events and publish failures.
-- Trigger deliveries and scheduling failures.
-- Successful and failed orchestrations.
+- Trigger deliveries and settlement outcomes.
+- `InProcess`, `Completed`, `Error`, and `DeadLettered` history counts and age.
 - Successful audit writes, duplicate detections, and write latency.
 - Cosmos RU consumption and HTTP 429 responses.
 - Retry counts and exhausted retry budgets.
 - Active queue/subscription depth and oldest-message age.
 - DLQ count, reason categories, metadata-write failures, and replay outcomes.
-- Durable task storage health and orchestration backlog.
+- Cosmos RU charge per event and processing-history storage growth.
 - OpenTelemetry exporter health.
 
 Set alerts only after baselines are measured; thresholds must reflect the approved SLOs and operational response expectations.
@@ -364,7 +388,7 @@ Use classification-aware redaction through Microsoft.Extensions.Compliance for s
 - Apply approved network restrictions and private connectivity where required by the environment.
 - Deploy topics, subscriptions, Cosmos containers and throughput, Storage tables, RBAC, diagnostics, and alerts through reviewed infrastructure as code.
 - Validate event schema compatibility before deploying producer or consumer changes.
-- Confirm the Durable Task storage provider, Function hosting plan, scale limits, and storage configuration before production.
+- Confirm the Function hosting plan, maximum scale-out, Service Bus subscription delivery count, and storage access before production.
 
 ## 15. Configuration baseline
 
@@ -372,25 +396,25 @@ The following table records the agreed direction. Values marked “validate” m
 
 | Area | Setting | Baseline / requirement |
 |---|---|---|
-| API | Capacity | 10,000 requests per 10 seconds; load-test |
-| Event production | Event rate | Confirm the proportion of API requests that emit events |
+| API | Capacity | 10,000 requests in 10 seconds, then 500 requests/second sustained; load-test |
+| Event production | Event rate | 100% of requests produce events |
 | Service Bus | Topic | `CourseEvent` |
 | Service Bus | Subscription | `CourseEventConsumer` |
 | Service Bus | Message identity | Stable event ID |
-| Service Bus | Sessions | Enabled where configured/required; confirm session ID and ordering requirement |
-| Service Bus | Prefetch | `0` initially |
-| Service Bus | Per-host concurrency | Start low; proposed values shown in Section 9.2 |
-| Service Bus | Settlement | Manual Peek-Lock; complete only after Durable scheduling succeeds |
+| Service Bus | Sessions | Not enabled by the current trigger; no ordering guarantee |
+| Service Bus | Prefetch | `0` |
+| Service Bus | Per-host concurrency | `maxConcurrentCalls: 4`; 20 message permits/s and 20 audit permits/s per process |
+| Service Bus | Lock renewal | `maxAutoLockRenewalDuration: 00:05:00`; Function timeout is five minutes |
+| Service Bus | Settlement | Manual Peek-Lock; complete only after audit and `Completed` status commit |
 | Service Bus | Active TTL | Requested 15 days; validate tier/entity limits |
-| Service Bus | Maximum delivery count | Choose and validate; a starting value of 10 may be load/failure tested |
-| Durable Functions | Orchestration shape | One event, one orchestration, no fan-out |
-| Durable Functions | Activity concurrency | Start at 1 per host; raise only after tests |
-| Durable Functions | Orchestrator concurrency | Start at 1 per host; raise only after tests |
-| Durable Functions | Global concurrency | Not enforced by `host.json`; use distributed admission control if strict aggregate cap is required |
+| Service Bus | Maximum delivery count | `6`: one initial delivery plus five retries; configure on the subscription |
+| Functions platform (Flex) | Maximum instances | Not configured in this repository; configure using measured RU/event and count always-ready instances and worker processes |
+| Functions platform | Worker processes | Count every process because the local rate limiter is process-scoped |
 | Cosmos DB | Audit container | `course-audit` |
 | Cosmos DB | Partition key | `/courseId` |
-| Cosmos DB | Initial throughput estimate | 1,000 RU/s; validate with actual RU/write |
-| Cosmos DB | Persistence | Duplicate-safe, preferably create-only/conditional |
+| Cosmos DB | Throughput target | `600 × measured RU/event / 0.70` RU/s for proposed drain rate and 30% reserve; do not use the old single-write estimate |
+| Cosmos DB | Persistence | Create-only audit and atomic audit + `Completed` status transactional batch |
+| History API | Route | `GET /api/v1/courses/{courseId}/history`, paginated |
 | DLQ | Metadata store | Azure Table Storage table `DqlMessages` |
 | DLQ | Retention | Requested 30 days; implement explicit archive/cleanup |
 | Observability | Trace context | W3C `traceparent` and `tracestate` where available |
@@ -400,12 +424,12 @@ The following table records the agreed direction. Values marked “validate” m
 ## 16. Deployment and rollout
 
 1. Confirm the event contract and which API operations publish events.
-2. Confirm event arrival rate against the 200 messages/second consumer target.
-3. Confirm Service Bus tier, sessions, active TTL, DLQ handling, quotas, and duplicate detection requirements.
-4. Confirm the Functions hosting plan, extension versions, scale limits, and Durable Task storage provider.
+2. Validate the 1,000 events/s 10-second burst, 500 events/s sustained rate, proposed 600 events/s recovery capacity, measured RU/event, and 2-minute p95 persistence SLO.
+3. Configure and verify the Service Bus subscription `MaxDeliveryCount=6`, active TTL, DLQ handling, and quotas.
+4. Confirm the Functions hosting plan, extension versions, scale limits, and Function lock-renewal/timeout settings.
 5. Deploy the topic/subscription, audit container, Storage table, access policies, and telemetry through infrastructure as code.
-6. Implement deterministic orchestration identity and duplicate-safe audit persistence.
-7. Implement and test retry limits, failed-orchestration visibility, DLQ metadata handling, and controlled replay.
+6. Implement and test append-only history, atomic audit completion, duplicate-safe settlement, and the paginated history API.
+7. Test retry limits, DLQ metadata/history handling, and controlled replay procedures.
 8. Configure conservative per-host concurrency and maximum scale-out.
 9. If strict RU protection is required, verify the distributed admission control across multiple Function instances.
 10. Run throughput, failure, recovery, scale-out, and redaction tests before production rollout.
@@ -417,7 +441,7 @@ The following table records the agreed direction. Values marked “validate” m
 ### 17.1 Growing backlog
 
 - Check incoming event rate, successful audit-write rate, and oldest message age.
-- Check Cosmos RU consumption, throttling, partition skew, and activity failures.
+- Check Cosmos RU/event, throttling, partition skew, and Function failures.
 - Verify the global write-admission control and Function scale-out limits.
 - Do not increase scale-out blindly if the database is already at its approved RU budget.
 - Increase capacity or adjust the consumer rate only after confirming the bottleneck and approved cost/capacity limits.
@@ -427,15 +451,15 @@ The following table records the agreed direction. Values marked “validate” m
 - Check 429 counts, RU consumption, latency, and Cosmos health.
 - Ensure retries honor SDK/server guidance and are bounded.
 - Confirm write admission is applying backpressure.
-- Monitor failed Durable activities and the oldest pending event.
+- Monitor Service Bus delivery count, oldest message age, and append-only error history.
 - After recovery, drain backlog at a controlled rate without exceeding the database budget.
 
-### 17.3 Failed orchestration after trigger completion
+### 17.3 Failed event attempt
 
-- Identify the failed orchestration using stable event/orchestration identity.
-- Inspect safe error metadata and activity retry history.
+- Identify the event by course ID, event ID, message ID, and history entries.
+- Inspect safe error notes and delivery attempts.
 - Determine whether the audit record already exists before replay.
-- Use the authorized recovery procedure; do not expect the completed Service Bus message to return automatically to the DLQ.
+- Allow Service Bus redelivery to continue; after six total deliveries, inspect the subscription DLQ.
 - Record replay ownership and outcome.
 
 ### 17.4 DLQ investigation
@@ -461,48 +485,50 @@ The architecture is ready for production approval when all of the following are 
 - [ ] The producer consistency approach is approved and its event-loss implications are documented.
 - [ ] Load tests demonstrate the required API and consumer throughput or document an approved capacity adjustment.
 - [ ] Event arrival rate and consumer drain rate are compatible, including backlog recovery.
-- [ ] Actual RU/write, partition distribution, and safe Cosmos capacity are measured.
-- [ ] Per-host concurrency and maximum scale-out are configured and verified for the selected plan.
-- [ ] If a strict aggregate RU budget is required, distributed admission control is proven to work across multiple hosts.
-- [ ] Each event schedules one orchestration and one logical audit-write activity; there is no audit fan-out.
-- [ ] Duplicate delivery, duplicate scheduling, activity retry, and replay do not create duplicate logical audit records or overwrite immutable records.
-- [ ] Service Bus settlement occurs only after Durable scheduling is accepted.
-- [ ] Failed orchestrations after Service Bus completion are detectable and recoverable.
+- [ ] Actual RU/event for duplicate check, in-process status, and transactional completion batch is measured; partition distribution, RU reserve, and safe Cosmos capacity are approved.
+- [ ] The event production fraction, steady arrival rate, outage backlog, and net backlog-drain rate are validated against consumer capacity.
+- [ ] Per-host concurrency, Flex maximum scale-out, always-ready instances, and worker-process count are configured and verified against the RU budget.
+- [ ] The 2-minute p95 end-to-end persistence SLO is verified under steady, peak, and recovery load; p99 is measured and an objective is approved if required.
+- [ ] If a strict aggregate RU budget is required, the configured worker cap or distributed admission control is proven across multiple hosts.
+- [ ] Audit and `Completed` history are committed atomically; duplicate delivery does not create a second audit record.
+- [ ] Service Bus settlement occurs only after audit and completion history are durable.
+- [ ] Subscription `MaxDeliveryCount=6` is configured and verified; five retries after the initial attempt result in DLQ disposition.
+- [ ] `GET /api/v1/courses/{courseId}/history` returns paginated status/attempt/note data.
 - [ ] Active-message retention and DLQ retention/archive behavior meet approved requirements within actual platform limits.
 - [ ] DLQ metadata failure does not cause the original DLQ message to be discarded.
 - [ ] OpenTelemetry correlates the event lifecycle and provides useful metrics without exposing payloads or secrets.
 - [ ] Microsoft.Extensions.Compliance redaction is validated on exported telemetry.
 - [ ] Access control, encryption, data classification, retention, and operational replay permissions are approved.
-- [ ] Runbooks cover backlog, throttling/outage, failed orchestration, DLQ recovery, and telemetry redaction failures.
+- [ ] Runbooks cover backlog, throttling/outage, failed deliveries, DLQ recovery, and telemetry redaction failures.
 
 ## 19. Known constraints and decisions that remain explicit
 
 These are validation items, not hidden assumptions:
 
-1. **Capacity:** 1,000 RU/s and 200 audit writes/second have not been proven compatible.
-2. **Arrival rate:** the fraction of API requests that create events must be confirmed.
-3. **Global concurrency:** `host.json` limits are per host. They do not enforce a global concurrency or RU cap.
-4. **No fan-out:** one activity per orchestration reduces per-event parallelism but does not prevent independent orchestrations from running concurrently.
-5. **Sessions:** sessions order delivery within a session, but the trigger's early completion does not serialize later Durable activities.
-6. **Durable failures:** after the Service Bus message is completed, later activity failure requires Durable-state-based recovery.
+1. **Capacity:** The proposed 600 events/s remains a test target. The 4,286 RU/s estimate was based on one 5-RU write/event and is obsolete. Measure RU/event for the full code path and apply `events/s × RU/event / 0.70`.
+2. **Arrival rate:** The supplied profile is 100% event production, a 10-second peak at 1,000 events/s, then 500 events/s sustained.
+3. **Global concurrency:** `host.json` limits are per host. Flex scales function groups independently; per-group maximums must include always-ready and worker-process counts, and do not alone enforce a global Cosmos RU cap.
+4. **Local rate limiting:** the 20 audit permits/second setting is per process; two permits are consumed per successful event and scale-out multiplies it.
+5. **Ordering:** the current trigger does not use sessions and provides no ordering guarantee.
+6. **Legacy Durable runs:** existing orchestrations may have already-acknowledged messages; reconcile/drain them during rollout. New events do not use Durable Functions.
 7. **Retention:** 15-day active TTL and 30-day DLQ retention must be implemented according to actual Service Bus behavior and the selected tier; DLQ cleanup requires an explicit process.
-8. **Producer dual write:** direct publication after a business commit can lose an event in a failure window. The chosen consistency mechanism must be approved.
+8. **Producer dual write:** direct publication after a business commit can lose an event in a failure window. A transactional outbox is required before end-to-end zero loss can be claimed.
 9. **Cosmos writes:** unconditional upsert can replace an existing record; use a duplicate-safe persistence contract.
 10. **Payload storage:** base64 encoding does not protect payload data.
 11. **Telemetry:** exporter registration, backend retention, sampling, and redaction must be verified in the deployed environment.
-12. **Durable storage:** the configured Durable Task provider and hosting-plan constraints must be verified.
+12. **Infrastructure configuration:** the subscription `MaxDeliveryCount=6` and Flex maximum scale-out are not configured by `host.json` and have no checked-in infrastructure definition; deployment must set and verify them.
 
 ## 20. Repository alignment
 
 This document aligns with the current CourseLibrary implementation context:
 
 - `CourseLibrary.Course.EventConsumer` is a .NET isolated Azure Functions application.
-- `CourseEventConsumer` uses manual Service Bus settlement, creates a deterministic orchestration ID, schedules `CourseEventOrchestrator`, and then completes the message.
-- `CourseEventOrchestrator` calls `CourseEventStartActivity` and `CourseEventAuditActivity`.
-- `CourseEventAuditActivity` writes `CourseAuditEntry` through `ICourseAuditRepository`.
-- The audit document configuration targets `course-audit` with `/courseId` partitioning.
-- `CourseEventDqlMessageHandler` stores DLQ information through `IDqlMessageStore` before completing the DLQ message.
+- `CourseEventConsumer` uses manual Service Bus settlement and completes only after Cosmos reports an existing audit or an atomic audit-plus-`Completed` write succeeds.
+- `CourseEventHistoryEntry` stores append-only attempt state in `course-audit` alongside the audit record, with `/courseId` partitioning.
+- `ICourseAuditRepository` provides status recording, idempotent completion, duplicate lookup, and paged history reads.
+- `GET /api/v1/courses/{courseId}/history` returns the course's status history.
+- `CourseEventDqlMessageHandler` subscribes to `CourseEventConsumer/$deadletterqueue`, archives the original message to `IDqlMessageStore`, records valid-event DLQ history, and completes only after archival succeeds.
 - The solution uses custom OpenTelemetry activity sources, trace-context propagation, and function metrics middleware.
 - Microsoft.Extensions.Compliance redaction is a required part of the telemetry/data-protection design and must be validated in the exported output.
 
-**Final operating rule:** protect the audit database first. Start with one event per orchestration, no fan-out, low per-host concurrency, and bounded scale-out. Increase throughput only after measuring event arrival rate, Cosmos RU/write, end-to-end latency, backlog behavior, and failure recovery.
+**Final operating rule:** protect the audit database first. Start with four concurrent Service Bus callbacks per host, zero prefetch, a verified bounded scale-out, and the local rate limiter. Increase throughput only after measuring end-to-end handler latency, RU/event, queue age, and recovery behavior. Never complete a message before its audit and terminal history are durable.

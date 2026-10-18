@@ -3,16 +3,21 @@
   "telemetryMode": "OpenTelemetry",
   "extensions": {
     "serviceBus": {
-      "maxConcurrentCalls": 20
+      "prefetchCount": 0,
+      "maxConcurrentCalls": 4,
+      "maxAutoLockRenewalDuration": "00:05:00"
     },
     "durableTask": {
-      "maxConcurrentActivityFunctions": 32,
-      "maxConcurrentOrchestratorFunctions": 4,
+      "maxConcurrentActivityFunctions": 4,
+      "maxConcurrentOrchestratorFunctions": 2,
       "tracing": {
         "distributedTracingEnabled": true,
         "version": "V2"
       }
     }
+  },
+  "concurrency": {
+    "dynamicConcurrencyEnabled": false
   },
   "functionTimeout": "00:05:00",
   "logging": {

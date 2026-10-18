@@ -33,7 +33,7 @@ internal sealed class CourseEventConsumer(
             TopicName,
             SubscriptionName,
             Connection = "ServiceBusConnection",
-            AutoCompleteMessages = false)]
+            AutoCompleteMessages = true)]
         ServiceBusReceivedMessage message,
         ServiceBusMessageActions messageActions,
         [DurableClient] DurableTaskClient durableTaskClient,
@@ -170,7 +170,6 @@ internal sealed class CourseEventConsumer(
                     existingInstance.RuntimeStatus);
                 activity?.SetTag(CourseEventConsumerActivityTagConstants.MessagingDuplicate, true);
                 activity?.SetStatus(ActivityStatusCode.Ok, "Duplicate message");
-                await CompleteMessageAsync(message, messageActions, cancellationToken);
                 CourseEventConsumerMeter.Shared.RecordMessage(
                     "duplicate",
                     Stopwatch.GetElapsedTime(startedAt).TotalMilliseconds);
@@ -214,7 +213,6 @@ internal sealed class CourseEventConsumer(
                     "CourseEvent message {MessageId} lost the orchestration creation race for {InstanceId}.",
                     message.MessageId,
                     instanceId);
-                await CompleteMessageAsync(message, messageActions, cancellationToken);
                 CourseEventConsumerMeter.Shared.RecordMessage(
                     "duplicate",
                     Stopwatch.GetElapsedTime(startedAt).TotalMilliseconds);
@@ -224,7 +222,6 @@ internal sealed class CourseEventConsumer(
             CourseEventConsumerMeter.Shared.RecordOrchestrationStarted(
                 nameof(CourseEventOrchestrator));
             activity?.SetStatus(ActivityStatusCode.Ok);
-            await CompleteMessageAsync(message, messageActions, cancellationToken);
             CourseEventConsumerMeter.Shared.RecordMessage(
                 "success",
                 Stopwatch.GetElapsedTime(startedAt).TotalMilliseconds);
@@ -303,11 +300,6 @@ internal sealed class CourseEventConsumer(
             cancellationToken: cancellationToken);
     }
 
-    private static async Task CompleteMessageAsync(
-        ServiceBusReceivedMessage message,
-        ServiceBusMessageActions messageActions,
-        CancellationToken cancellationToken)
-        => await messageActions.CompleteMessageAsync(message, cancellationToken);
 
     private static void SetActivityTags(
         Activity? activity,
