@@ -12,9 +12,9 @@
 
 This document defines the requirements and target architecture for publishing CourseLibrary business events and persisting audit records asynchronously. It consolidates the agreed requirements for throughput, concurrency, event handling, Cosmos DB protection, retries, dead-letter handling, retention, tracing, redaction, operations, and acceptance.
 
-The design keeps audit persistence outside the synchronous API request path. The API publishes an event to Azure Service Bus. The Service Bus-triggered Function validates the event, records an `InProcess` course-history entry, then atomically creates the audit record and `Completed` history entry in the `course-audit` Cosmos DB container. It completes the message only after that transaction succeeds. Failed calls leave the message unsettled for Service Bus retry.
+The API publishes events to Azure Service Bus. The Service Bus-triggered Function validates the event and schedules a Durable orchestration. A successful Function invocation is completed automatically by the Service Bus binding. Failures in the invocation are retried by Service Bus; later Durable orchestration failures do not redeliver the original Service Bus message.
 
-New messages do not use Durable Functions. Existing Durable orchestrations from deployments before this change must be drained and reconciled; their old settlement semantics are not repaired retroactively.
+Durable Functions own retries and failure handling after the Service Bus-triggered invocation completes. Service Bus retries apply only to failures before the invocation returns successfully.
 
 The consumer provides at-least-once processing with duplicate-safe persistence. It does not claim end-to-end zero loss until the API's business-commit/publication dual-write gap is closed with a transactional outbox.
 
@@ -28,9 +28,10 @@ The consumer provides at-least-once processing with duplicate-safe persistence. 
 | Audit partition key | `/courseId` | Validate partition distribution and hot-partition behavior |
 | Cosmos DB throughput | Not yet sized | The prior 4,286 RU/s estimate assumed one 5-RU write/event; it is invalid for the current read + status-create + transactional-batch path |
 | Message processing | Service Bus topic/subscription and .NET isolated Functions | Subscription: `CourseEventConsumer` |
-| Processing path | Direct Function processing | One Service Bus message per invocation; no Durable handoff |
+| Processing path | Durable handoff | One Service Bus message per invocation; audit processing continues in a Durable orchestration |
 | Delivery semantics | At least once | Duplicate delivery and replay must be safe |
-| Service Bus settlement | Manual settlement | Do not complete a message until the audit and `Completed` history are atomically durable |
+| Service Bus settlement | Automatic completion after successful Function invocation | Current invocation completes after scheduling its Durable orchestration, not after audit persistence |
+| Service Bus lock renewal | 15 minutes maximum automatic renewal | Separate from the five-minute Function execution timeout |
 | Subscription delivery limit | 6 deliveries | One initial delivery plus five redeliveries; configure on the Service Bus subscription, not in `host.json` |
 | Sessions | Not enabled by the current Function trigger | No message-ordering guarantee |
 | Active-message retention | Requested 15 days | Confirm selected Service Bus tier/entity limits before implementation |
@@ -123,12 +124,12 @@ The `course-audit` Cosmos DB container is the system of record for persisted aud
 | CourseLibrary API | Performs the business operation and publishes a versioned event with a stable event identifier and trace context |
 | `CourseEvent` topic | Distributes published events to configured subscriptions |
 | `CourseEventConsumer` subscription | Delivers events to the consumer and retains messages that exceed delivery handling limits in its DLQ |
-| `CourseEventConsumer` Function | Validates the message, records `InProcess`, checks for a prior audit, atomically creates audit plus `Completed` history, and then completes the message |
+| `CourseEventConsumer` Function | Validates the message, schedules a Durable orchestration, and automatically completes the Service Bus message when the invocation returns successfully |
 | `ICourseAuditRepository` | Creates append-only status entries, reads by event ID, writes audit plus terminal status transactionally, and pages course history |
 | `CourseEventHistoryEntry` | Append-only status record with course/event/message IDs, attempt, timestamp, notes, and error type |
 | `CourseAuditEntry` | Immutable audit record stored in the dedicated audit container |
 | Cosmos DB `course-audit` | Stores persisted audit records, partitioned by `/courseId` |
-| `CourseEventDqlMessageHandler` | Stores full DLQ payload in Table Storage, records `DeadLettered` history for parseable events, then completes the original DLQ message |
+| `CourseEventDqlMessageHandler` | Stores full DLQ payload in Table Storage; the binding automatically completes the DLQ message after successful archival |
 | `IDqlMessageStore` | Abstraction for storing DLQ operational metadata |
 | Azure Table Storage `DqlMessages` | Stores operational DLQ metadata for investigation and controlled replay |
 | OpenTelemetry pipeline | Correlates producer, trigger, Cosmos writes, status transitions, and DLQ handling without exporting sensitive payloads |
@@ -138,16 +139,15 @@ The `course-audit` Cosmos DB container is the system of record for persisted aud
 1. A client calls the CourseLibrary API.
 2. The API performs the business operation according to its existing API contract.
 3. The API publishes a versioned event to the `CourseEvent` topic. The event has a stable event ID and carries W3C trace context where available.
-4. The `CourseEventConsumer` subscription delivers the message to the Function using manual settlement.
-5. The Function validates the message and reads `course-audit` by `(eventId, courseId)`. If an audit already exists after a previous commit/settlement ambiguity, it completes the duplicate safely.
-6. The Function appends an `InProcess` history record with the Service Bus delivery count.
-7. It atomically creates the immutable audit record and `Completed` history record in one Cosmos transactional batch in the same `/courseId` partition.
-8. Only after the batch succeeds does it complete the Service Bus message. Any persistence failure is rethrown so the broker redelivers.
-9. The subscription is configured with `MaxDeliveryCount=6` (initial attempt plus five retries); exhausted messages enter the subscription DLQ.
-10. The DLQ handler archives the original payload and metadata to Table Storage, appends `DeadLettered` history when deserialization succeeds, and only then completes the DLQ message.
-11. Invalid primary messages are explicitly dead-lettered immediately. They remain recoverable in the DLQ even if a course history entry cannot be derived.
+4. The `CourseEventConsumer` subscription delivers the message to the Function with automatic completion enabled.
+5. The Function validates the message, then schedules a Durable orchestration.
+6. When scheduling succeeds and the Function returns, the Service Bus binding automatically completes the message. Exceptions during the Function invocation are propagated for Service Bus retry.
+7. The Durable orchestration performs audit persistence after the original Service Bus message has been completed.
+8. The subscription's configured `MaxDeliveryCount` controls retries for failures before the Function invocation returns; exhausted messages enter the subscription DLQ.
+9. The DLQ handler archives the original payload and metadata to Table Storage; the binding automatically completes the DLQ message when archival succeeds. An archival exception leaves the message eligible for retry.
+10. Messages that cannot be deserialized fail the invocation and follow the subscription's retry/dead-letter policy.
 
-**Important settlement boundary:** Service Bus completion means both the audit record and `Completed` status have been committed. The audit and status writes are atomic; Service Bus settlement is not part of the Cosmos transaction. Duplicate delivery after a successful batch is expected and handled by the audit lookup.
+**Important settlement boundary:** Service Bus completion means only that the Function invocation returned successfully after orchestration scheduling. It does not confirm audit persistence. A later Durable orchestration failure is outside the Service Bus retry boundary.
 
 The producer's direct API publish still has a dual-write gap with the business database. A transactional outbox is required before claiming end-to-end zero loss from business commit through audit persistence.
 
@@ -212,7 +212,7 @@ The active Function project is `CourseLibrary.Course.EventConsumer`. Its current
     "serviceBus": {
       "prefetchCount": 0,
       "maxConcurrentCalls": 4,
-      "maxAutoLockRenewalDuration": "00:05:00"
+      "maxAutoLockRenewalDuration": "00:15:00"
     },
     "durableTask": {
       "maxConcurrentActivityFunctions": 4,
@@ -227,7 +227,7 @@ The active Function project is `CourseLibrary.Course.EventConsumer`. Its current
 
 Notes:
 
-- The Service Bus trigger permits at most 4 concurrent callbacks per host. Its lock is renewed for up to five minutes and the Function timeout is five minutes. Long processing may still cause duplicate delivery; idempotency is mandatory.
+- The Service Bus trigger permits at most 4 concurrent callbacks per host. Its lock is automatically renewed for up to 15 minutes; the Function timeout remains five minutes. Long processing may still cause duplicate delivery; idempotency is mandatory.
 - Durable activity/orchestrator limits remain only to allow previously scheduled workflows to drain. New messages do not schedule orchestrations.
 - With four callbacks/host and two audit permits/event, reaching 600 completed events/second requires at least 60 single-process-equivalent workers based on the 20 permits/second local write limiter. This is a mathematical minimum, not a deployment recommendation; the actual Cosmos RU/event, Function duration, Flex scale response, retries, and database budget may require a lower rate or greater capacity.
 - At 600 events/second, Little's Law gives 120 concurrent callbacks if measured mean handler time is 200 ms. Four callbacks/host would therefore require 30 single-process-equivalent hosts for this latency condition; the local limiter may require more. For any measured mean handler time `T` seconds, required concurrent callbacks are `600 × T`.
@@ -404,8 +404,8 @@ The following table records the agreed direction. Values marked “validate” m
 | Service Bus | Sessions | Not enabled by the current trigger; no ordering guarantee |
 | Service Bus | Prefetch | `0` |
 | Service Bus | Per-host concurrency | `maxConcurrentCalls: 4`; 20 message permits/s and 20 audit permits/s per process |
-| Service Bus | Lock renewal | `maxAutoLockRenewalDuration: 00:05:00`; Function timeout is five minutes |
-| Service Bus | Settlement | Manual Peek-Lock; complete only after audit and `Completed` status commit |
+| Service Bus | Lock renewal | `maxAutoLockRenewalDuration: 00:15:00`; Function timeout is five minutes |
+| Service Bus | Settlement | Automatic completion when the Function invocation returns successfully |
 | Service Bus | Active TTL | Requested 15 days; validate tier/entity limits |
 | Service Bus | Maximum delivery count | `6`: one initial delivery plus five retries; configure on the subscription |
 | Functions platform (Flex) | Maximum instances | Not configured in this repository; configure using measured RU/event and count always-ready instances and worker processes |
@@ -510,7 +510,7 @@ These are validation items, not hidden assumptions:
 3. **Global concurrency:** `host.json` limits are per host. Flex scales function groups independently; per-group maximums must include always-ready and worker-process counts, and do not alone enforce a global Cosmos RU cap.
 4. **Local rate limiting:** the 20 audit permits/second setting is per process; two permits are consumed per successful event and scale-out multiplies it.
 5. **Ordering:** the current trigger does not use sessions and provides no ordering guarantee.
-6. **Legacy Durable runs:** existing orchestrations may have already-acknowledged messages; reconcile/drain them during rollout. New events do not use Durable Functions.
+6. **Durable processing:** new messages are handed to Durable orchestrations after Function validation and scheduling. Ensure orchestration retry/failure policies handle failures that occur after automatic Service Bus completion.
 7. **Retention:** 15-day active TTL and 30-day DLQ retention must be implemented according to actual Service Bus behavior and the selected tier; DLQ cleanup requires an explicit process.
 8. **Producer dual write:** direct publication after a business commit can lose an event in a failure window. A transactional outbox is required before end-to-end zero loss can be claimed.
 9. **Cosmos writes:** unconditional upsert can replace an existing record; use a duplicate-safe persistence contract.
@@ -523,12 +523,12 @@ These are validation items, not hidden assumptions:
 This document aligns with the current CourseLibrary implementation context:
 
 - `CourseLibrary.Course.EventConsumer` is a .NET isolated Azure Functions application.
-- `CourseEventConsumer` uses manual Service Bus settlement and completes only after Cosmos reports an existing audit or an atomic audit-plus-`Completed` write succeeds.
+- `CourseEventConsumer` enables automatic Service Bus message completion; successful invocation returns after orchestration scheduling, before audit persistence finishes.
 - `CourseEventHistoryEntry` stores append-only attempt state in `course-audit` alongside the audit record, with `/courseId` partitioning.
 - `ICourseAuditRepository` provides status recording, idempotent completion, duplicate lookup, and paged history reads.
 - `GET /api/v1/courses/{courseId}/history` returns the course's status history.
-- `CourseEventDqlMessageHandler` subscribes to `CourseEventConsumer/$deadletterqueue`, archives the original message to `IDqlMessageStore`, records valid-event DLQ history, and completes only after archival succeeds.
+- `CourseEventDqlMessageHandler` subscribes to `CourseEventConsumer/$deadletterqueue` and archives the original message to `IDqlMessageStore`; successful archival is followed by automatic message completion.
 - The solution uses custom OpenTelemetry activity sources, trace-context propagation, and function metrics middleware.
 - Microsoft.Extensions.Compliance redaction is a required part of the telemetry/data-protection design and must be validated in the exported output.
 
-**Final operating rule:** protect the audit database first. Start with four concurrent Service Bus callbacks per host, zero prefetch, a verified bounded scale-out, and the local rate limiter. Increase throughput only after measuring end-to-end handler latency, RU/event, queue age, and recovery behavior. Never complete a message before its audit and terminal history are durable.
+**Final operating rule:** protect the audit database first. Start with four concurrent Service Bus callbacks per host, zero prefetch, a verified bounded scale-out, and the local rate limiter. The 15-minute automatic lock-renewal window is not an audit-persistence guarantee: the current Function completes after orchestration scheduling, so subsequent orchestration failures must be handled by Durable retry policies.

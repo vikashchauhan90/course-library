@@ -11,7 +11,7 @@
 
 The objective is to design a reliable, scalable, and asynchronous audit event processing system for the CourseLibrary platform.
 
-The system must capture events associated with database operations performed by the primary CourseLibrary API, publish them asynchronously through Azure Service Bus, and persist audit records in a dedicated Azure Cosmos DB container. A Service Bus message remains unsettled until both its audit record and its terminal processing-history entry are durable.
+The system must capture events associated with database operations performed by the primary CourseLibrary API, publish them asynchronously through Azure Service Bus, and persist audit records in a dedicated Azure Cosmos DB container. A successful Service Bus-triggered Function invocation is completed automatically; a failed invocation is left to Service Bus retry and eventually dead-letter according to the subscription's configured delivery limit.
 
 The design must prioritize eventual consistency, controlled resource consumption, horizontal scalability, fault tolerance, and operational observability. Once Service Bus accepts an event, no processing or archival failure may silently discard it: retry it, retain it in the subscription DLQ, or keep the DLQ message unsettled until archival succeeds. The producer-side business-commit/publication gap remains an explicit outbox requirement; this consumer design alone cannot guarantee end-to-end zero loss.
 
@@ -35,7 +35,7 @@ The proposed architecture consists of the following components:
 
 1. **CourseLibrary API:** Executes the primary business operations and initiates audit event publication.
 2. **Azure Service Bus Topic:** Buffers audit events and decouples producers from consumers.
-3. **.NET isolated Azure Function:** Processes one message at a time per invocation, persists audit plus terminal status, then settles the Service Bus message.
+3. **.NET isolated Azure Function:** Validates each message and schedules a Durable orchestration; the Service Bus binding completes the message automatically when the Function invocation returns successfully.
 4. **Azure Cosmos DB — Audit Container:** Stores processed audit records separately from the primary application data.
 5. **Azure Table Storage:** Stores metadata for dead-letter messages that have been captured for analysis and recovery.
 6. **Dead-Letter Queue (DLQ):** Retains messages that cannot be successfully processed within the configured delivery and retry policies.
@@ -47,14 +47,13 @@ The proposed architecture consists of the following components:
 2. The API performs the relevant business operation against Azure Cosmos DB.
 3. The API creates an audit event representing the relevant business activity.
 4. The API publishes the event to the configured Azure Service Bus topic.
-5. The trigger validates the message and records an `InProcess` history entry keyed by course.
-6. It writes the audit record and `Completed` history entry in one Cosmos DB transactional batch in the `course-audit` container, partitioned by `/courseId`.
-7. It completes the Service Bus message only after that transaction succeeds. If any step fails, it throws without settlement so Service Bus redelivers the message.
-8. Configure the subscription `MaxDeliveryCount` as **6** (one initial delivery plus five retries). On exhaustion, Service Bus routes the original message to that subscription's DLQ.
-9. The DLQ function persists the full original payload and metadata to Azure Table Storage, then records `DeadLettered` course history when the payload is valid, and completes the DLQ message only after durable storage succeeds.
-10. Expose paginated course history at `GET /api/v1/courses/{courseId}/history`.
+5. The trigger validates the message and schedules a Durable orchestration.
+6. After scheduling succeeds, the Function invocation returns and the Service Bus binding completes the message automatically.
+7. The Durable orchestration performs audit persistence. Failures at this stage must be retried and handled by Durable Functions; they cannot trigger redelivery of the completed Service Bus message.
+8. Configure the subscription `MaxDeliveryCount` as **6** (one initial delivery plus five retries) for failures before the Function invocation returns. On exhaustion, Service Bus routes the message to its DLQ.
+9. The DLQ function persists the original payload and metadata to Azure Table Storage; the binding completes the DLQ message automatically after the invocation succeeds.
 
-Poison messages that cannot be deserialized are explicitly dead-lettered immediately; they are still retained by Service Bus and archived by the DLQ function. Previously scheduled Durable orchestrations may exist from an older deployment; drain/reconcile those before removing their code or relying on the new settlement guarantees.
+Messages that cannot be deserialized fail the invocation and follow the subscription's normal retry/dead-letter policy. The Durable orchestration's later audit processing is outside the Service Bus message lock; orchestration failures do not cause the original Service Bus message to be redelivered.
 
 # 3. Functional Requirements
 
@@ -95,18 +94,18 @@ The design shall also establish whether additional subscriptions are needed for 
 
 ## FR-04: Service Bus Consumption and Settlement
 
-The .NET isolated Service Bus-triggered Function shall perform the audit write synchronously within the message lock and complete only after durable persistence.
+The .NET isolated Service Bus-triggered Function shall use automatic completion after a successful invocation. Exceptions must propagate so the Service Bus trigger can retry failed invocations.
 
 The implementation shall define:
 
 - Trigger execution behavior.
-- Audit and status persistence before settlement.
+- The point at which the invocation returns and automatic message completion occurs.
 - Message settlement and completion.
 - Stable event identity and duplicate detection.
 - Duplicate event detection.
 - Failure handling and replay behavior.
 
-The function shall leave a message unsettled when Cosmos persistence fails. Duplicate delivery shall be safe: a pre-existing audit event is detected by its stable event ID and the duplicate message is completed without replacing the immutable audit record.
+Automatic completion covers successful invocation execution only. If work is handed to a Durable orchestration, later orchestration failures do not trigger Service Bus redelivery; the orchestration must provide its own retry and failure handling.
 
 ## FR-05: Audit Record Persistence
 
@@ -125,7 +124,7 @@ The system shall limit concurrent processing at multiple levels:
 - Maximum number of concurrent Service Bus-triggered invocations per host.
 - Number of simultaneous database writes.
 
-The active `host.json` baseline is four concurrent calls and zero prefetch per host, with dynamic concurrency disabled. The local rate limiter is per worker process, not global. Scale-out and worker-process count must be bounded against measured Cosmos capacity. Durable concurrency settings only affect any legacy orchestrations draining from an older deployment; new messages are not scheduled into Durable Functions.
+The active `host.json` baseline is four concurrent calls and zero prefetch per host, with dynamic concurrency disabled and a 15-minute maximum automatic Service Bus lock-renewal duration. The Function timeout remains five minutes and is a separate setting. The local rate limiter is per worker process, not global. Scale-out and worker-process count must be bounded against measured Cosmos capacity.
 
 ## FR-07: Retry and Failure Handling
 
@@ -373,7 +372,7 @@ The solution shall define the following retry behavior:
 
 The retry design shall prevent excessive cumulative delays and duplicate side effects.
 
-The function must not schedule new Durable orchestrations or settle a message before Cosmos persistence. The function execution timeout and Service Bus lock-renewal duration are both five minutes; prolonged downstream failures remain in Service Bus and are retried, then routed to DLQ after six total deliveries.
+Failures before orchestration scheduling must propagate from the Function invocation for Service Bus retry. The trigger's automatic completion occurs after successful scheduling, not after Cosmos persistence. The Service Bus lock-renewal window is 15 minutes; the Function execution timeout remains five minutes. Failures after scheduling require Durable retry handling and do not return the original message to Service Bus.
 
 # 7. Assumptions
 

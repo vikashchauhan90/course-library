@@ -5,7 +5,7 @@
     "serviceBus": {
       "prefetchCount": 0,
       "maxConcurrentCalls": 4,
-      "maxAutoLockRenewalDuration": "00:05:00"
+      "maxAutoLockRenewalDuration": "00:15:00"
     },
     "durableTask": {
       "maxConcurrentActivityFunctions": 4,
@@ -19,7 +19,7 @@
   "concurrency": {
     "dynamicConcurrencyEnabled": false
   },
-  "functionTimeout": "00:05:00",
+  "functionTimeout": "00:15:00",
   "logging": {
     "logLevel": {
       "default": "Information",

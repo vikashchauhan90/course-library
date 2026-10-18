@@ -35,12 +35,10 @@ internal sealed class CourseEventConsumer(
             Connection = "ServiceBusConnection",
             AutoCompleteMessages = true)]
         ServiceBusReceivedMessage message,
-        ServiceBusMessageActions messageActions,
         [DurableClient] DurableTaskClient durableTaskClient,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(message);
-        ArgumentNullException.ThrowIfNull(messageActions);
         ArgumentNullException.ThrowIfNull(durableTaskClient);
 
         var startedAt = Stopwatch.GetTimestamp();
@@ -120,34 +118,15 @@ internal sealed class CourseEventConsumer(
             }
             catch (Exception exception) when (exception is not OperationCanceledException)
             {
-                await DeadLetterInvalidMessageAsync(
-                    message,
-                    messageActions,
-                    activity,
-                    "CourseEventDeserializationFailed",
+                throw new InvalidOperationException(
                     "The message body could not be deserialized as a CourseEvent.",
-                    exception,
-                    cancellationToken);
-                CourseEventConsumerMeter.Shared.RecordMessage(
-                    "dead_lettered",
-                    Stopwatch.GetElapsedTime(startedAt).TotalMilliseconds);
-                return;
+                    exception);
             }
 
             if (courseEvent is null)
             {
-                await DeadLetterInvalidMessageAsync(
-                    message,
-                    messageActions,
-                    activity,
-                    "InvalidCourseEvent",
-                    "The message body deserialized to null and could not be processed.",
-                    null,
-                    cancellationToken);
-                CourseEventConsumerMeter.Shared.RecordMessage(
-                    "dead_lettered",
-                    Stopwatch.GetElapsedTime(startedAt).TotalMilliseconds);
-                return;
+                throw new InvalidOperationException(
+                    "The message body deserialized to null and could not be processed.");
             }
 
             activity?.SetTag(
@@ -257,49 +236,6 @@ internal sealed class CourseEventConsumer(
             throw;
         }
     }
-
-    private async Task DeadLetterInvalidMessageAsync(
-        ServiceBusReceivedMessage message,
-        ServiceBusMessageActions messageActions,
-        Activity? activity,
-        string reason,
-        string description,
-        Exception? exception,
-        CancellationToken cancellationToken)
-    {
-        activity?.SetTag(
-            CourseEventConsumerActivityTagConstants.MessagingDestination,
-            $"{TopicName}/$DeadLetterQueue");
-        activity?.SetTag(
-            CourseEventConsumerActivityTagConstants.MessagingDeadLetterReason,
-            reason);
-        activity?.SetStatus(ActivityStatusCode.Error, reason);
-
-        if (exception is null)
-        {
-            logger.LogWarning(
-                "Dead-lettering invalid CourseEvent message {MessageId}. Reason: {Reason}.",
-                message.MessageId,
-                reason);
-        }
-        else
-        {
-            ActivityEnrichmentHelper.RecordException(activity, exception);
-            logger.LogWarning(
-                exception,
-                "Dead-lettering invalid CourseEvent message {MessageId}. Reason: {Reason}.",
-                message.MessageId,
-                reason);
-        }
-
-        await messageActions.DeadLetterMessageAsync(
-            message,
-            propertiesToModify: null,
-            deadLetterReason: reason,
-            deadLetterErrorDescription: description,
-            cancellationToken: cancellationToken);
-    }
-
 
     private static void SetActivityTags(
         Activity? activity,

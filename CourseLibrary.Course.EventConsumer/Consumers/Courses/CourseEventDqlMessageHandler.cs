@@ -18,7 +18,7 @@ internal sealed class CourseEventDqlMessageHandler(
     IDqlMessageStore dqlMessageStore,
     ILogger<CourseEventDqlMessageHandler> logger)
 {
-     private const string TopicName = "CourseEvent";
+    private const string TopicName = "CourseEvent";
     private const string DeadLetterSubscription = "CourseEventConsumer/$deadletterqueue";
 
     private readonly ISerializer<CourseLibrary.Course.Domain.Events.CourseEvent> _serializer =
@@ -30,9 +30,9 @@ internal sealed class CourseEventDqlMessageHandler(
         [ServiceBusTrigger(
             TopicName,
             DeadLetterSubscription,
-            Connection = "ServiceBusConnection")]
+            Connection = "ServiceBusConnection",
+            AutoCompleteMessages = true)]
         ServiceBusReceivedMessage message,
-        ServiceBusMessageActions messageActions,
         CancellationToken cancellationToken)
     {
         var startedAt = Stopwatch.GetTimestamp();
@@ -61,7 +61,7 @@ internal sealed class CourseEventDqlMessageHandler(
         using var scope = logger.BeginScope(new Dictionary<string, object?>
         {
             [CourseEventConsumerActivityTagConstants.MessagingSystem] = "servicebus",
-            [CourseEventConsumerActivityTagConstants.MessagingDestination] = DeadLetterDestination,
+            [CourseEventConsumerActivityTagConstants.MessagingDestination] = DeadLetterSubscription,
             [CourseEventConsumerActivityTagConstants.MessagingOperation] = "process",
             [CourseEventConsumerActivityTagConstants.MessagingMessageId] = message.MessageId,
             [CourseEventConsumerActivityTagConstants.MessagingCorrelationId] = message.CorrelationId,
@@ -76,7 +76,7 @@ internal sealed class CourseEventDqlMessageHandler(
             }
 
             activity?.SetTag(CourseEventConsumerActivityTagConstants.MessagingSystem, "servicebus");
-            activity?.SetTag(CourseEventConsumerActivityTagConstants.MessagingDestination, DeadLetterDestination);
+            activity?.SetTag(CourseEventConsumerActivityTagConstants.MessagingDestination, DeadLetterSubscription);
             activity?.SetTag(CourseEventConsumerActivityTagConstants.MessagingOperationType, "process");
             activity?.SetTag(CourseEventConsumerActivityTagConstants.MessagingMessageId, message.MessageId);
             activity?.SetTag(CourseEventConsumerActivityTagConstants.MessagingCorrelationId, message.CorrelationId);
@@ -131,9 +131,8 @@ internal sealed class CourseEventDqlMessageHandler(
                 Payload = Convert.ToBase64String(message.Body.ToArray()),
                 Status = DqlMessageStatus.Pending
             };
-
             await dqlMessageStore.StoreAsync(record, cancellationToken);
-            await messageActions.CompleteMessageAsync(message, cancellationToken);
+            await dqlMessageStore.StoreAsync(record, cancellationToken);
 
             activity?.SetTag(CourseEventConsumerActivityTagConstants.MessagingEventType, eventType);
             activity?.SetStatus(ActivityStatusCode.Ok);
