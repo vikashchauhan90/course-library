@@ -1,3 +1,4 @@
+using CourseLibrary.Course.Api.Observability;
 using CourseLibrary.Course.Application.Observability;
 using CourseLibrary.Course.Persistence.Observability;
 using CourseLibrary.Platform.Caching.Observability;
@@ -47,6 +48,7 @@ public static class CourseLibraryApiObservabilityExtensions
             .WithTracing(tracing =>
             {
                 tracing
+                    .AddSource(CourseApiTelemetry.ActivitySourceName)
                     .AddSource(CourseApplicationTelemetry.ActivitySourceName)
                     .AddSource(CoursePersistenceTelemetry.ActivitySourceName)
                     .AddSource(ResilienceTelemetry.ActivitySourceName)
@@ -66,6 +68,7 @@ public static class CourseLibraryApiObservabilityExtensions
             .WithMetrics(metrics =>
             {
                 metrics
+                    .AddMeter(CourseApiTelemetry.MeterName)
                     .AddMeter(CourseApplicationTelemetry.MeterName)
                     .AddMeter(CoursePersistenceTelemetry.MeterName)
                     .AddMeter(ResilienceTelemetry.MeterName)
@@ -94,7 +97,7 @@ public static class CourseLibraryApiObservabilityExtensions
     {
         builder
             .AddService(
-                serviceName: "CourseLibrary.Course.Api",
+                serviceName: CourseApiTelemetry.ActivitySourceName,
                 serviceVersion: typeof(CourseLibraryApiObservabilityExtensions)
                     .Assembly
                     .GetName()

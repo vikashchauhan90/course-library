@@ -86,6 +86,7 @@ public static class CourseLibraryApiExtensions
     {
         ArgumentNullException.ThrowIfNull(app);
 
+        app.UseMiddleware<CourseApiTelemetryMiddleware>();
         app.UseExceptionHandler();
         app.UseHttpsRedirection();
         if (!app.Environment.IsDevelopment())
