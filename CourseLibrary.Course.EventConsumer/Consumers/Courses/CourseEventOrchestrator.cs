@@ -2,7 +2,6 @@ using CourseLibrary.Course.EventConsumer.Core;
 using CourseLibrary.Course.EventConsumer.Observability;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.DurableTask;
-using Microsoft.Extensions.Logging;
 
 namespace CourseLibrary.Course.EventConsumer.Consumers.Courses;
 
@@ -17,8 +16,7 @@ internal sealed class CourseEventOrchestrator
 
         if (input?.Event is null)
         {
-            logger.LogError(
-                "CourseEvent orchestration {InstanceId} received no event.",
+            logger.OrchestrationEventMissing(
                 context.InstanceId);
             throw new InvalidOperationException("CourseEvent orchestration event was not provided.");
         }

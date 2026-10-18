@@ -136,11 +136,10 @@ internal sealed class CourseEventConsumer(
             {
                 CourseEventConsumerMeter.Shared.RecordDuplicate(
                     existingInstance!.RuntimeStatus.ToString());
-                logger.LogWarning(
-                    "Duplicate CourseEvent message {MessageId}; orchestration {InstanceId} is {Status}.",
+                logger.DuplicateMessage(
                     message.MessageId,
                     instanceId,
-                    existingInstance.RuntimeStatus);
+                    existingInstance.RuntimeStatus.ToString());
                 activity?.SetTag(CourseEventConsumerActivityTagConstants.MessagingDuplicate, true);
                 activity?.SetStatus(ActivityStatusCode.Ok, "Duplicate message");
                 CourseEventConsumerMeter.Shared.RecordMessage(
@@ -151,10 +150,9 @@ internal sealed class CourseEventConsumer(
 
             if (OrchestrationState.IsStaleInstance(existingInstance))
             {
-                logger.LogInformation(
-                    "Purging stale CourseEvent orchestration {InstanceId} with status {Status}.",
+                logger.StaleOrchestrationPurgeStarted(
                     instanceId,
-                    existingInstance?.RuntimeStatus);
+                    existingInstance?.RuntimeStatus.ToString());
                 await durableTaskClient.PurgeInstanceAsync(instanceId, cancellationToken);
             }
 
@@ -182,8 +180,7 @@ internal sealed class CourseEventConsumer(
                 CourseEventConsumerMeter.Shared.RecordDuplicate("AlreadyExists");
                 activity?.SetTag(CourseEventConsumerActivityTagConstants.MessagingDuplicate, true);
                 activity?.SetStatus(ActivityStatusCode.Ok, "Duplicate orchestration");
-                logger.LogWarning(
-                    "CourseEvent message {MessageId} lost the orchestration creation race for {InstanceId}.",
+                logger.OrchestrationCreationRaceLost(
                     message.MessageId,
                     instanceId);
                 CourseEventConsumerMeter.Shared.RecordMessage(
@@ -198,8 +195,7 @@ internal sealed class CourseEventConsumer(
             CourseEventConsumerMeter.Shared.RecordMessage(
                 "success",
                 Stopwatch.GetElapsedTime(startedAt).TotalMilliseconds);
-            logger.LogInformation(
-                "Started CourseEvent orchestration {InstanceId} for message {MessageId}.",
+            logger.OrchestrationStarted(
                 instanceId,
                 message.MessageId);
         }
@@ -223,9 +219,8 @@ internal sealed class CourseEventConsumer(
             CourseEventConsumerMeter.Shared.RecordMessage(
                 "failure",
                 Stopwatch.GetElapsedTime(startedAt).TotalMilliseconds);
-            logger.LogError(
+            logger.MessageProcessingFailed(
                 exception,
-                "Failed to process CourseEvent message {MessageId}.",
                 message.MessageId);
             throw;
         }

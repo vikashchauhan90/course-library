@@ -34,8 +34,7 @@ internal sealed class CourseEventStartActivity(
 
             if (activity is null)
             {
-                logger.LogWarning(
-                    "Unable to create tracing activity for CourseEvent {EventId}.",
+                logger.ActivityCreationFailed(
                     input.Event.EventId);
                 return Task.FromResult(input.Metadata.TraceParent);
             }
@@ -75,9 +74,8 @@ internal sealed class CourseEventStartActivity(
         }
         catch (Exception exception)
         {
-            logger.LogError(
+            logger.CourseEventProcessingFailed(
                 exception,
-                "Error processing CourseEvent {EventId} in orchestration {InstanceId}.",
                 input.Event.EventId,
                 input.InstanceId);
             throw;

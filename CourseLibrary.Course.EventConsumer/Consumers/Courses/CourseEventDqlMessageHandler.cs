@@ -91,9 +91,8 @@ internal sealed class CourseEventDqlMessageHandler(
             }
             catch (Exception exception) when (exception is not OperationCanceledException)
             {
-                logger.LogWarning(
+                logger.DeadLetterDeserializationFailed(
                     exception,
-                    "Unable to deserialize dead-lettered CourseEvent {MessageId}.",
                     message.MessageId);
             }
 
@@ -158,9 +157,8 @@ internal sealed class CourseEventDqlMessageHandler(
             CourseEventConsumerMeter.Shared.RecordMessage(
                 "failure",
                 Stopwatch.GetElapsedTime(startedAt).TotalMilliseconds);
-            logger.LogError(
+            logger.DeadLetterProcessingFailed(
                 exception,
-                "Failed to process DQL message {MessageId}.",
                 message.MessageId);
             throw;
         }

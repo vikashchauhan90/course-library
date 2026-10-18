@@ -2,6 +2,7 @@ using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Middleware;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
+using CourseLibrary.Course.EventConsumer.Observability;
 
 namespace CourseLibrary.Course.EventConsumer.Observability.Metrics;
 
@@ -18,7 +19,7 @@ public sealed class EventConsumerFunctionMetricsMiddleware(
         var outcome = "success";
 
         CourseEventConsumerMeter.Shared.RecordFunctionStarted(functionName);
-        logger.LogDebug("Started executing function {FunctionName}.", functionName);
+        logger.FunctionExecutionStarted(functionName);
 
         try
         {
@@ -41,8 +42,7 @@ public sealed class EventConsumerFunctionMetricsMiddleware(
                 functionName,
                 duration.TotalMilliseconds,
                 outcome);
-            logger.LogDebug(
-                "Finished executing function {FunctionName} with outcome {Outcome} in {DurationMilliseconds} ms.",
+            logger.FunctionExecutionCompleted(
                 functionName,
                 outcome,
                 duration.TotalMilliseconds);

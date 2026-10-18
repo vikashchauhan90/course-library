@@ -1,12 +1,15 @@
 using CourseLibrary.Course.Persistence.Observability;
 using CourseLibrary.Platform.Messaging.Observability;
+using CourseLibrary.Platform.Observability.Logs.Processors;
 using CourseLibrary.Platform.Observability.Metrics;
 using CourseLibrary.Platform.Observability.Traces;
+using CourseLibrary.Platform.Observability.Traces.Processors;
 using CourseLibrary.Platform.Persistence.CosmosDB.Observability;
 using CourseLibrary.Platform.Serialization.Observability;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using OpenTelemetry;
 using OpenTelemetry.Logs;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
@@ -16,26 +19,16 @@ namespace CourseLibrary.Course.EventConsumer.Observability;
 
 public static class CourseLibraryEventConsumerObservabilityExtensions
 {
-    public static IHostApplicationBuilder AddCourseLibraryEventConsumerObservability(
+    public static IHostApplicationBuilder AddObservability(
         this IHostApplicationBuilder builder)
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        var serviceVersion = typeof(CourseEventConsumerTelemetry)
-            .Assembly
-            .GetName()
-            .Version?
-            .ToString() ?? "unknown";
+        ResourceBuilder resourceBuilder = ResourceBuilder.CreateDefault();
+        ConfigureResourceBuilder(
+            resourceBuilder,
+            builder.Environment.EnvironmentName);
 
-        var resourceBuilder = ResourceBuilder.CreateDefault()
-            .AddService(
-                serviceName: CourseEventConsumerTelemetry.ActivitySourceName,
-                serviceVersion: serviceVersion,
-                serviceInstanceId: Environment.MachineName)
-            .AddAttributes(new Dictionary<string, object>
-            {
-                ["deployment.environment.name"] = builder.Environment.EnvironmentName
-            });
 
         builder.Logging.AddOpenTelemetry(options =>
         {
@@ -43,29 +36,16 @@ public static class CourseLibraryEventConsumerObservabilityExtensions
             options.IncludeScopes = true;
             options.IncludeFormattedMessage = true;
             options.ParseStateValues = true;
-
-            if (builder.Environment.IsDevelopment())
-            {
-                options.AddConsoleExporter();
-            }
-            else
-            {
-                options.AddOtlpExporter();
-            }
+            options.AddProcessor(sp =>
+                       sp.GetRequiredService<CourseLibraryLogProcessor>());
         });
 
         builder.Services.AddOpenTelemetry()
-            .ConfigureResource(resource =>
+            .ConfigureResource(resourceBuilder =>
             {
-                resource
-                    .AddService(
-                        serviceName: CourseEventConsumerTelemetry.ActivitySourceName,
-                        serviceVersion: serviceVersion,
-                        serviceInstanceId: Environment.MachineName)
-                    .AddAttributes(new Dictionary<string, object>
-                    {
-                        ["deployment.environment.name"] = builder.Environment.EnvironmentName
-                    });
+                ConfigureResourceBuilder(
+                    resourceBuilder,
+                    builder.Environment.EnvironmentName);
             })
             .WithTracing(tracing =>
             {
@@ -77,16 +57,16 @@ public static class CourseLibraryEventConsumerObservabilityExtensions
                     .AddSource(SerializationTelemetry.ActivitySourceName)
                     .AddSource(PlatformActivitySource.ActivitySourceName)
                     .AddSource("Microsoft.DurableTask")
-                    .AddHttpClientInstrumentation(options => options.RecordException = true);
-
-                if (builder.Environment.IsDevelopment())
-                {
-                    tracing.AddConsoleExporter();
-                }
-                else
-                {
-                    tracing.AddOtlpExporter();
-                }
+                       .AddHttpClientInstrumentation(options =>
+                       {
+                           options.RecordException = true;
+                       })
+                     .AddSqlClientInstrumentation(options =>
+                     {
+                         options.RecordException = true;
+                     })
+                     .AddProcessor<CorrelationActivityProcessor>()
+                     .AddProcessor<ActivityFailureProcessor>();
             })
             .WithMetrics(metrics =>
             {
@@ -101,17 +81,29 @@ public static class CourseLibraryEventConsumerObservabilityExtensions
                     .AddHttpClientInstrumentation()
                     .AddRuntimeInstrumentation()
                     .AddProcessInstrumentation();
-
-                if (builder.Environment.IsDevelopment())
-                {
-                    metrics.AddConsoleExporter();
-                }
-                else
-                {
-                    metrics.AddOtlpExporter();
-                }
-            });
+            })
+            .UseOtlpExporter();
 
         return builder;
+    }
+
+    private static void ConfigureResourceBuilder(
+        ResourceBuilder builder, string environmentName)
+    {
+        var serviceVersion = typeof(CourseEventConsumerTelemetry)
+           .Assembly
+           .GetName()
+           .Version?
+           .ToString() ?? "unknown";
+
+        builder
+            .AddService(
+                serviceName: CourseEventConsumerTelemetry.ActivitySourceName,
+                serviceVersion: serviceVersion,
+                serviceInstanceId: Environment.MachineName)
+            .AddAttributes(new Dictionary<string, object>
+            {
+                ["deployment.environment.name"] = environmentName
+            });
     }
 }

@@ -82,10 +82,9 @@ internal sealed class CourseEventAuditActivity(
                 nameof(CourseEventAuditActivity),
                 "failure",
                 Stopwatch.GetElapsedTime(startedAt).TotalMilliseconds);
-            logger.LogError(
+            logger.CourseAuditCreationFailed(
                 exception,
-                "Failed to create course audit for CourseId {CourseId} and EventId {EventId}.",
-                courseEvent.CourseId,
+                courseEvent.CourseId.ToString(),
                 courseEvent.EventId);
             throw;
         }
