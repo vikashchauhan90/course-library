@@ -1,6 +1,5 @@
 using CourseLibrary.Course.Client.Observability;
 using CourseLibrary.Course.Contracts.DTOs;
-using CourseLibrary.Course.Contracts.Pagination;
 using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;

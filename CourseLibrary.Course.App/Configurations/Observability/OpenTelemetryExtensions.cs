@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using CourseLibrary.Course.App.Configuration.Observability.Logs;
 using CourseLibrary.Course.App.Configuration.Observability.Metrics;
 using CourseLibrary.Course.App.Configuration.Observability.Traces;
@@ -19,6 +20,9 @@ internal static class OpenTelemetryExtensions
     public static WebApplicationBuilder AddObservability(
         this WebApplicationBuilder builder)
     {
+        Activity.DefaultIdFormat = ActivityIdFormat.W3C;
+        Activity.ForceDefaultIdFormat = true;
+
         var resourceBuilder = ResourceBuilder.CreateDefault();
         ConfigureResource(resourceBuilder, builder.Environment);
 
@@ -69,6 +73,7 @@ internal static class OpenTelemetryExtensions
 
                      .AddAspNetCoreInstrumentation()
                      .AddHttpClientInstrumentation()
+                     .AddProcessInstrumentation()
                      .AddRuntimeInstrumentation();
 
              })
@@ -84,11 +89,15 @@ internal static class OpenTelemetryExtensions
         resource
             .AddService(
             serviceName: ObservabilityConstants.ServiceName,
-            serviceVersion: ObservabilityConstants.ServiceVersion)
+            serviceVersion: typeof(OpenTelemetryExtensions)
+                .Assembly
+                .GetName()
+                .Version?
+                .ToString() ?? "unknown",
+            serviceInstanceId: Environment.MachineName)
                 .AddAttributes(new Dictionary<string, object>
                 {
-                    [Traces.Attributes.DeploymentEnvironment] = env.EnvironmentName,
-                    [Traces.Attributes.ServiceInstanceId] = Environment.MachineName
+                    [Traces.Attributes.DeploymentEnvironment] = env.EnvironmentName
                 });
     }
 
