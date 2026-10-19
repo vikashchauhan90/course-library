@@ -1,6 +1,4 @@
-﻿using CourseLibrary.Course.Api.Observability;
-
-namespace CourseLibrary.Course.Api.Middlewares;
+﻿namespace CourseLibrary.Course.Api.Middlewares;
 
 internal static class MiddlewareExtensions
 {
@@ -39,19 +37,6 @@ internal static class MiddlewareExtensions
         return app.UseMiddleware<ResponseHeadersMiddleware>();
     }
 
-    public static IApplicationBuilder UseResponseCaching(
-        this IApplicationBuilder app)
-    {
-        ArgumentNullException.ThrowIfNull(app);
-        return app.UseMiddleware<ResponseCachingMiddleware>();
-    }
-
-    public static IApplicationBuilder UseOutputCache(
-        this IApplicationBuilder app)
-    {
-        ArgumentNullException.ThrowIfNull(app);
-        return app.UseMiddleware<OutputCacheMiddleware>();
-    }
 
     public static IApplicationBuilder UseCourseApiTelemetry(
         this IApplicationBuilder app)

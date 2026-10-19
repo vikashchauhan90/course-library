@@ -1,6 +1,7 @@
+using CourseLibrary.Course.Api.Observability;
 using System.Diagnostics;
 
-namespace CourseLibrary.Course.Api.Observability;
+namespace CourseLibrary.Course.Api.Middlewares;
 
 internal sealed class CourseApiTelemetryMiddleware(
     RequestDelegate next,
