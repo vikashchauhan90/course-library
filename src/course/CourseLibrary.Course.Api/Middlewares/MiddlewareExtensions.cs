@@ -16,18 +16,18 @@ internal static class MiddlewareExtensions
         return app.UseMiddleware<RequestContextMiddleware>();
     }
 
-    public static IApplicationBuilder UseUserContext(
-        this IApplicationBuilder app)
-    {
-        ArgumentNullException.ThrowIfNull(app);
-        return app.UseMiddleware<UserContextMiddleware>();
-    }
-
     public static IApplicationBuilder UseRequestMetrics(
         this IApplicationBuilder app)
     {
         ArgumentNullException.ThrowIfNull(app);
         return app.UseMiddleware<RequestMetricsMiddleware>();
+    }
+
+    public static IApplicationBuilder UseUserContext(
+        this IApplicationBuilder app)
+    {
+        ArgumentNullException.ThrowIfNull(app);
+        return app.UseMiddleware<UserContextMiddleware>();
     }
 
     public static IApplicationBuilder UseResponseHeaders(

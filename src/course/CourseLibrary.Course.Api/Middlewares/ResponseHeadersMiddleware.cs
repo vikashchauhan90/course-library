@@ -1,4 +1,6 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
+using CourseLibrary.Course.Api.Observability;
+using CourseLibrary.Platform.Observability.Traces;
 
 namespace CourseLibrary.Course.Api.Middlewares;
 
@@ -6,28 +8,65 @@ internal sealed class ResponseHeadersMiddleware(
     RequestDelegate next,
     ILogger<ResponseHeadersMiddleware> logger)
 {
-    public async Task InvokeAsync(
-        HttpContext context)
+    public Task InvokeAsync(HttpContext context)
     {
-        context.Response.OnStarting(
-            () =>
-            {
-            var activity = Activity.Current;
-            var correlationId = ResolveCorrelationId(context, activity);
-            var traceParent = ResolveTraceParent(context, activity);
-            var traceState = ResolveTraceState(context, activity);
-            var requestId = context.TraceIdentifier;
+        var activity = Activity.Current;
+        var correlationId = context.Request.Headers[TraceHeaders.CorrelationId].ToString();
+        if (string.IsNullOrWhiteSpace(correlationId))
+        {
+            correlationId = activity?.TraceId.ToString() ?? Guid.NewGuid().ToString("N");
+        }
 
-            // Correlation ID is application-specific and independent
-            // from traceparent/tracestate.
-            if (!context.Response.Headers.ContainsKey(correlationId))
-            {
-                logger.LogDebug(
-                    "Adding X-Correlation-ID header to response: {CorrelationId}",
-                    correlationId);
+        var requestId = context.TraceIdentifier;
+        var traceParent = activity?.Id;
+        var traceState = activity?.TraceStateString;
 
-                context.Response.Headers[InfraTrace.TraceHeaders.CorrelationId] = correlationId;
+        context.Response.OnStarting(() =>
+        {
+            SetHeaderIfMissing(
+                context.Response.Headers,
+                TraceHeaders.CorrelationId,
+                correlationId);
+            SetHeaderIfMissing(
+                context.Response.Headers,
+                TraceHeaders.RequestId,
+                requestId);
+
+            if (!string.IsNullOrWhiteSpace(traceParent))
+            {
+                SetHeaderIfMissing(
+                    context.Response.Headers,
+                    TraceHeaders.TraceParent,
+                    traceParent);
             }
 
-            // Request ID is application-specific and independent
-            if (!context.Response.Headers.ContainsKey(InfraTrace.TraceHeaders.RequestId))
+            if (!string.IsNullOrWhiteSpace(traceState))
+            {
+                SetHeaderIfMissing(
+                    context.Response.Headers,
+                    TraceHeaders.TraceState,
+                    traceState);
+            }
+
+            logger.ResponseHeadersWritten(
+                requestId,
+                correlationId,
+                activity?.TraceId.ToString());
+
+            return Task.CompletedTask;
+        });
+
+        return next(context);
+    }
+
+    private static void SetHeaderIfMissing(
+        IHeaderDictionary headers,
+        string name,
+        string value)
+    {
+        if (!headers.ContainsKey(name))
+        {
+            headers[name] = value;
+        }
+    }
+}

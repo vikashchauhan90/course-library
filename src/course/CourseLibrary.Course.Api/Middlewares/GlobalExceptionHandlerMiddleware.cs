@@ -1,5 +1,6 @@
 ﻿using CourseLibrary.Core.Domain.Exceptions;
 using CourseLibrary.Course.Api.Http;
+using CourseLibrary.Course.Api.Observability;
 using Microsoft.AspNetCore.Mvc;
 using System.ComponentModel.DataAnnotations;
 using System.Diagnostics;
@@ -19,17 +20,23 @@ internal sealed class GlobalExceptionHandlerMiddleware(
         catch (OperationCanceledException)
             when (context.RequestAborted.IsCancellationRequested)
         {
-            // The client disconnected or the request was explicitly cancelled.
-            // Do not attempt to write a response.
-            logger.LogDebug(
-                "Request was cancelled by the client. TraceId: {TraceId}, Path: {Path}",
+            logger.RequestCancelled(
                 Activity.Current?.Id ?? context.TraceIdentifier,
-                context.Request.Path);
-
-            return;
+                context.Request.Path.Value,
+                context.Request.Method);
+            throw;
         }
         catch (Exception exception)
         {
+            if (context.Response.HasStarted)
+            {
+                logger.FailureAfterResponseStarted(
+                    exception,
+                    Activity.Current?.Id ?? context.TraceIdentifier,
+                    context.Request.Path.Value);
+                throw;
+            }
+
             await HandleExceptionAsync(context, exception);
         }
     }
@@ -38,54 +45,36 @@ internal sealed class GlobalExceptionHandlerMiddleware(
         HttpContext context,
         Exception exception)
     {
-        // Client disconnected / request was cancelled.
-        // Do not try to write a response because the client may no longer exist.
-        if (exception is OperationCanceledException &&
-            context.RequestAborted.IsCancellationRequested)
-        {
-            logger.LogDebug(
-                "Request was cancelled by the client. TraceId: {TraceId}, Path: {Path}",
-                Activity.Current?.Id ?? context.TraceIdentifier,
-                context.Request.Path);
-
-            return;
-        }
-
         var error = MapException(exception);
-
         var traceId =
             Activity.Current?.Id ??
             context.TraceIdentifier;
 
-        // Don't log expected 4xx exceptions as errors.
+        Activity.Current?.SetTag("error.type", exception.GetType().Name);
+        if (error.StatusCode >= StatusCodes.Status500InternalServerError)
+        {
+            Activity.Current?.SetStatus(
+                ActivityStatusCode.Error,
+                $"HTTP {error.StatusCode}");
+        }
+
         if (error.StatusCode >= 500)
         {
-            logger.LogError(
+            logger.UnhandledRequestFailed(
                 exception,
-                "Unhandled exception. StatusCode: {StatusCode}, TraceId: {TraceId}, Path: {Path}, Method: {Method}",
                 error.StatusCode,
                 traceId,
-                context.Request.Path,
+                context.Request.Path.Value,
                 context.Request.Method);
         }
         else
         {
-            logger.LogWarning(
+            logger.RequestRejected(
                 exception,
-                "Request failed. StatusCode: {StatusCode}, TraceId: {TraceId}, Path: {Path}, Method: {Method}",
                 error.StatusCode,
                 traceId,
-                context.Request.Path,
+                context.Request.Path.Value,
                 context.Request.Method);
-        }
-
-        if (context.Response.HasStarted)
-        {
-            logger.LogWarning(
-                "Cannot write exception response because the response has already started. TraceId: {TraceId}",
-                traceId);
-
-            throw exception;
         }
 
         context.Response.Clear();
@@ -111,20 +100,17 @@ internal sealed class GlobalExceptionHandlerMiddleware(
 
         try
         {
-            context.Response.ContentType = "application/problem+json";
-
             await context.Response.WriteAsJsonAsync(
-             problemDetails,
-             context.RequestAborted);
+                problemDetails,
+                context.RequestAborted);
         }
         catch (OperationCanceledException)
             when (context.RequestAborted.IsCancellationRequested)
         {
-
-            logger.LogDebug(
-                "Request was cancelled while writing the error response. TraceId: {TraceId}, Path: {Path} ",
+            logger.ErrorResponseWriteCancelled(
                 traceId,
-                context.Request.Path);
+                context.Request.Path.Value);
+            throw;
         }
     }
 

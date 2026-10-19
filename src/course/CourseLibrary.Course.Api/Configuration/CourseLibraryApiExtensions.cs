@@ -35,6 +35,8 @@ public static class CourseLibraryApiExtensions
         builder.Services.AddCarter();
         builder.Services.AddProblemDetails();
         builder.Services.AddHttpLogging();
+        builder.Services.AddResponseCaching();
+        builder.Services.AddOutputCache();
         builder.Services.AddApiVersioning(options =>
         {
             options.DefaultApiVersion = new ApiVersion(1, 0);
@@ -87,30 +89,25 @@ public static class CourseLibraryApiExtensions
     {
         ArgumentNullException.ThrowIfNull(app);
 
+        app.UseRouting();
         app.UseCourseApiTelemetry();
         app.UseGlobalExceptionHandler();
+        app.UseRequestMetrics();
+        app.UseRequestContext();
+        app.UseResponseHeaders();
         app.UseHttpsRedirection();
         if (!app.Environment.IsDevelopment())
         {
             app.UseHsts();
         }
-        app.UseRequestContext();
 
         app.UseUserContext();
 
-        app.UseRequestMetrics();
-
         app.UseHttpLogging();
 
-        // Response compression
         app.UseResponseCompression();
-        // Response headers / observability
-        app.UseResponseHeaders();
 
-        // Client/proxy HTTP response caching
         app.UseResponseCaching();
-
-        // Server-side Output Cache
         app.UseOutputCache();
 
 

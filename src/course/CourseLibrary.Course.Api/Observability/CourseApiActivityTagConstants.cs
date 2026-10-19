@@ -8,4 +8,6 @@ internal static class CourseApiActivityTagConstants
     public const string HttpResponseStatusCode = "http.response.status_code";
     public const string DurationMilliseconds = "api.endpoint.duration_ms";
     public const string ErrorType = "error.type";
+    public const string RequestBodySize = "http.request.body.size";
+    public const string ResponseBodySize = "http.response.body.size";
 }

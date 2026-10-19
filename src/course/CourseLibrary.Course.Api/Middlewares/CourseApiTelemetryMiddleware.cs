@@ -1,4 +1,5 @@
 using CourseLibrary.Course.Api.Observability;
+using Microsoft.AspNetCore.Routing;
 using System.Diagnostics;
 
 namespace CourseLibrary.Course.Api.Middlewares;
@@ -9,16 +10,14 @@ internal sealed class CourseApiTelemetryMiddleware(
 {
     public async Task InvokeAsync(HttpContext httpContext)
     {
-        var endpointName = httpContext.GetEndpoint()?
+        var endpoint = httpContext.GetEndpoint();
+        var endpointName = endpoint?
             .Metadata
             .GetMetadata<IEndpointNameMetadata>()?
-            .EndpointName;
-
-        if (string.IsNullOrWhiteSpace(endpointName))
-        {
-            await next(httpContext);
-            return;
-        }
+            .EndpointName
+            ?? (endpoint as RouteEndpoint)?.RoutePattern.RawText
+            ?? endpoint?.DisplayName
+            ?? "unmatched";
 
         var method = httpContext.Request.Method;
         var startedAt = Stopwatch.GetTimestamp();
@@ -43,11 +42,6 @@ internal sealed class CourseApiTelemetryMiddleware(
                     ? ActivityStatusCode.Error
                     : ActivityStatusCode.Ok);
 
-            CourseApiMeter.Shared.RecordRequest(
-                endpointName,
-                method,
-                outcome,
-                durationMilliseconds);
             logger.EndpointRequestCompleted(
                 endpointName,
                 method,
@@ -61,11 +55,6 @@ internal sealed class CourseApiTelemetryMiddleware(
             activity?.SetTag(CourseApiActivityTagConstants.EndpointOutcome, "cancelled");
             activity?.SetTag(CourseApiActivityTagConstants.DurationMilliseconds, durationMilliseconds);
             activity?.SetStatus(ActivityStatusCode.Error, "Request cancelled.");
-            CourseApiMeter.Shared.RecordRequest(
-                endpointName,
-                method,
-                "cancelled",
-                durationMilliseconds);
             logger.EndpointRequestCancelled(endpointName, method, durationMilliseconds);
             throw;
         }
@@ -76,11 +65,6 @@ internal sealed class CourseApiTelemetryMiddleware(
             activity?.SetTag(CourseApiActivityTagConstants.ErrorType, exception.GetType().Name);
             activity?.SetTag(CourseApiActivityTagConstants.DurationMilliseconds, durationMilliseconds);
             activity?.SetStatus(ActivityStatusCode.Error, exception.Message);
-            CourseApiMeter.Shared.RecordRequest(
-                endpointName,
-                method,
-                "failure",
-                durationMilliseconds);
             logger.EndpointRequestFailed(
                 exception,
                 endpointName,

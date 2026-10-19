@@ -12,6 +12,9 @@ internal sealed class CourseApiMeter : MeterBase
 
     private readonly Counter<long> _requests;
     private readonly Histogram<double> _duration;
+    private readonly Histogram<long> _requestBodySize;
+    private readonly Histogram<long> _responseBodySize;
+    private readonly UpDownCounter<long> _activeRequests;
 
     public static CourseApiMeter Shared => SharedInstance.Value;
 
@@ -26,13 +29,31 @@ internal sealed class CourseApiMeter : MeterBase
             "course.api.endpoint.duration",
             "ms",
             "Duration of API endpoint requests.");
+        _requestBodySize = CreateHistogram<long>(
+            "course.api.request.body.size",
+            "By",
+            "Size of API request bodies.");
+        _responseBodySize = CreateHistogram<long>(
+            "course.api.response.body.size",
+            "By",
+            "Size of API response bodies.");
+        _activeRequests = CreateUpDownCounter<long>(
+            "course.api.requests.active",
+            "{request}",
+            "Number of API requests currently being handled.");
     }
+
+    public void RequestStarted() => _activeRequests.Add(1);
+
+    public void RequestCompleted() => _activeRequests.Add(-1);
 
     public void RecordRequest(
         string endpointName,
         string method,
         string outcome,
-        double durationMilliseconds)
+        double durationMilliseconds,
+        long? requestBodySize,
+        long? responseBodySize)
     {
         var tags = new TagList
         {
@@ -43,5 +64,15 @@ internal sealed class CourseApiMeter : MeterBase
 
         _requests.Add(1, tags);
         _duration.Record(durationMilliseconds, tags);
+
+        if (requestBodySize is long requestSize)
+        {
+            _requestBodySize.Record(requestSize, tags);
+        }
+
+        if (responseBodySize is long responseSize)
+        {
+            _responseBodySize.Record(responseSize, tags);
+        }
     }
 }
