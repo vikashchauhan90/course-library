@@ -21,7 +21,7 @@
   <Folder Name="/src/idp/">
     <Project Path="src/idp/CourseLibrary.Idp.Application/CourseLibrary.Idp.Application.csproj" />
     <Project Path="src/idp/CourseLibrary.Idp.Domain/CourseLibrary.Idp.Domain.csproj" />
-    <Project Path="src/idp/CourseLibrary.Idp.Infrastructure/CourseLibrary.Idp.Infrastructure.csproj" />
+    <Project Path="src/idp/CourseLibrary.Idp.Persistence/CourseLibrary.Idp.Persistence.csproj" Id="8c57172d-ad37-497a-abf4-395430520e43" />
     <Project Path="src/idp/CourseLibrary.Idp/CourseLibrary.Idp.csproj" Id="06331876-0944-4d94-a4a5-47852a30e649" />
   </Folder>
   <Folder Name="/src/platform/">

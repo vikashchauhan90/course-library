@@ -36,7 +36,6 @@
     <ProjectReference Include="..\..\platform\CourseLibrary.Platform.Resilience\CourseLibrary.Platform.Resilience.csproj" />
     <ProjectReference Include="..\CourseLibrary.Idp.Application\CourseLibrary.Idp.Application.csproj" />
     <ProjectReference Include="..\CourseLibrary.Idp.Domain\CourseLibrary.Idp.Domain.csproj" />
-    <ProjectReference Include="..\CourseLibrary.Idp.Infrastructure\CourseLibrary.Idp.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>
