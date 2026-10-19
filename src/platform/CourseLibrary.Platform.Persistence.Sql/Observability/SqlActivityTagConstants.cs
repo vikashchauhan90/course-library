@@ -16,6 +16,8 @@ public static class SqlActivityTagConstants
     public const string EntityState = "db.entity.state";
 
     public const string SqlServer = "sqlserver";
+    public const string PostgreSql = "postgresql";
+    public const string Other = "other";
     public const string ReaderOperation = "reader";
     public const string ScalarOperation = "scalar";
     public const string NonQueryOperation = "non_query";

@@ -1,5 +1,5 @@
 using CourseLibrary.Idp.Domain.Entities;
-using CourseLibrary.Idp.Infrastructure.Persistence;
+using CourseLibrary.Idp.Persistence.Data;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using OpenIddict.Abstractions;

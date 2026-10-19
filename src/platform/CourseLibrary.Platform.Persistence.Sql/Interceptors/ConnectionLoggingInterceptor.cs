@@ -16,7 +16,9 @@ public sealed class ConnectionLoggingInterceptor(ILogger<ConnectionLoggingInterc
         using var activity = SqlActivitySource.Shared.StartActivity(
             SqlActivityTagConstants.ConnectionOpenOperation,
             System.Diagnostics.ActivityKind.Internal);
-        activity?.SetTag(SqlActivityTagConstants.DbSystem, SqlActivityTagConstants.SqlServer);
+        activity?.SetTag(
+            SqlActivityTagConstants.DbSystem,
+            SqlDatabaseSystem.Resolve(connection));
         activity?.SetTag(SqlActivityTagConstants.DbNamespace, connection.Database);
         SqlPersistenceLogs.ConnectionOpened(
             logger,
@@ -33,7 +35,9 @@ public sealed class ConnectionLoggingInterceptor(ILogger<ConnectionLoggingInterc
         using var activity = SqlActivitySource.Shared.StartActivity(
             SqlActivityTagConstants.ConnectionCloseOperation,
             System.Diagnostics.ActivityKind.Internal);
-        activity?.SetTag(SqlActivityTagConstants.DbSystem, SqlActivityTagConstants.SqlServer);
+        activity?.SetTag(
+            SqlActivityTagConstants.DbSystem,
+            SqlDatabaseSystem.Resolve(connection));
         activity?.SetTag(SqlActivityTagConstants.DbNamespace, connection.Database);
         SqlPersistenceLogs.ConnectionClosed(
             logger,

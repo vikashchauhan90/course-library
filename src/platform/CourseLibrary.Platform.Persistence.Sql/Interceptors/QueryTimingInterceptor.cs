@@ -17,14 +17,15 @@ public sealed class QueryTimingInterceptor(ILogger<QueryTimingInterceptor> logge
         var activity = SqlActivitySource.Shared.StartActivity(
             $"db.command.{operation}",
             ActivityKind.Client);
-        activity?.SetTag(SqlActivityTagConstants.DbSystem, SqlActivityTagConstants.SqlServer);
+        var databaseSystem = SqlDatabaseSystem.Resolve(command.Connection);
+        activity?.SetTag(SqlActivityTagConstants.DbSystem, databaseSystem);
         activity?.SetTag(SqlActivityTagConstants.DbOperationName, operation);
         if (!string.IsNullOrWhiteSpace(command.Connection?.Database))
         {
             activity?.SetTag(SqlActivityTagConstants.DbNamespace, command.Connection.Database);
         }
 
-        _measurements[eventData.CommandId] = new(operation, Stopwatch.StartNew(), activity);
+        _measurements[eventData.CommandId] = new(operation, Stopwatch.StartNew(), activity, databaseSystem);
     }
 
     private CommandMeasurement? Stop(Guid commandId)
@@ -194,7 +195,10 @@ public sealed class QueryTimingInterceptor(ILogger<QueryTimingInterceptor> logge
 
         if (measurement is not null)
         {
-            SqlMeter.Shared.RecordCommand(operation, elapsedMilliseconds);
+            SqlMeter.Shared.RecordCommand(
+                operation,
+                elapsedMilliseconds,
+                measurement.DatabaseSystem);
             measurement.Activity?.SetTag(SqlActivityTagConstants.DurationMilliseconds, elapsedMilliseconds);
         }
 
@@ -203,7 +207,10 @@ public sealed class QueryTimingInterceptor(ILogger<QueryTimingInterceptor> logge
             failureType = exception.GetType().Name;
             measurement?.Activity?.SetTag(SqlActivityTagConstants.ErrorType, failureType);
             measurement?.Activity?.SetStatus(ActivityStatusCode.Error, exception.Message);
-            SqlMeter.Shared.RecordFailure(operation, failureType);
+            SqlMeter.Shared.RecordFailure(
+                operation,
+                failureType,
+                measurement?.DatabaseSystem ?? SqlActivityTagConstants.Other);
             SqlPersistenceLogs.CommandFailed(logger, exception, operation, elapsedMilliseconds);
         }
         else if (failureType is not null)
@@ -211,7 +218,10 @@ public sealed class QueryTimingInterceptor(ILogger<QueryTimingInterceptor> logge
             measurement?.Activity?.SetTag(SqlActivityTagConstants.OperationCancelled, true);
             measurement?.Activity?.SetTag(SqlActivityTagConstants.ErrorType, failureType);
             measurement?.Activity?.SetStatus(ActivityStatusCode.Error, "Command was cancelled.");
-            SqlMeter.Shared.RecordFailure(operation, failureType);
+            SqlMeter.Shared.RecordFailure(
+                operation,
+                failureType,
+                measurement?.DatabaseSystem ?? SqlActivityTagConstants.Other);
             SqlPersistenceLogs.CommandCancelled(logger, operation, elapsedMilliseconds);
         }
         else if (elapsedMilliseconds >= WarningThresholdMilliseconds)
@@ -230,5 +240,9 @@ public sealed class QueryTimingInterceptor(ILogger<QueryTimingInterceptor> logge
         measurement?.Activity?.Dispose();
     }
 
-    private sealed record CommandMeasurement(string Operation, Stopwatch Timer, Activity? Activity);
+    private sealed record CommandMeasurement(
+        string Operation,
+        Stopwatch Timer,
+        Activity? Activity,
+        string DatabaseSystem);
 }

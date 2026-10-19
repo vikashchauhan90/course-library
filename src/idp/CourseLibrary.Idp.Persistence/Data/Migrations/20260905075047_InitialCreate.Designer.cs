@@ -9,7 +9,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
-namespace CourseLibrary.Idp.Infrastructure.Persistence.Migrations
+namespace CourseLibrary.Idp.Persistence.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
     [Migration("20260905075047_InitialCreate")]

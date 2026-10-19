@@ -1,10 +1,9 @@
-using CourseLibrary.Idp.Infrastructure.Observability.Metrics;
-using CourseLibrary.Idp.Infrastructure.Observability.Traces;
 using CourseLibrary.Platform.Observability;
 using CourseLibrary.Platform.Observability.Logs.Processors;
 using CourseLibrary.Platform.Observability.Metrics;
 using CourseLibrary.Platform.Observability.Traces;
 using CourseLibrary.Platform.Observability.Traces.Processors;
+using CourseLibrary.Platform.Persistence.Sql.Observability;
 using CourseLibrary.Platform.Resilience.Observability;
 using Microsoft.Extensions.DependencyInjection;
 using OpenTelemetry;
@@ -43,12 +42,11 @@ internal static class CourseLibraryIdpObservabilityExtensions
             {
                 tracing
                     .AddSource(IdpTelemetry.ActivitySourceName)
-                    .AddSource(ActivitySources.Name)
                     .AddSource(ResilienceTelemetry.ActivitySourceName)
                     .AddSource(PlatformActivitySource.ActivitySourceName)
+                    .AddSource(SqlTelemetry.ActivitySourceName)
                     .AddAspNetCoreInstrumentation(options => options.RecordException = true)
                     .AddHttpClientInstrumentation(options => options.RecordException = true)
-                    .AddSqlClientInstrumentation(options => options.RecordException = true)
                     .AddProcessor<CorrelationActivityProcessor>()
                     .AddProcessor<ActivityFailureProcessor>();
             })
@@ -56,9 +54,9 @@ internal static class CourseLibraryIdpObservabilityExtensions
             {
                 metrics
                     .AddMeter(IdpTelemetry.MeterName)
-                    .AddMeter(Meters.Name)
                     .AddMeter(ResilienceTelemetry.MeterName)
                     .AddMeter(PlatformMeter.MeterName)
+                    .AddMeter(SqlTelemetry.MeterName)
                     .AddMeter("Microsoft.AspNetCore.Hosting")
                     .AddMeter("Microsoft.AspNetCore.Server.Kestrel")
                     .AddAspNetCoreInstrumentation()

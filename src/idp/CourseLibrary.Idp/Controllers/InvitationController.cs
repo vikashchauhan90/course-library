@@ -1,6 +1,6 @@
 using CourseLibrary.Idp.Domain.Entities;
 using CourseLibrary.Idp.Models;
-using CourseLibrary.Idp.Infrastructure.Persistence;
+using CourseLibrary.Idp.Persistence.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;

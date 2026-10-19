@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace CourseLibrary.Idp.Infrastructure.Persistence.Migrations
+namespace CourseLibrary.Idp.Persistence.Data.Migrations
 {
     /// <inheritdoc />
     public partial class AddClientSecretLifecycleMetadata : Migration

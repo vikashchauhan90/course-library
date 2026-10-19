@@ -15,14 +15,11 @@
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
 		<PackageReference Include="Microsoft.EntityFrameworkCore.Proxies" Version="10.0.11" />
-		<PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.11" />
 		<PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
 		<PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="10.0.11" />
 		<PackageReference Include="OpenIddict.Abstractions" Version="7.6.1" />
 	</ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\core\CourseLibrary.Core.Results\CourseLibrary.Core.Results.csproj" />
-    <ProjectReference Include="..\..\platform\CourseLibrary.Platform.Observability\CourseLibrary.Platform.Observability.csproj" />
     <ProjectReference Include="..\..\platform\CourseLibrary.Platform.Persistence.Sql\CourseLibrary.Platform.Persistence.Sql.csproj" />
     <ProjectReference Include="..\CourseLibrary.Idp.Domain\CourseLibrary.Idp.Domain.csproj" />
   </ItemGroup>

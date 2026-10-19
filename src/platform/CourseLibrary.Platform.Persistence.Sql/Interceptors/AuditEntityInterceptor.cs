@@ -20,6 +20,9 @@ public sealed class AuditEntityInterceptor(ILogger<AuditEntityInterceptor> logge
         activity?.SetTag(SqlActivityTagConstants.DbOperationName, SqlActivityTagConstants.AuditOperation);
         activity?.SetTag(SqlActivityTagConstants.DbContextType, eventData.Context?.GetType().Name);
         var context = eventData.Context;
+        activity?.SetTag(
+            SqlActivityTagConstants.DbSystem,
+            SqlDatabaseSystem.Resolve(context?.Database.ProviderName));
         if (context == null)
         {
             activity?.SetTag(SqlActivityTagConstants.OperationSuccess, false);

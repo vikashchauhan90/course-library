@@ -33,21 +33,30 @@ public sealed class SqlMeter : MeterBase
             "Duration of SQL commands.");
     }
 
-    public void RecordCommand(string operation, double durationMilliseconds)
+    public void RecordCommand(
+        string operation,
+        double durationMilliseconds,
+        string databaseSystem = SqlActivityTagConstants.SqlServer)
     {
-        var tags = CreateTags(operation);
+        var tags = CreateTags(operation, databaseSystem);
         _commands.Add(1, tags);
         _duration.Record(durationMilliseconds, tags);
     }
 
-    public void RecordFailure(string operation, string failureType)
-        => _failures.Add(1, CreateTags(operation, failureType));
+    public void RecordFailure(
+        string operation,
+        string failureType,
+        string databaseSystem = SqlActivityTagConstants.SqlServer)
+        => _failures.Add(1, CreateTags(operation, databaseSystem, failureType));
 
-    private static TagList CreateTags(string operation, string? failureType = null)
+    private static TagList CreateTags(
+        string operation,
+        string databaseSystem,
+        string? failureType = null)
     {
         var tags = new TagList
         {
-            { SqlActivityTagConstants.DbSystem, SqlActivityTagConstants.SqlServer },
+            { SqlActivityTagConstants.DbSystem, databaseSystem },
             { SqlActivityTagConstants.DbOperationName, operation }
         };
 

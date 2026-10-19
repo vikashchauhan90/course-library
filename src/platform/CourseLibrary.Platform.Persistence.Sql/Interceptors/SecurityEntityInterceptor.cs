@@ -19,6 +19,9 @@ public sealed class SecurityEntityInterceptor(ILogger<SecurityEntityInterceptor>
         activity?.SetTag(SqlActivityTagConstants.DbOperationName, SqlActivityTagConstants.ConcurrencyStampOperation);
         activity?.SetTag(SqlActivityTagConstants.DbContextType, eventData.Context?.GetType().Name);
         var context = eventData.Context;
+        activity?.SetTag(
+            SqlActivityTagConstants.DbSystem,
+            SqlDatabaseSystem.Resolve(context?.Database.ProviderName));
         if (context == null) return base.SavingChangesAsync(eventData, result, cancellationToken);
 
         foreach (var entry in context.ChangeTracker.Entries<IConcurrency>())

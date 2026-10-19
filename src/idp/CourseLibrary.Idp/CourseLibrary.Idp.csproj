@@ -17,25 +17,22 @@
     <PackageReference Include="OpenIddict.EntityFrameworkCore" Version="7.6.1" />
     <PackageReference Include="OpenIddict.Server.AspNetCore" Version="7.6.1" />
     <PackageReference Include="OpenIddict.Validation.AspNetCore" Version="7.6.1" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.11">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>
     <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.18.0" />
     <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.18.0" />
     <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.18.0" />
     <PackageReference Include="OpenTelemetry.Instrumentation.Http" Version="1.18.0" />
     <PackageReference Include="OpenTelemetry.Instrumentation.Process" Version="1.17.0-rc.1" />
     <PackageReference Include="OpenTelemetry.Instrumentation.Runtime" Version="1.18.0" />
-    <PackageReference Include="OpenTelemetry.Instrumentation.SqlClient" Version="1.18.0" />
     <PackageReference Include="QRCoder" Version="1.6.0" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\platform\CourseLibrary.Platform.Observability\CourseLibrary.Platform.Observability.csproj" />
+    <ProjectReference Include="..\..\platform\CourseLibrary.Platform.Persistence.Sql\CourseLibrary.Platform.Persistence.Sql.csproj" />
     <ProjectReference Include="..\..\platform\CourseLibrary.Platform.Resilience\CourseLibrary.Platform.Resilience.csproj" />
     <ProjectReference Include="..\CourseLibrary.Idp.Application\CourseLibrary.Idp.Application.csproj" />
     <ProjectReference Include="..\CourseLibrary.Idp.Domain\CourseLibrary.Idp.Domain.csproj" />
+    <ProjectReference Include="..\CourseLibrary.Idp.Persistence\CourseLibrary.Idp.Persistence.csproj" />
   </ItemGroup>
 
 </Project>

@@ -1,21 +1,19 @@
 using CourseLibrary.Idp;
 using CourseLibrary.Idp.Domain.Entities;
-using CourseLibrary.Idp.Infrastructure.Persistence;
-using CourseLibrary.Idp.Infrastructure.Persistence.Interceptors;
 using CourseLibrary.Idp.Abstractions;
 using CourseLibrary.Idp.Infrastructure;
+using CourseLibrary.Idp.Persistence.Data;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Authentication.Facebook;
 using Microsoft.AspNetCore.Authentication.MicrosoftAccount;
 using Microsoft.AspNetCore.Authentication.Twitter;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Diagnostics;
 using OpenIddict.Abstractions;
 using OpenIddict.Client;
 using System.Security.Cryptography.X509Certificates;
 using CourseLibrary.Idp.Observability;
+using CourseLibrary.Idp.Persistence;
 using CourseLibrary.Platform.Resilience;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -28,27 +26,9 @@ builder.Services.AddRazorPages();
 builder.Services.AddScoped<IEmailSender, EmailSender>();
 builder.Services.Configure<OpenIdOptions>(builder.Configuration.GetSection(OpenIdOptions.SectionName));
 
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-if (string.IsNullOrWhiteSpace(connectionString))
-    throw new InvalidOperationException("ConnectionStrings:DefaultConnection must be configured.");
-
-builder.Services.AddScoped<IInterceptor, AuditEntityInterceptor>();
-builder.Services.AddScoped<IInterceptor, ConnectionLoggingInterceptor>();
-builder.Services.AddScoped<IInterceptor, QueryTimingInterceptor>();
-builder.Services.AddScoped<IInterceptor, SecurityEntityInterceptor>();
-builder.Services.AddScoped<IInterceptor, TransactionLoggingInterceptor>();
-
-builder.Services.AddDbContext<ApplicationDbContext>((sp, options) =>
-{
-    options.UseNpgsql(
-        connectionString,
-        npgsql =>
-        npgsql.MigrationsAssembly(typeof(ApplicationDbContext).Assembly.FullName));
-    options.EnableSensitiveDataLogging(builder.Environment.IsDevelopment());
-    options.EnableDetailedErrors(builder.Environment.IsDevelopment());
-    options.UseSnakeCaseNamingConvention();
-    options.AddInterceptors(sp.GetServices<IInterceptor>());
-}, optionsLifetime: ServiceLifetime.Scoped);
+builder.Services.AddIdpPersistence(
+    builder.Configuration,
+    builder.Environment.IsDevelopment());
 
 builder.Services.AddIdentity<ApplicationUser, ApplicationRole>(options =>
     {
