@@ -25,20 +25,20 @@
 
 	<ItemGroup>
 		<ProjectReference Include="..\..\platform\CourseLibrary.Platform.AspNetCore.OutputCaching\CourseLibrary.Platform.AspNetCore.OutputCaching.csproj" />
-		<ProjectReference Include="..\CourseLibrary.Core.Domain.Exceptions\CourseLibrary.Core.Domain.Exceptions.csproj" />
-		<ProjectReference Include="..\CourseLibrary.Core.Results\CourseLibrary.Core.Results.csproj" />
+		<ProjectReference Include="..\..\core\CourseLibrary.Core.Domain.Exceptions\CourseLibrary.Core.Domain.Exceptions.csproj" />
+		<ProjectReference Include="..\..\core\CourseLibrary.Core.Results\CourseLibrary.Core.Results.csproj" />
 		<ProjectReference Include="..\CourseLibrary.Course.Application\CourseLibrary.Course.Application.csproj" />
 		<ProjectReference Include="..\CourseLibrary.Course.Contracts\CourseLibrary.Course.Contracts.csproj" />
 		<ProjectReference Include="..\CourseLibrary.Course.Domain\CourseLibrary.Course.Domain.csproj" />
 		<ProjectReference Include="..\CourseLibrary.Course.Persistence\CourseLibrary.Course.Persistence.csproj" />
-		<ProjectReference Include="..\CourseLibrary.Platform.AspNetCore.RequestContext\CourseLibrary.Platform.AspNetCore.RequestContext.csproj" />
-		<ProjectReference Include="..\CourseLibrary.Platform.Caching\CourseLibrary.Platform.Caching.csproj" />
-		<ProjectReference Include="..\CourseLibrary.Platform.DataProtection\CourseLibrary.Platform.DataProtection.csproj" />
-		<ProjectReference Include="..\CourseLibrary.Platform.Idempotency\CourseLibrary.Platform.Idempotency.csproj" />
-		<ProjectReference Include="..\CourseLibrary.Platform.Messaging\CourseLibrary.Platform.Messaging.csproj" />
-		<ProjectReference Include="..\CourseLibrary.Platform.Observability\CourseLibrary.Platform.Observability.csproj" />
-		<ProjectReference Include="..\CourseLibrary.Platform.Resilience\CourseLibrary.Platform.Resilience.csproj" />
-		<ProjectReference Include="..\CourseLibrary.Platform.Serialization\CourseLibrary.Platform.Serialization.csproj" />
+		<ProjectReference Include="..\..\platform\CourseLibrary.Platform.AspNetCore.RequestContext\CourseLibrary.Platform.AspNetCore.RequestContext.csproj" />
+		<ProjectReference Include="..\..\platform\CourseLibrary.Platform.Caching\CourseLibrary.Platform.Caching.csproj" />
+		<ProjectReference Include="..\..\platform\CourseLibrary.Platform.DataProtection\CourseLibrary.Platform.DataProtection.csproj" />
+		<ProjectReference Include="..\..\platform\CourseLibrary.Platform.Idempotency\CourseLibrary.Platform.Idempotency.csproj" />
+		<ProjectReference Include="..\..\platform\CourseLibrary.Platform.Messaging\CourseLibrary.Platform.Messaging.csproj" />
+		<ProjectReference Include="..\..\platform\CourseLibrary.Platform.Observability\CourseLibrary.Platform.Observability.csproj" />
+		<ProjectReference Include="..\..\platform\CourseLibrary.Platform.Resilience\CourseLibrary.Platform.Resilience.csproj" />
+		<ProjectReference Include="..\..\platform\CourseLibrary.Platform.Serialization\CourseLibrary.Platform.Serialization.csproj" />
 	</ItemGroup>
 
 </Project>

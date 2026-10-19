@@ -30,11 +30,11 @@
     <ProjectReference Include="..\CourseLibrary.Course.Application\CourseLibrary.Course.Application.csproj" />
     <ProjectReference Include="..\CourseLibrary.Course.Domain\CourseLibrary.Course.Domain.csproj" />
     <ProjectReference Include="..\CourseLibrary.Course.Persistence\CourseLibrary.Course.Persistence.csproj" />
-    <ProjectReference Include="..\CourseLibrary.Platform.Messaging\CourseLibrary.Platform.Messaging.csproj" />
-    <ProjectReference Include="..\CourseLibrary.Platform.Observability\CourseLibrary.Platform.Observability.csproj" />
-    <ProjectReference Include="..\CourseLibrary.Platform.Persistence.CosmosDB\CourseLibrary.Platform.Persistence.CosmosDB.csproj" />
-    <ProjectReference Include="..\CourseLibrary.Platform.Resilience\CourseLibrary.Platform.Resilience.csproj" />
-    <ProjectReference Include="..\CourseLibrary.Platform.Serialization\CourseLibrary.Platform.Serialization.csproj" />
+    <ProjectReference Include="..\..\platform\CourseLibrary.Platform.Messaging\CourseLibrary.Platform.Messaging.csproj" />
+    <ProjectReference Include="..\..\platform\CourseLibrary.Platform.Observability\CourseLibrary.Platform.Observability.csproj" />
+    <ProjectReference Include="..\..\platform\CourseLibrary.Platform.Persistence.CosmosDB\CourseLibrary.Platform.Persistence.CosmosDB.csproj" />
+    <ProjectReference Include="..\..\platform\CourseLibrary.Platform.Resilience\CourseLibrary.Platform.Resilience.csproj" />
+    <ProjectReference Include="..\..\platform\CourseLibrary.Platform.Serialization\CourseLibrary.Platform.Serialization.csproj" />
   </ItemGroup>
 
 </Project>

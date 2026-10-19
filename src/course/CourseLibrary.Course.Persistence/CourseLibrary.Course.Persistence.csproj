@@ -14,8 +14,8 @@
   <ItemGroup>
     <ProjectReference Include="..\CourseLibrary.Course.Contracts\CourseLibrary.Course.Contracts.csproj" />
     <ProjectReference Include="..\CourseLibrary.Course.Domain\CourseLibrary.Course.Domain.csproj" />
-    <ProjectReference Include="..\CourseLibrary.Platform.Observability\CourseLibrary.Platform.Observability.csproj" />
-    <ProjectReference Include="..\CourseLibrary.Platform.Persistence.CosmosDB\CourseLibrary.Platform.Persistence.CosmosDB.csproj" />
+    <ProjectReference Include="..\..\platform\CourseLibrary.Platform.Observability\CourseLibrary.Platform.Observability.csproj" />
+    <ProjectReference Include="..\..\platform\CourseLibrary.Platform.Persistence.CosmosDB\CourseLibrary.Platform.Persistence.CosmosDB.csproj" />
   </ItemGroup>
 
 </Project>
