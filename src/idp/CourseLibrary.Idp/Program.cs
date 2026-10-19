@@ -15,8 +15,13 @@ using Microsoft.EntityFrameworkCore.Diagnostics;
 using OpenIddict.Abstractions;
 using OpenIddict.Client;
 using System.Security.Cryptography.X509Certificates;
+using CourseLibrary.Idp.Observability;
+using CourseLibrary.Platform.Resilience;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.AddIdpObservability();
+builder.Services.AddCourseLibraryResilience();
 
 builder.Services.AddControllersWithViews();
 builder.Services.AddRazorPages();

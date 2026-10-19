@@ -1,9 +1,6 @@
-using System.Diagnostics;
-using System.IO.Compression;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 using Asp.Versioning;
 using Carter;
+using CourseLibrary.Course.Api.Middlewares;
 using CourseLibrary.Course.Api.Observability;
 using CourseLibrary.Course.Application;
 using CourseLibrary.Course.Persistence;
@@ -14,6 +11,10 @@ using CourseLibrary.Platform.Serialization;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using System.Diagnostics;
+using System.IO.Compression;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace CourseLibrary.Course.Api.Configuration;
 
@@ -86,16 +87,32 @@ public static class CourseLibraryApiExtensions
     {
         ArgumentNullException.ThrowIfNull(app);
 
-        app.UseMiddleware<CourseApiTelemetryMiddleware>();
-        app.UseExceptionHandler();
+        app.UseCourseApiTelemetry();
+        app.UseGlobalExceptionHandler();
         app.UseHttpsRedirection();
         if (!app.Environment.IsDevelopment())
         {
             app.UseHsts();
         }
+        app.UseRequestContext();
+
+        app.UseUserContext();
+
+        app.UseRequestMetrics();
 
         app.UseHttpLogging();
+
+        // Response compression
         app.UseResponseCompression();
+        // Response headers / observability
+        app.UseResponseHeaders();
+
+        // Client/proxy HTTP response caching
+        app.UseResponseCaching();
+
+        // Server-side Output Cache
+        app.UseOutputCache();
+
 
         if (app.Environment.IsDevelopment())
         {
