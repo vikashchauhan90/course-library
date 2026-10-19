@@ -1,3 +1,4 @@
+using CourseLibrary.Core.Results;
 using CourseLibrary.Course.Client.Observability;
 using CourseLibrary.Course.Contracts.DTOs;
 using Microsoft.AspNetCore.Http.Extensions;

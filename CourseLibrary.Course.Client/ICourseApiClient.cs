@@ -1,5 +1,5 @@
+using CourseLibrary.Core.Results;
 using CourseLibrary.Course.Contracts.DTOs;
-using CourseLibrary.Course.Contracts.Pagination;
 
 namespace CourseLibrary.Course.Client;
 
