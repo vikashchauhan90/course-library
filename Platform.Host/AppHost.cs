@@ -25,18 +25,18 @@ var serviceBus = builder
     .WaitFor(sql);
 
 var api = builder
-    .AddProject<Projects.CourseLibrary_Api>("api")
+    .AddProject<Projects.CourseLibrary_Course_Api>("api")
     .WaitFor(serviceBus);
 
 var idp = builder
    .AddProject<Projects.CourseLibrary_Idp>("idp");
 
 var consumer = builder
-    .AddProject<Projects.CourseLibrary_EventConsumer>("consumer")
+    .AddProject<Projects.CourseLibrary_Course_EventConsumer>("consumer")
     .WaitFor(serviceBus);
 
 var app = builder
-    .AddProject<Projects.CourseLibrary_App>("app")
+    .AddProject<Projects.CourseLibrary_Course_App>("app")
     .WaitFor(serviceBus);
 
 builder

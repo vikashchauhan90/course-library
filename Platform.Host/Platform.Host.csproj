@@ -13,9 +13,11 @@
     <PackageReference Include="MessagePack" Version="3.1.8" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\course\CourseLibrary.Course.App\CourseLibrary.Course.App.csproj" />
-    <ProjectReference Include="..\gateway\CourseLibrary.Gateway\CourseLibrary.Gateway.csproj" />
-    <ProjectReference Include="..\idp\CourseLibrary.Idp\CourseLibrary.Idp.csproj" />
+    <ProjectReference Include="..\src\course\CourseLibrary.Course.Api\CourseLibrary.Course.Api.csproj" />
+    <ProjectReference Include="..\src\course\CourseLibrary.Course.App\CourseLibrary.Course.App.csproj" />
+    <ProjectReference Include="..\src\course\CourseLibrary.Course.EventConsumer\CourseLibrary.Course.EventConsumer.csproj" />
+    <ProjectReference Include="..\src\gateway\CourseLibrary.Gateway\CourseLibrary.Gateway.csproj" />
+    <ProjectReference Include="..\src\idp\CourseLibrary.Idp\CourseLibrary.Idp.csproj" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="ServiceBus\" />

@@ -8,9 +8,11 @@
   <Folder Name="/src/course/">
     <Project Path="src/course/CourseLibrary.Course.Api/CourseLibrary.Course.Api.csproj" />
     <Project Path="src/course/CourseLibrary.Course.App/CourseLibrary.Course.App.csproj" />
+    <Project Path="src/course/CourseLibrary.Course.Application/CourseLibrary.Course.Application.csproj" />
     <Project Path="src/course/CourseLibrary.Course.Client/CourseLibrary.Course.Client.csproj" />
     <Project Path="src/course/CourseLibrary.Course.Contracts/CourseLibrary.Course.Contracts.csproj" />
     <Project Path="src/course/CourseLibrary.Course.Domain/CourseLibrary.Course.Domain.csproj" />
+    <Project Path="src/course/CourseLibrary.Course.EventConsumer/CourseLibrary.Course.EventConsumer.csproj" />
     <Project Path="src/course/CourseLibrary.Course.Persistence/CourseLibrary.Course.Persistence.csproj" />
   </Folder>
   <Folder Name="/src/gateway/">
@@ -32,6 +34,8 @@
     <Project Path="src/platform/CourseLibrary.Platform.Observability/CourseLibrary.Platform.Observability.csproj" />
     <Project Path="src/platform/CourseLibrary.Platform.Persistence.CosmosDB/CourseLibrary.Platform.Persistence.CosmosDB.csproj" />
     <Project Path="src/platform/CourseLibrary.Platform.Persistence.Sql/CourseLibrary.Platform.Persistence.Sql.csproj" />
+    <Project Path="src/platform/CourseLibrary.Platform.Resilience/CourseLibrary.Platform.Resilience.csproj" />
+    <Project Path="src/platform/CourseLibrary.Platform.Resilience.Distributed/CourseLibrary.Platform.Resilience.Distributed.csproj" />
     <Project Path="src/platform/CourseLibrary.Platform.Serialization/CourseLibrary.Platform.Serialization.csproj" />
   </Folder>
   <Folder Name="/tests/" />
