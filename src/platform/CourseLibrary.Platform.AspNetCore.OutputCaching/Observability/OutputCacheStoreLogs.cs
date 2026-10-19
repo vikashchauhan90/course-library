@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Logging;
 
-namespace CourseLibrary.AspNetCore.OutputCaching.Observability;
+namespace CourseLibrary.Platform.AspNetCore.OutputCaching.Observability;
 
 internal static partial class OutputCacheStoreLogs
 {

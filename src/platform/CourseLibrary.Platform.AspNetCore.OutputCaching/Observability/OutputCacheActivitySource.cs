@@ -1,6 +1,6 @@
 using CourseLibrary.Platform.Observability.Traces;
 
-namespace CourseLibrary.AspNetCore.OutputCaching.Observability;
+namespace CourseLibrary.Platform.AspNetCore.OutputCaching.Observability;
 
 internal sealed class OutputCacheActivitySource : ActivitySourceBase
 {

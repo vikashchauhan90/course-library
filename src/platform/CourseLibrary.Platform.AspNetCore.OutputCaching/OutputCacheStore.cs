@@ -1,12 +1,12 @@
 using CourseLibrary.Platform.Caching.Abstractions;
-using CourseLibrary.AspNetCore.OutputCaching.Observability;
+using CourseLibrary.Platform.AspNetCore.OutputCaching.Observability;
 using Microsoft.AspNetCore.OutputCaching;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 using System.IO.Hashing;
 using System.Text;
 
-namespace CourseLibrary.AspNetCore.OutputCaching;
+namespace CourseLibrary.Platform.AspNetCore.OutputCaching;
 
 public sealed class OutputCacheStore(
     ICacheProvider cacheProvider,

@@ -2,7 +2,7 @@ using CourseLibrary.Platform.Observability;
 using System.Diagnostics;
 using System.Diagnostics.Metrics;
 
-namespace CourseLibrary.AspNetCore.OutputCaching.Observability;
+namespace CourseLibrary.Platform.AspNetCore.OutputCaching.Observability;
 
 internal sealed class OutputCacheMeter : MeterBase
 {

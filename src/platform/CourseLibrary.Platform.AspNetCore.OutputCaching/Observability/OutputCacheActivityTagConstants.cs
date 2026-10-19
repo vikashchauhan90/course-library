@@ -1,4 +1,4 @@
-namespace CourseLibrary.AspNetCore.OutputCaching.Observability;
+namespace CourseLibrary.Platform.AspNetCore.OutputCaching.Observability;
 
 public static class OutputCacheActivityTagConstants
 {

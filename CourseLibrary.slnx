@@ -23,7 +23,7 @@
     <Project Path="src/idp/CourseLibrary.Idp/CourseLibrary.Idp.csproj" Id="06331876-0944-4d94-a4a5-47852a30e649" />
   </Folder>
   <Folder Name="/src/platform/">
-    <Project Path="src/platform/CourseLibrary.AspNetCore.OutputCaching/CourseLibrary.AspNetCore.OutputCaching.csproj" />
+    <Project Path="src/platform/CourseLibrary.Platform.AspNetCore.OutputCaching/CourseLibrary.Platform.AspNetCore.OutputCaching.csproj" />
     <Project Path="src/platform/CourseLibrary.Platform.AspNetCore.RequestContext/CourseLibrary.Platform.AspNetCore.RequestContext.csproj" />
     <Project Path="src/platform/CourseLibrary.Platform.Caching/CourseLibrary.Platform.Caching.csproj" />
     <Project Path="src/platform/CourseLibrary.Platform.DataProtection/CourseLibrary.Platform.DataProtection.csproj" />
