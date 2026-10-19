@@ -1,6 +1,4 @@
 using System.Diagnostics;
-using Microsoft.AspNetCore.Http.Metadata;
-using Microsoft.Extensions.Logging;
 
 namespace CourseLibrary.Course.Api.Observability;
 

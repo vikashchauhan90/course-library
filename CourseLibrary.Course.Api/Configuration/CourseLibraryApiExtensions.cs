@@ -78,7 +78,7 @@ public static class CourseLibraryApiExtensions
             options.IncludeSubDomains = true;
             options.Preload = true;
         });
-        builder.AddCourseLibraryApiObservability();
+        builder.AddApiObservability();
         return builder;
     }
 

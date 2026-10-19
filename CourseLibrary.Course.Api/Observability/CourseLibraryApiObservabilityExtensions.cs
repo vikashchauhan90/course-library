@@ -21,9 +21,9 @@ using OpenTelemetry.Trace;
 
 namespace CourseLibrary.Course.Api.Observability;
 
-public static class CourseLibraryApiObservabilityExtensions
+internal static class CourseLibraryApiObservabilityExtensions
 {
-    public static WebApplicationBuilder AddCourseLibraryApiObservability(
+    public static WebApplicationBuilder AddApiObservability(
         this WebApplicationBuilder builder)
     {
         ArgumentNullException.ThrowIfNull(builder);
