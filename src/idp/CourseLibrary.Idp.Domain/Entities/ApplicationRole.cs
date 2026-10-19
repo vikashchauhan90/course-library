@@ -1,9 +1,15 @@
-using CourseLibrary.Idp.Domain.Abstractions;
+using CourseLibrary.Core.Domain.Abstractions.Auditing;
+using CourseLibrary.Core.Domain.Abstractions.Entities;
+using CourseLibrary.Core.Domain.Abstractions.Security;
 using Microsoft.AspNetCore.Identity;
 
 namespace CourseLibrary.Idp.Domain.Entities;
 
-public class ApplicationRole : IdentityRole, IEntity<string>, IEntityAudit, IEntityConcurrency
+public class ApplicationRole 
+    :IdentityRole,
+    IEntity<string>,
+    IAuditableEntity,
+    IConcurrency
 {
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset? UpdatedAt { get; set; }

@@ -1,8 +1,10 @@
-using CourseLibrary.Idp.Domain.Abstractions;
+using CourseLibrary.Core.Domain.Abstractions.Auditing;
+using CourseLibrary.Core.Domain.Abstractions.Entities;
+using CourseLibrary.Core.Domain.Abstractions.Security;
 
 namespace CourseLibrary.Idp.Domain.Entities;
 
-public sealed class UserInvitation : IEntity<string>, IEntityAudit, IEntityConcurrency
+public sealed class UserInvitation : IEntity<string>, IAuditableEntity, IConcurrency
 {
     public required string Id { get; set; }
     public required string UserId { get; set; }

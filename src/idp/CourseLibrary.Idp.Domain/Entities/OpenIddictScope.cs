@@ -1,12 +1,13 @@
-﻿using CourseLibrary.Idp.Domain.Abstractions;
+﻿using CourseLibrary.Core.Domain.Abstractions.Auditing;
+using CourseLibrary.Core.Domain.Abstractions.Security;
 using OpenIddict.EntityFrameworkCore.Models;
 
 namespace CourseLibrary.Idp.Domain.Entities;
 
 public sealed class OpenIddictScope
     : OpenIddictEntityFrameworkCoreScope<Guid>,
-    IEntityAudit,
-    IEntityConcurrency
+    IAuditableEntity,
+    IConcurrency
 {
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset? UpdatedAt { get; set; }

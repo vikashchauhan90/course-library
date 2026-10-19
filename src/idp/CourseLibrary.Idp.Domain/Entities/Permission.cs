@@ -1,4 +1,4 @@
-using CourseLibrary.Idp.Domain.Abstractions;
+using CourseLibrary.Core.Domain.Abstractions.Entities;
 
 namespace CourseLibrary.Idp.Domain.Entities;
 
