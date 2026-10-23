@@ -76,8 +76,8 @@ public abstract class ActivitySourceBase : IDisposable
         activity.SetTag("library.name", "CourseLibrary");
         activity.SetTag("library.layer", "Platform");
         activity.SetTag("activity.source", ActivitySource.Name);
-        activity.SetTag("parent.traceId", activity.TraceId.ToString());
-        activity.SetTag("parent.spanId", activity.SpanId.ToString());
+        activity.SetTag("activity.traceId", activity.TraceId.ToString());
+        activity.SetTag("activity.spanId", activity.SpanId.ToString());
         activity.SetTag("activity.kind", activity.Kind.ToString());
     }
 

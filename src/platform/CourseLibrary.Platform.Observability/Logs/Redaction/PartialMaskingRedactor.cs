@@ -18,7 +18,7 @@ public sealed class PartialMaskingRedactor : Redactor
         ArgumentOutOfRangeException.ThrowIfNegative(prefixLength);
         ArgumentOutOfRangeException.ThrowIfNegative(suffixLength);
 
-        if (prefixLength == 0 && suffixLength == 0)
+        if (prefixLength == 0  || suffixLength == 0)
         {
             throw new ArgumentException("At least one character must be masked.");
         }
