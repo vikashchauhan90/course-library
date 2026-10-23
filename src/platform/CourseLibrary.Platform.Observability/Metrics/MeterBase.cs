@@ -6,7 +6,7 @@ public abstract class MeterBase: IDisposable
 {
     private readonly Meter _meter;
     private int _disposed;
-    protected MeterBase(string meterName, string? version)
+    protected MeterBase(string meterName, string? version ="")
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(meterName);
 

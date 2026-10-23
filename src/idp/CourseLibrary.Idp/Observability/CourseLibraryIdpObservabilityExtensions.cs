@@ -23,7 +23,7 @@ internal static class CourseLibraryIdpObservabilityExtensions
         var resourceBuilder = ResourceBuilder.CreateDefault();
         ConfigureResourceBuilder(resourceBuilder, builder.Environment.EnvironmentName);
 
-        builder.Services.AddCourseLibraryObservabilityServices();
+        builder.Services.AddObservabilityServices();
         builder.Logging.EnableCourseLibraryRedaction();
         builder.Logging.AddOpenTelemetry(options =>
         {

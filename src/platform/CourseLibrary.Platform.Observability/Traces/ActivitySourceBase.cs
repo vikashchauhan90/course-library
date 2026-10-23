@@ -7,7 +7,7 @@ public abstract class ActivitySourceBase : IDisposable
     private readonly ActivitySource _activitySource;
     private int _disposed;
 
-    protected ActivitySourceBase(string sourceName, string? version)
+    protected ActivitySourceBase(string sourceName, string? version = "")
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(sourceName);
 
