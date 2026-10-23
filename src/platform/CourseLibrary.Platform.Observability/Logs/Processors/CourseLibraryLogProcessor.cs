@@ -1,23 +1,22 @@
-﻿using CourseLibrary.Platform.Observability.Exceptions;
-using OpenTelemetry;
+﻿using OpenTelemetry;
 using OpenTelemetry.Logs;
 
 namespace CourseLibrary.Platform.Observability.Logs.Processors;
 
 public sealed class CourseLibraryLogProcessor(
-    string propertyPrefix = "course.library.platform")
+    IPrefixProvider? prefixProvider)
     : BaseProcessor<LogRecord>
 {
+    private const string propertyPrefix = "course.library.platform";
     public override void OnEnd(LogRecord logRecord)
     {
         var attributeCount = logRecord.Attributes?.Count ?? 0;
-        var exceptionDataCount = logRecord.Exception?.Data.Count ?? 0;
-        if (attributeCount == 0 && exceptionDataCount == 0)
+        if (attributeCount == 0)
         {
             return;
         }
 
-        var updated = new List<KeyValuePair<string, object?>>(attributeCount + exceptionDataCount);
+        var updated = new List<KeyValuePair<string, object?>>(attributeCount);
 
         foreach (var attribute in LogAttributeHelper.GetAttributes(logRecord))
         {
@@ -27,13 +26,6 @@ public sealed class CourseLibraryLogProcessor(
                     attribute.Value));
         }
 
-        foreach (var entry in ExceptionDataHelper.GetEntries(logRecord.Exception))
-        {
-            updated.Add(
-                new KeyValuePair<string, object?>(
-                    NormalizeKey(entry.Key),
-                    entry.Value));
-        }
         logRecord.Attributes = updated;
     }
 
@@ -50,6 +42,6 @@ public sealed class CourseLibraryLogProcessor(
             return key;
         }
 
-        return $"{propertyPrefix}.{key}";
+        return $"{prefixProvider?.Prefix ?? propertyPrefix}.{key}";
     }
 }

@@ -6,10 +6,11 @@ namespace CourseLibrary.Platform.Observability;
 
 public static class ObservabilityExtensions
 {
-    public static IServiceCollection AddCourseLibraryObservabilityServices(
+    public static IServiceCollection AddObservabilityServices(
         this IServiceCollection services)
     {
         ArgumentNullException.ThrowIfNull(services);
+        services.AddSingleton<IPrefixProvider, PlatformPrefixProvider>();
         services.AddSingleton<CourseLibraryLogProcessor>();
         services.AddSingleton<ActivityFailureProcessor>();
         services.AddSingleton<CorrelationActivityProcessor>();

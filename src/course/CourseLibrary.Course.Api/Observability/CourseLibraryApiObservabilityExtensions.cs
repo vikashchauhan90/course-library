@@ -1,4 +1,3 @@
-using CourseLibrary.Course.Api.Observability;
 using CourseLibrary.Course.Application.Observability;
 using CourseLibrary.Course.Persistence.Observability;
 using CourseLibrary.Platform.Caching.Observability;
@@ -13,7 +12,6 @@ using CourseLibrary.Platform.Observability.Traces.Processors;
 using CourseLibrary.Platform.Persistence.CosmosDB.Observability;
 using CourseLibrary.Platform.Resilience.Observability;
 using CourseLibrary.Platform.Serialization.Observability;
-using Microsoft.Extensions.DependencyInjection;
 using OpenTelemetry;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
@@ -31,7 +29,7 @@ internal static class CourseLibraryApiObservabilityExtensions
         var resourceBuilder = ResourceBuilder.CreateDefault();
         ConfigureResourceBuilder(resourceBuilder, builder.Environment.EnvironmentName);
 
-        builder.Services.AddCourseLibraryObservabilityServices();
+        builder.Services.AddObservabilityServices();
         builder.Logging.AddOpenTelemetry(options =>
         {
             options.SetResourceBuilder(resourceBuilder);
