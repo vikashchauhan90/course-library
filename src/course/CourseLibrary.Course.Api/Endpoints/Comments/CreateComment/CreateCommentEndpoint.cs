@@ -1,7 +1,7 @@
 using Carter;
 using CourseLibrary.Course.Api.Configuration;
 using CourseLibrary.Course.Api.Http;
-using CourseLibrary.Course.Application.Operations.Comments.Create;
+using CourseLibrary.Course.Application.UseCases.Comments.Create;
 
 namespace CourseLibrary.Course.Api.Endpoints.Comments.CreateComment;
 
@@ -13,10 +13,10 @@ public sealed class CreateCommentEndpoint : ICarterModule
 
         group.MapPost("/", async (
                 CreateCommentRequest request,
-                ICreateCommentOperation operation,
+                ICreateCommentUseCase useCase,
                 CancellationToken cancellationToken) =>
             {
-                var result = await operation.ExecuteAsync(
+                var result = await useCase.ExecuteAsync(
                     request.CourseId,
                     request.AuthorId,
                     request.Content,

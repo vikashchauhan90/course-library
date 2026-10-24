@@ -1,0 +1,29 @@
+using CourseLibrary.Course.Application.Core;
+using CourseLibrary.Course.Contracts.DTOs;
+using CourseLibrary.Core.Results;
+using CourseLibrary.Course.Domain.ValueObjects;
+using FluentValidation;
+using Microsoft.Extensions.Logging;
+using CourseLibrary.Course.Persistence.Data.Repositories.Abstractions;
+using CourseLibrary.Course.Application.UseCases.Courses;
+
+namespace CourseLibrary.Course.Application.UseCases.Discussions.GetByCourse;
+
+public interface IGetDiscussionsByCourseUseCase
+{
+    Task<Result<IReadOnlyList<DiscussionResponse>>> ExecuteAsync(string courseId, CancellationToken cancellationToken = default);
+}
+
+internal sealed class GetDiscussionsByCourseUseCase(
+    IDiscussionRepository repository,
+    IValidator<GetDiscussionsByCourseRequest> validator,
+    ILogger<GetDiscussionsByCourseUseCase> logger) : IGetDiscussionsByCourseUseCase
+{
+    public Task<Result<IReadOnlyList<DiscussionResponse>>> ExecuteAsync(string courseId, CancellationToken cancellationToken = default)
+        => CourseApplicationUseCase.ExecuteResultAsync(logger, "discussions.get_by_course", async () =>
+        {
+            ValidationErrors.ThrowIfInvalid(await validator.ValidateAsync(new GetDiscussionsByCourseRequest(courseId), cancellationToken));
+            var discussions = await repository.GetByCourseAsync(UseCaseInput.CourseId(courseId), cancellationToken);
+            return (IReadOnlyList<DiscussionResponse>)discussions.Select(CourseMapper.ToResponse).ToArray();
+        });
+}

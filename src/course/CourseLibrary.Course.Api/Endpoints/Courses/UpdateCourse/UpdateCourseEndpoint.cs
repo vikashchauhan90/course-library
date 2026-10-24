@@ -1,7 +1,7 @@
 using Carter;
 using CourseLibrary.Course.Api.Configuration;
 using CourseLibrary.Course.Api.Http;
-using CourseLibrary.Course.Application.Operations.Courses.Update;
+using CourseLibrary.Course.Application.UseCases.Courses.Update;
 using CourseLibrary.Course.Contracts.DTOs;
 using CourseLibrary.Platform.AspNetCore.RequestContext;
 
@@ -17,7 +17,7 @@ public sealed class UpdateCourseEndpoint : ICarterModule
                 string courseId,
                 UpdateCourseRequest request,
                 IRequestContext requestContext,
-                IUpdateCourseOperation operation,
+                IUpdateCourseUseCase useCase,
                 CancellationToken cancellationToken) =>
             {
                 if (string.IsNullOrWhiteSpace(requestContext.UserId))
@@ -25,7 +25,7 @@ public sealed class UpdateCourseEndpoint : ICarterModule
                     return Results.Unauthorized();
                 }
 
-                return (await operation.ExecuteAsync(
+                return (await useCase.ExecuteAsync(
                     courseId,
                     request,
                     requestContext.UserId,

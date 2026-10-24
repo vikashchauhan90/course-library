@@ -1,7 +1,7 @@
 using Carter;
 using CourseLibrary.Course.Api.Configuration;
 using CourseLibrary.Course.Api.Http;
-using CourseLibrary.Course.Application.Operations.Comments.Delete;
+using CourseLibrary.Course.Application.UseCases.Comments.Delete;
 
 namespace CourseLibrary.Course.Api.Endpoints.Comments.DeleteComment;
 
@@ -14,10 +14,10 @@ public sealed class DeleteCommentEndpoint : ICarterModule
         group.MapDelete("/{commentId}/{courseId}", async (
                 string commentId,
                 string courseId,
-                IDeleteCommentOperation operation,
+                IDeleteCommentUseCase useCase,
                 CancellationToken cancellationToken) =>
             {
-                var result = await operation.ExecuteAsync(commentId, courseId, cancellationToken);
+                var result = await useCase.ExecuteAsync(commentId, courseId, cancellationToken);
                 return result.ToHttpResult(deleted => deleted
                     ? Results.NoContent()
                     : Results.NotFound());

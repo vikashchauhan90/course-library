@@ -1,7 +1,7 @@
 using Carter;
 using CourseLibrary.Course.Api.Configuration;
 using CourseLibrary.Course.Api.Http;
-using CourseLibrary.Course.Application.Operations.Discussions.Update;
+using CourseLibrary.Course.Application.UseCases.Discussions.Update;
 
 namespace CourseLibrary.Course.Api.Endpoints.Discussions.UpdateDiscussion;
 
@@ -15,9 +15,9 @@ public sealed class UpdateDiscussionEndpoint : ICarterModule
                 string discussionId,
                 string courseId,
                 UpdateDiscussionRequest request,
-                IUpdateDiscussionOperation operation,
+                IUpdateDiscussionUseCase useCase,
                 CancellationToken cancellationToken) =>
-                (await operation.ExecuteAsync(
+                (await useCase.ExecuteAsync(
                     discussionId,
                     courseId,
                     request.Title,

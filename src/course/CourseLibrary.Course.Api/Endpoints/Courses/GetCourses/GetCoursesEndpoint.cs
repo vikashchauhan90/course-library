@@ -1,7 +1,7 @@
 using Carter;
 using CourseLibrary.Course.Api.Configuration;
 using CourseLibrary.Course.Api.Http;
-using CourseLibrary.Course.Application.Operations.Courses.Search;
+using CourseLibrary.Course.Application.UseCases.Courses.Search;
 using CourseLibrary.Course.Contracts.DTOs;
 using CourseLibrary.Platform.AspNetCore.RequestContext;
 
@@ -16,7 +16,7 @@ public sealed class GetCoursesEndpoint : ICarterModule
         group.MapGet("/", async (
                 HttpRequest request,
                 IRequestContext requestContext,
-                ISearchCoursesOperation operation,
+                ISearchCoursesUseCase useCase,
                 CancellationToken cancellationToken) =>
             {
                 var pageSizeText = request.Query["pageSize"].FirstOrDefault();
@@ -44,7 +44,7 @@ public sealed class GetCoursesEndpoint : ICarterModule
                     ParseBool(request.Query["includeDeleted"]),
                     ParseBool(request.Query["includeRetired"]));
 
-                var result = await operation.ExecuteAsync(
+                var result = await useCase.ExecuteAsync(
                     criteria,
                     pageSize,
                     request.Query["pageToken"].FirstOrDefault(),

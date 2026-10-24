@@ -1,0 +1,12 @@
+using FluentValidation;
+
+namespace CourseLibrary.Course.Application.UseCases.Courses.Search;
+
+internal sealed record SearchCoursesRequest(int PageSize);
+
+internal sealed class SearchCoursesValidator : AbstractValidator<SearchCoursesRequest>
+{
+    public SearchCoursesValidator()
+        => RuleFor(request => request.PageSize)
+            .InclusiveBetween(1, 100);
+}

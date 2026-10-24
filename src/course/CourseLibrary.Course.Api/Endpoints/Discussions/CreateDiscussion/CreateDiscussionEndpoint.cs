@@ -1,7 +1,7 @@
 using Carter;
 using CourseLibrary.Course.Api.Configuration;
 using CourseLibrary.Course.Api.Http;
-using CourseLibrary.Course.Application.Operations.Discussions.Create;
+using CourseLibrary.Course.Application.UseCases.Discussions.Create;
 
 namespace CourseLibrary.Course.Api.Endpoints.Discussions.CreateDiscussion;
 
@@ -13,10 +13,10 @@ public sealed class CreateDiscussionEndpoint : ICarterModule
 
         group.MapPost("/", async (
                 CreateDiscussionRequest request,
-                ICreateDiscussionOperation operation,
+                ICreateDiscussionUseCase useCase,
                 CancellationToken cancellationToken) =>
             {
-                var result = await operation.ExecuteAsync(
+                var result = await useCase.ExecuteAsync(
                     request.CourseId,
                     request.Title,
                     request.Description,

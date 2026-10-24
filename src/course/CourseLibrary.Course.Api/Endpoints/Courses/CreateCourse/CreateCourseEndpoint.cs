@@ -1,7 +1,7 @@
 using Carter;
 using CourseLibrary.Course.Api.Configuration;
 using CourseLibrary.Course.Api.Http;
-using CourseLibrary.Course.Application.Operations.Courses.Create;
+using CourseLibrary.Course.Application.UseCases.Courses.Create;
 using CourseLibrary.Course.Contracts.DTOs;
 using CourseLibrary.Platform.AspNetCore.RequestContext;
 
@@ -16,7 +16,7 @@ public sealed class CreateCourseEndpoint : ICarterModule
         group.MapPost("/", async (
                 CreateCourseRequest request,
                 IRequestContext requestContext,
-                ICreateCourseOperation operation,
+                ICreateCourseUseCase useCase,
                 CancellationToken cancellationToken) =>
             {
                 if (string.IsNullOrWhiteSpace(requestContext.UserId))
@@ -24,7 +24,7 @@ public sealed class CreateCourseEndpoint : ICarterModule
                     return Results.Unauthorized();
                 }
 
-                var result = await operation.ExecuteAsync(request, requestContext.UserId, cancellationToken);
+                var result = await useCase.ExecuteAsync(request, requestContext.UserId, cancellationToken);
                 return result.ToHttpResult(course =>
                     Results.CreatedAtRoute("GetCourse", new { version = "1", courseId = course?.Id }, course));
             })

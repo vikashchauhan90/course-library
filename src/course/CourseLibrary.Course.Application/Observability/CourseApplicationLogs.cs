@@ -4,26 +4,26 @@ namespace CourseLibrary.Course.Application.Observability;
 
 internal static partial class CourseApplicationLogs
 {
-    [LoggerMessage(7001, LogLevel.Debug, "Application operation {Operation} started.", EventName = nameof(OperationStarted))]
-    public static partial void OperationStarted(this ILogger logger, string operation);
+    [LoggerMessage(7001, LogLevel.Debug, "Application use case {UseCase} started.", EventName = nameof(UseCaseStarted))]
+    public static partial void UseCaseStarted(this ILogger logger, string useCase);
 
-    [LoggerMessage(7002, LogLevel.Debug, "Application operation {Operation} completed in {ElapsedMilliseconds} ms.", EventName = nameof(OperationCompleted))]
-    public static partial void OperationCompleted(this ILogger logger, string operation, double elapsedMilliseconds);
+    [LoggerMessage(7002, LogLevel.Debug, "Application use case {UseCase} completed in {ElapsedMilliseconds} ms.", EventName = nameof(UseCaseCompleted))]
+    public static partial void UseCaseCompleted(this ILogger logger, string useCase, double elapsedMilliseconds);
 
-    [LoggerMessage(7003, LogLevel.Warning, "Application operation {Operation} was cancelled after {ElapsedMilliseconds} ms.", EventName = nameof(OperationCancelled))]
-    public static partial void OperationCancelled(this ILogger logger, string operation, double elapsedMilliseconds);
+    [LoggerMessage(7003, LogLevel.Warning, "Application use case {UseCase} was cancelled after {ElapsedMilliseconds} ms.", EventName = nameof(UseCaseCancelled))]
+    public static partial void UseCaseCancelled(this ILogger logger, string useCase, double elapsedMilliseconds);
 
-    [LoggerMessage(7004, LogLevel.Error, "Application operation {Operation} failed after {ElapsedMilliseconds} ms.", EventName = nameof(OperationFailed))]
-    public static partial void OperationFailed(
+    [LoggerMessage(7004, LogLevel.Error, "Application use case {UseCase} failed after {ElapsedMilliseconds} ms.", EventName = nameof(UseCaseFailed))]
+    public static partial void UseCaseFailed(
         this ILogger logger,
         Exception exception,
-        string operation,
+        string useCase,
         double elapsedMilliseconds);
 
-    [LoggerMessage(7005, LogLevel.Warning, "Application operation {Operation} was rejected with error {ErrorCode} after {ElapsedMilliseconds} ms.", EventName = nameof(OperationRejected))]
-    public static partial void OperationRejected(
+    [LoggerMessage(7005, LogLevel.Warning, "Application use case {UseCase} was rejected with error {ErrorCode} after {ElapsedMilliseconds} ms.", EventName = nameof(UseCaseRejected))]
+    public static partial void UseCaseRejected(
         this ILogger logger,
-        string operation,
+        string useCase,
         string errorCode,
         double elapsedMilliseconds);
 }

@@ -63,7 +63,7 @@ public static class CourseLibraryApiExtensions
         builder.Services.AddCourseLibraryResilience();
         builder.Services.AddCosmosDatabase(builder.Configuration);
         builder.Services.AddRepositories();
-        builder.Services.AddCourseApplicationOperations();
+        builder.Services.AddCourseApplicationUseCases();
         builder.Services.AddResponseCompression(options =>
         {
             options.EnableForHttps = true;

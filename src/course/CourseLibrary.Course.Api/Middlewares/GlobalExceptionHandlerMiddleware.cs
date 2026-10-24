@@ -196,7 +196,7 @@ internal sealed class GlobalExceptionHandlerMiddleware(
                 new ExceptionMapping(
                     StatusCodes.Status504GatewayTimeout,
                     "Gateway timeout",
-                    "The downstream operation did not complete within the allowed time.",
+                    "The downstream useCase did not complete within the allowed time.",
                     DomainExceptionExtensions.GetProblemType(
                         StatusCodes.Status504GatewayTimeout)),
 

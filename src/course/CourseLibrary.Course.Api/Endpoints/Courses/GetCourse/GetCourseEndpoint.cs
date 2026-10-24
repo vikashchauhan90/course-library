@@ -1,7 +1,7 @@
 using Carter;
 using CourseLibrary.Course.Api.Configuration;
 using CourseLibrary.Course.Api.Http;
-using CourseLibrary.Course.Application.Operations.Courses.Get;
+using CourseLibrary.Course.Application.UseCases.Courses.Get;
 
 namespace CourseLibrary.Course.Api.Endpoints.Courses.GetCourse;
 
@@ -13,9 +13,9 @@ public sealed class GetCourseEndpoint : ICarterModule
 
         group.MapGet("/{courseId}", async (
                 string courseId,
-                IGetCourseOperation operation,
+                IGetCourseUseCase useCase,
                 CancellationToken cancellationToken) =>
-                (await operation.ExecuteAsync(courseId, cancellationToken)).ToHttpResult())
+                (await useCase.ExecuteAsync(courseId, cancellationToken)).ToHttpResult())
             .WithName("GetCourse")
             .HasApiVersion(1.0);
     }

@@ -1,7 +1,7 @@
 using Carter;
 using CourseLibrary.Course.Api.Configuration;
 using CourseLibrary.Course.Api.Http;
-using CourseLibrary.Course.Application.Operations.Comments.Get;
+using CourseLibrary.Course.Application.UseCases.Comments.Get;
 
 namespace CourseLibrary.Course.Api.Endpoints.Comments.GetComment;
 
@@ -14,9 +14,9 @@ public sealed class GetCommentEndpoint : ICarterModule
         group.MapGet("/{commentId}/{courseId}", async (
                 string commentId,
                 string courseId,
-                IGetCommentOperation operation,
+                IGetCommentUseCase useCase,
                 CancellationToken cancellationToken) =>
-                (await operation.ExecuteAsync(commentId, courseId, cancellationToken)).ToHttpResult())
+                (await useCase.ExecuteAsync(commentId, courseId, cancellationToken)).ToHttpResult())
             .WithName("GetComment")
             .HasApiVersion(1.0);
     }

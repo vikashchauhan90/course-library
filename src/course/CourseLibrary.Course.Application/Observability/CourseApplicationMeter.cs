@@ -20,35 +20,35 @@ internal sealed class CourseApplicationMeter : MeterBase
         : base(CourseApplicationTelemetry.MeterName)
     {
         _operations = CreateCounter<long>(
-            CourseApplicationMetricConstants.OperationsInstrumentName,
-            "{operation}",
-            "Number of application operations completed.");
+            CourseApplicationMetricConstants.UseCasesInstrumentName,
+            "{useCase}",
+            "Number of application use cases completed.");
         _failures = CreateCounter<long>(
             CourseApplicationMetricConstants.FailuresInstrumentName,
             "{failure}",
-            "Number of failed or cancelled application operations.");
+            "Number of failed or cancelled application use cases.");
         _duration = CreateHistogram<double>(
             CourseApplicationMetricConstants.DurationInstrumentName,
             "ms",
-            "Duration of application operations.");
+            "Duration of application use cases.");
     }
 
-    public void RecordOperation(string operation, string outcome, double durationMilliseconds)
+    public void RecordUseCase(string useCase, string outcome, double durationMilliseconds)
     {
-        var tags = CreateTags(operation, outcome);
+        var tags = CreateTags(useCase, outcome);
         _operations.Add(1, tags);
         _duration.Record(durationMilliseconds, tags);
     }
 
-    public void RecordFailure(string operation, string outcome)
-        => _failures.Add(1, CreateTags(operation, outcome));
+    public void RecordFailure(string useCase, string outcome)
+        => _failures.Add(1, CreateTags(useCase, outcome));
 
-    private static TagList CreateTags(string operation, string outcome)
+    private static TagList CreateTags(string useCase, string outcome)
     {
         var tags = new TagList
         {
-            { CourseApplicationActivityTagConstants.Operation, operation },
-            { "app.operation.outcome", outcome }
+            { CourseApplicationActivityTagConstants.UseCase, useCase },
+            { "app.use_case.outcome", outcome }
         };
 
         return tags;
