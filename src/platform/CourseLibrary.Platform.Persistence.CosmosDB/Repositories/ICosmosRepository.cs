@@ -8,23 +8,23 @@ public interface ICosmosRepository<TDocument, TKey>
 {
     Task<TDocument?> GetByIdAsync(
         TKey id,
-        string partitionKey,
+        IReadOnlyList<object?> partitionKey,
         CancellationToken cancellationToken = default);
 
     Task<IReadOnlyList<TDocument>> QueryAsync(
         QueryDefinition query,
-        string? partitionKey = null,
+        IReadOnlyList<object?>? partitionKey = null,
         CancellationToken cancellationToken = default);
 
     Task<PageResult<TDocument>> QueryPageAsync(
         QueryDefinition query,
-        string? partitionKey = null,
+        IReadOnlyList<object?> partitionKey,
         string? continuationToken = null,
         int pageSize = 20,
         CancellationToken cancellationToken = default);
 
     Task<IReadOnlyList<TDocument>> GetManyAsync(
-        IReadOnlyList<(TKey Id, string PartitionKey)> items,
+        IReadOnlyList<(TKey Id, IReadOnlyList<object?> PartitionKey)> items,
         CancellationToken cancellationToken = default);
 
     Task CreateAsync(
@@ -34,13 +34,13 @@ public interface ICosmosRepository<TDocument, TKey>
     Task ReplaceAsync(
         TKey id,
         TDocument item,
-        string partitionKey,
+        IReadOnlyList<object?> partitionKey,
         CancellationToken cancellationToken = default);
 
     Task ReplaceAsync(
         TKey id,
         TDocument item,
-        string partitionKey,
+        IReadOnlyList<object?> partitionKey,
         string etag,
         CancellationToken cancellationToken = default);
 
@@ -50,27 +50,27 @@ public interface ICosmosRepository<TDocument, TKey>
 
     Task PatchAsync(
         TKey id,
-        string partitionKey,
+        IReadOnlyList<object?> partitionKey,
         IReadOnlyList<PatchOperation> operations,
         CancellationToken cancellationToken = default);
 
     Task<bool> DeleteAsync(
         TKey id,
-        string partitionKey,
+        IReadOnlyList<object?> partitionKey,
         CancellationToken cancellationToken = default);
 
     Task<TDocument?> FirstOrDefaultAsync(
         QueryDefinition query,
-        string? partitionKey = null,
+        IReadOnlyList<object?>? partitionKey = null,
         CancellationToken cancellationToken = default);
 
     Task<TDocument?> SingleOrDefaultAsync(
         QueryDefinition query,
-        string? partitionKey = null,
+        IReadOnlyList<object?>? partitionKey = null,
         CancellationToken cancellationToken = default);
 
     Task ExecuteBatchAsync(
-        string partitionKey,
+        IReadOnlyList<object?> partitionKey,
         Action<TransactionalBatch> configure,
         CancellationToken cancellationToken = default);
 }
