@@ -34,7 +34,7 @@ public static class CosmosRepositoryExtensions
             var clientOptions = new CosmosClientOptions
             {
                 Serializer = new CourseLibraryCosmosSerializer(
-                    ValueObjectJsonConverters.CreateOptions()),
+                    CosmosJsonSerializerOptions.CreateOptions()),
 
                 ApplicationName =
                     "CourseLibrary.Course.Cosmos",
@@ -74,13 +74,8 @@ public static class CosmosRepositoryExtensions
         class,
         ICosmosDocumentConfiguration<TDocument>
     {
-        services.AddSingleton<TConfiguration>();
-
         services.AddSingleton<
             ICosmosDocumentConfiguration<TDocument>>(sp =>
-            sp.GetRequiredService<TConfiguration>());
-
-        services.AddSingleton<ICosmosDocumentConfiguration>(sp =>
             sp.GetRequiredService<TConfiguration>());
 
         return services;

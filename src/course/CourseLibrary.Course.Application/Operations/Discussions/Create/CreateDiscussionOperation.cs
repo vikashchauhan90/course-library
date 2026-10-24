@@ -8,6 +8,7 @@ using Microsoft.Extensions.Logging;
 using CourseLibrary.Course.Application.Operations.Courses;
 using CourseLibrary.Course.Application.Operations.Discussions;
 using CourseLibrary.Course.Persistence.Data.Repositories.Abstractions;
+using CourseLibrary.Course.Persistence.Data.Configurations;
 
 namespace CourseLibrary.Course.Application.Operations.Discussions.Create;
 
@@ -26,10 +27,12 @@ internal sealed class CreateDiscussionOperation(
         {
             ValidationErrors.ThrowIfInvalid(await validator.ValidateAsync(new CreateDiscussionRequest(courseId, title, description), cancellationToken));
             var now = DateTimeOffset.UtcNow;
+            var normalizedCourseId = OperationInput.CourseId(courseId);
             var discussion = new Discussion
             {
                 Id = Guid.NewGuid().ToString(),
-                CourseId = OperationInput.CourseId(courseId),
+                CourseId = normalizedCourseId,
+                PartitionKey = CoursePartitionKeyFormats.ForCourse(normalizedCourseId),
                 Title = title,
                 Description = description,
                 CreatedAt = now,

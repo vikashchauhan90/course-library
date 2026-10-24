@@ -2,6 +2,7 @@ using CourseLibrary.Course.Domain.Entities;
 using CourseLibrary.Course.EventConsumer.Core;
 using CourseLibrary.Course.EventConsumer.Observability;
 using CourseLibrary.Course.Persistence.Data.Repositories.Abstractions;
+using CourseLibrary.Course.Persistence.Data.Configurations;
 using CourseLibrary.Platform.Observability.Traces;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
@@ -60,6 +61,7 @@ internal sealed class CourseEventAuditActivity(
                 {
                     Id = courseEvent.EventId,
                     CourseId = courseEvent.CourseId,
+                    PartitionKey = CoursePartitionKeyFormats.ForCourse(courseEvent.CourseId),
                     Action = courseEvent.EventKind,
                     EventId = courseEvent.EventId,
                     OccurredAt = courseEvent.OccurredAt,

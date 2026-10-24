@@ -1,26 +1,17 @@
-﻿using CourseLibrary.Platform.Persistence.CosmosDB.Configurations;
-using System.Globalization;
+using CourseLibrary.Platform.Persistence.CosmosDB.Configurations;
+using Microsoft.Azure.Cosmos;
 
 
 namespace CourseLibrary.Course.Persistence.Data.Configurations;
 
-internal class CourseConfiguration : ICosmosDocumentConfiguration<Domain.Entities.Course>
+internal class CourseConfiguration : ICosmosDocumentConfiguration<Course.Domain.Entities.Course>
 {
-    public const string PartitionKeyFormat = CoursePartitionKeyFormats.AuthorFormat;
     public string ContainerName => "courses";
-    public string PartitionKeyPath => "/authorId";
+    public string PartitionKeyPath => "/partitionKey";
 
-    public string GetPartitionKey(Domain.Entities.Course document)
+    public PartitionKey GetPartitionKey(Course.Domain.Entities.Course document)
     {
-        ArgumentNullException.ThrowIfNull(document);
+        return new PartitionKey(document.PartitionKey);
+    }
 
-        return CreatePartitionKey(document.AuthorId);
-    }
-    public string CreatePartitionKey(params ReadOnlySpan<object?> args)
-    {
-        return string.Format(
-            CultureInfo.InvariantCulture,
-            PartitionKeyFormat,
-            args);
-    }
 }

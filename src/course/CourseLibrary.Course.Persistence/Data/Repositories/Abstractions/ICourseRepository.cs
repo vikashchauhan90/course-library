@@ -17,5 +17,5 @@ public interface ICourseRepository
         string? continuationToken,
         CancellationToken cancellationToken = default);
     Task UpsertAsync(Domain.Entities.Course course, CancellationToken cancellationToken = default);
-    Task<bool> DeleteAsync(string courseId, string partitionKey, CancellationToken cancellationToken = default);
+    Task<bool> DeleteAsync(string courseId, string authorId, CancellationToken cancellationToken = default);
 }

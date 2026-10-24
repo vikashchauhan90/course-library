@@ -1,5 +1,5 @@
 using CourseLibrary.Course.Domain.Entities;
-using CourseLibrary.Course.Domain.ValueObjects;
+using CourseLibrary.Course.Persistence.Data.Configurations;
 using CourseLibrary.Course.Persistence.Data.Repositories.Abstractions;
 using CourseLibrary.Course.Persistence.Observability;
 using CourseLibrary.Platform.Persistence.CosmosDB;
@@ -28,7 +28,7 @@ internal sealed class DiscussionRepository
         => CourseRepositoryObservability.ExecuteAsync(
             nameof(DiscussionRepository),
             nameof(GetByIdAsync),
-            () => base.GetByIdAsync(discussionId, [courseId], cancellationToken));
+            () => base.GetByIdAsync(discussionId, CoursePartitionKeyFormats.ForCourse(courseId), cancellationToken));
 
     public Task<IReadOnlyList<Discussion>> GetByCourseAsync(string courseId, CancellationToken cancellationToken = default)
         => CourseRepositoryObservability.ExecuteAsync(
@@ -38,13 +38,11 @@ internal sealed class DiscussionRepository
             {
                 var query = new QueryDefinition(
                     "SELECT * FROM c WHERE c.courseId = @courseId ORDER BY c.updatedAt DESC")
-                    .WithParameter(
-                        "@courseId",
-                        Configuration.CreatePartitionKey(courseId));
+                    .WithParameter("@courseId", courseId);
 
                 return base.QueryAsync(
                     query,
-                    partitionKey: [courseId],
+                    partitionKey: CoursePartitionKeyFormats.ForCourse(courseId),
                     cancellationToken: cancellationToken);
             });
 
@@ -52,7 +50,7 @@ internal sealed class DiscussionRepository
         => CourseRepositoryObservability.ExecuteAsync(
             nameof(DiscussionRepository),
             nameof(DeleteAsync),
-            () => base.DeleteAsync(discussionId, [courseId], cancellationToken));
+            () => base.DeleteAsync(discussionId, CoursePartitionKeyFormats.ForCourse(courseId), cancellationToken));
 
     public new Task UpsertAsync(Discussion discussion, CancellationToken cancellationToken = default)
         => CourseRepositoryObservability.ExecuteAsync(

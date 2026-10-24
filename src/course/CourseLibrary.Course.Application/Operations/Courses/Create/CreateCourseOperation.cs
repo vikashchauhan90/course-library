@@ -7,6 +7,7 @@ using FluentValidation;
 using Microsoft.Extensions.Logging;
 using CourseLibrary.Course.Application.Operations.Courses;
 using CourseLibrary.Course.Persistence.Data.Repositories.Abstractions;
+using CourseLibrary.Course.Persistence.Data.Configurations;
 
 namespace CourseLibrary.Course.Application.Operations.Courses.Create;
 
@@ -41,6 +42,7 @@ internal sealed class CreateCourseOperation(
                 Title = input.Title,
                 Description = input.Description,
                 AuthorId = input.AuthorId,
+                PartitionKey = CoursePartitionKeyFormats.ForAuthor(input.AuthorId),
                 AuthorName = input.AuthorName,
                 CreatedAt = now,
                 UpdatedAt = now

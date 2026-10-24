@@ -1,6 +1,6 @@
 ﻿using CourseLibrary.Course.Domain.Entities;
 using CourseLibrary.Platform.Persistence.CosmosDB.Configurations;
-using System.Globalization;
+using Microsoft.Azure.Cosmos;
 
 namespace CourseLibrary.Course.Persistence.Data.Configurations;
 
@@ -8,20 +8,9 @@ internal class DiscussionConfiguration : ICosmosDocumentConfiguration<Discussion
 {
     public const string PartitionKeyFormat = CoursePartitionKeyFormats.CourseFormat;
     public string ContainerName => "discussions";
-    public string PartitionKeyPath => "/courseId";
-
-    public string GetPartitionKey(Discussion document)
+    public string PartitionKeyPath => "/partitionKey";
+    public PartitionKey GetPartitionKey(Discussion document)
     {
-        ArgumentNullException.ThrowIfNull(document);
-
-        return CreatePartitionKey(document.CourseId);
-    }
-
-    public string CreatePartitionKey(params ReadOnlySpan<object?> args)
-    {
-        return string.Format(
-            CultureInfo.InvariantCulture,
-            PartitionKeyFormat,
-            args);
+        return new PartitionKey(document.PartitionKey);
     }
 }

@@ -1,28 +1,18 @@
 ﻿using CourseLibrary.Course.Domain.Entities;
 using CourseLibrary.Platform.Persistence.CosmosDB.Configurations;
-using System.Globalization;
+using Microsoft.Azure.Cosmos;
 
 namespace CourseLibrary.Course.Persistence.Data.Configurations;
 
 internal sealed class CommentConfiguration
     : ICosmosDocumentConfiguration<Comment>
 {
-    public const string PartitionKeyFormat = CoursePartitionKeyFormats.CourseFormat;
     public  string ContainerName => "comments";
-    public  string PartitionKeyPath => "/courseId";
+    public  string PartitionKeyPath => "/partitionKey";
 
-    public string GetPartitionKey(Comment document)
+    public PartitionKey GetPartitionKey(Comment document)
     {
-        ArgumentNullException.ThrowIfNull(document);
-
-        return CreatePartitionKey(document.CourseId);
+        return new PartitionKey(document.PartitionKey);
     }
 
-    public string CreatePartitionKey(params ReadOnlySpan<object?> args)
-    {
-        return string.Format(
-            CultureInfo.InvariantCulture,
-            PartitionKeyFormat,
-            args);
-    }
 }

@@ -61,7 +61,7 @@ public abstract class CosmosRepositoryBase<TDocument, TKey>
 
     public async Task<TDocument?> GetByIdAsync(
         TKey id,
-        IReadOnlyList<object?> partitionKey,
+        string partitionKey,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(partitionKey);
@@ -79,10 +79,9 @@ public abstract class CosmosRepositoryBase<TDocument, TKey>
 
         try
         {
-            var partitionKeyValue = FormatPartitionKey(partitionKey);
             var response = await Container.ReadItemAsync<TDocument>(
                 id.ToString(),
-                new PartitionKey(partitionKeyValue),
+                new PartitionKey(partitionKey),
                 cancellationToken: cancellationToken);
 
             RecordSuccess(activity, OperationNames.GetItem, startedAt, response.RequestCharge);
@@ -120,7 +119,7 @@ public abstract class CosmosRepositoryBase<TDocument, TKey>
 
     public async Task<IReadOnlyList<TDocument>> QueryAsync(
         QueryDefinition query,
-        IReadOnlyList<object?>? partitionKey = null,
+        string? partitionKey = null,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(query);
@@ -140,10 +139,10 @@ public abstract class CosmosRepositoryBase<TDocument, TKey>
         {
             var requestOptions = new QueryRequestOptions();
 
-            if (partitionKey?.Count > 0)
+            if (partitionKey?.Length > 0)
             {
                 requestOptions.PartitionKey =
-                    new PartitionKey(FormatPartitionKey(partitionKey));
+                    new PartitionKey(partitionKey);
             }
 
             using var iterator =
@@ -190,7 +189,7 @@ public abstract class CosmosRepositoryBase<TDocument, TKey>
 
     public async Task<PageResult<TDocument>> QueryPageAsync(
         QueryDefinition query,
-        IReadOnlyList<object?>? partitionKey = null,
+        string? partitionKey = null,
         string? continuationToken = null,
         int pageSize = 20,
         CancellationToken cancellationToken = default)
@@ -231,10 +230,10 @@ public abstract class CosmosRepositoryBase<TDocument, TKey>
                 MaxItemCount = pageSize
             };
 
-            if (partitionKey?.Count > 0)
+            if (partitionKey?.Length > 0)
             {
                 requestOptions.PartitionKey =
-                    new PartitionKey(FormatPartitionKey(partitionKey));
+                    new PartitionKey(partitionKey);
             }
 
             using var iterator =
@@ -291,11 +290,11 @@ public abstract class CosmosRepositoryBase<TDocument, TKey>
     }
 
     public async Task<IReadOnlyList<TDocument>> GetManyAsync(
-        IReadOnlyList<(TKey Id, IReadOnlyList<object?> PartitionKey)> items,
+        IReadOnlyList<(TKey Id, string PartitionKey)> items,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(items);
-        if (items.Any(static item => item.PartitionKey == null || item.PartitionKey.Count == 0))
+        if (items.Any(static item => item.PartitionKey == null || item.PartitionKey.Length == 0))
         {
             throw new ArgumentException(
                 "Every item must include a partition key.",
@@ -323,7 +322,7 @@ public abstract class CosmosRepositoryBase<TDocument, TKey>
             var identifiers = items
                 .Select(item => (
                     item.Id.ToString() ?? string.Empty,
-                    new PartitionKey(FormatPartitionKey(item.PartitionKey))))
+                    new PartitionKey(item.PartitionKey)))
                 .ToList();
             var response = await Container.ReadManyItemsAsync<TDocument>(
                 identifiers,
@@ -357,7 +356,6 @@ public abstract class CosmosRepositoryBase<TDocument, TKey>
     {
         ArgumentNullException.ThrowIfNull(item);
         var partitionKey = _configuration.GetPartitionKey(item);
-        ArgumentException.ThrowIfNullOrWhiteSpace(partitionKey);
 
         using var activity = ActivitySource.StartActivity(
             CosmosActivityNames.CreateItem,
@@ -372,7 +370,7 @@ public abstract class CosmosRepositoryBase<TDocument, TKey>
         {
             var response = await Container.CreateItemAsync(
                 item,
-                new PartitionKey(partitionKey),
+                partitionKey,
                 cancellationToken: cancellationToken);
             RecordSuccess(activity, OperationNames.CreateItem, startedAt, response.RequestCharge);
         }
@@ -396,14 +394,14 @@ public abstract class CosmosRepositoryBase<TDocument, TKey>
     public Task ReplaceAsync(
         TKey id,
         TDocument item,
-        IReadOnlyList<object?> partitionKey,
+        string partitionKey,
         CancellationToken cancellationToken = default)
         => ReplaceCoreAsync(id, item, partitionKey, etag: null, cancellationToken);
 
     public Task ReplaceAsync(
         TKey id,
         TDocument item,
-        IReadOnlyList<object?> partitionKey,
+        string partitionKey,
         string etag,
         CancellationToken cancellationToken = default)
     {
@@ -414,7 +412,7 @@ public abstract class CosmosRepositoryBase<TDocument, TKey>
     private async Task ReplaceCoreAsync(
         TKey id,
         TDocument item,
-        IReadOnlyList<object?> partitionKey,
+        string partitionKey,
         string? etag,
         CancellationToken cancellationToken)
     {
@@ -439,7 +437,7 @@ public abstract class CosmosRepositoryBase<TDocument, TKey>
             var response = await Container.ReplaceItemAsync(
                 item,
                 id.ToString(),
-                new PartitionKey(FormatPartitionKey(partitionKey)),
+                new PartitionKey(partitionKey),
                 requestOptions,
                 cancellationToken);
             RecordSuccess(activity, OperationNames.ReplaceItem, startedAt, response.RequestCharge);
@@ -463,7 +461,7 @@ public abstract class CosmosRepositoryBase<TDocument, TKey>
 
     public async Task PatchAsync(
         TKey id,
-        IReadOnlyList<object?> partitionKey,
+        string partitionKey,
         IReadOnlyList<PatchOperation> operations,
         CancellationToken cancellationToken = default)
     {
@@ -490,7 +488,7 @@ public abstract class CosmosRepositoryBase<TDocument, TKey>
         {
             var response = await Container.PatchItemAsync<TDocument>(
                 id.ToString(),
-                new PartitionKey(FormatPartitionKey(partitionKey)),
+                new PartitionKey(partitionKey),
                 operations,
                 cancellationToken: cancellationToken);
             RecordSuccess(activity, OperationNames.PatchItem, startedAt, response.RequestCharge);
@@ -518,9 +516,6 @@ public abstract class CosmosRepositoryBase<TDocument, TKey>
     {
         ArgumentNullException.ThrowIfNull(item);
         var partitionKey = _configuration.GetPartitionKey(item);
-        ArgumentException.ThrowIfNullOrWhiteSpace(partitionKey);
-
-
 
         using var activity =
         ActivitySource.StartActivity(
@@ -538,8 +533,7 @@ public abstract class CosmosRepositoryBase<TDocument, TKey>
             var response =
             await Container.UpsertItemAsync(
                 item,
-                new PartitionKey(
-                    partitionKey),
+                partitionKey,
                 cancellationToken: cancellationToken);
 
             RecordSuccess(activity, OperationNames.UpsertItem, startedAt, response.RequestCharge);
@@ -563,7 +557,7 @@ public abstract class CosmosRepositoryBase<TDocument, TKey>
 
     public async Task<bool> DeleteAsync(
         TKey id,
-        IReadOnlyList<object?> partitionKey,
+        string partitionKey,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(partitionKey);
@@ -584,7 +578,7 @@ public abstract class CosmosRepositoryBase<TDocument, TKey>
             var response =
            await Container.DeleteItemAsync<TDocument>(
                id.ToString(),
-               new PartitionKey(FormatPartitionKey(partitionKey)),
+               new PartitionKey(partitionKey),
                cancellationToken: cancellationToken);
 
             RecordSuccess(activity, OperationNames.DeleteItem, startedAt, response.RequestCharge);
@@ -622,7 +616,7 @@ public abstract class CosmosRepositoryBase<TDocument, TKey>
 
     public Task<TDocument?> FirstOrDefaultAsync(
         QueryDefinition query,
-        IReadOnlyList<object?>? partitionKey = null,
+        string? partitionKey = null,
         CancellationToken cancellationToken = default)
         => FindOneAsync(
             query,
@@ -634,7 +628,7 @@ public abstract class CosmosRepositoryBase<TDocument, TKey>
 
     public Task<TDocument?> SingleOrDefaultAsync(
         QueryDefinition query,
-        IReadOnlyList<object?>? partitionKey = null,
+        string? partitionKey = null,
         CancellationToken cancellationToken = default)
         => FindOneAsync(
             query,
@@ -646,7 +640,7 @@ public abstract class CosmosRepositoryBase<TDocument, TKey>
 
     private async Task<TDocument?> FindOneAsync(
         QueryDefinition query,
-        IReadOnlyList<object?>? partitionKey,
+        string? partitionKey,
         string operation,
         string activityName,
         bool single,
@@ -665,10 +659,10 @@ public abstract class CosmosRepositoryBase<TDocument, TKey>
         {
             var limit = single ? 2 : 1;
             var requestOptions = new QueryRequestOptions { MaxItemCount = limit };
-            if (partitionKey?.Count > 0)
+            if (partitionKey?.Length > 0)
             {
                 requestOptions.PartitionKey =
-                    new PartitionKey(FormatPartitionKey(partitionKey));
+                    new PartitionKey(partitionKey);
             }
 
             using var iterator = Container.GetItemQueryIterator<TDocument>(
@@ -711,7 +705,7 @@ public abstract class CosmosRepositoryBase<TDocument, TKey>
     }
 
     public async Task ExecuteBatchAsync(
-        IReadOnlyList<object?> partitionKey,
+        string partitionKey,
         Action<TransactionalBatch> configure,
         CancellationToken cancellationToken = default)
     {
@@ -729,8 +723,7 @@ public abstract class CosmosRepositoryBase<TDocument, TKey>
 
         try
         {
-            var partitionKeyValue = FormatPartitionKey(partitionKey);
-            var batch = Container.CreateTransactionalBatch(new PartitionKey(partitionKeyValue));
+            var batch = Container.CreateTransactionalBatch(new PartitionKey(partitionKey));
             configure(batch);
             using var response = await batch.ExecuteAsync(cancellationToken);
 
@@ -763,25 +756,6 @@ public abstract class CosmosRepositoryBase<TDocument, TKey>
         }
     }
 
-    private string FormatPartitionKey(IReadOnlyList<object?> partitionKey)
-    {
-        ArgumentNullException.ThrowIfNull(partitionKey);
-
-        if (partitionKey.Count == 0)
-        {
-            throw new ArgumentException(
-                "At least one partition key value is required.",
-                nameof(partitionKey));
-        }
-
-        var formattedPartitionKey = partitionKey is object?[] values
-            ? _configuration.CreatePartitionKey(values)
-            : _configuration.CreatePartitionKey(partitionKey.ToArray());
-
-        ArgumentException.ThrowIfNullOrWhiteSpace(formattedPartitionKey);
-
-        return formattedPartitionKey;
-    }
 
     private void RecordSuccess(
         Activity? activity,

@@ -8,6 +8,7 @@ using Microsoft.Extensions.Logging;
 using CourseLibrary.Course.Application.Operations.Courses;
 using CourseLibrary.Course.Application.Operations.Comments;
 using CourseLibrary.Course.Persistence.Data.Repositories.Abstractions;
+using CourseLibrary.Course.Persistence.Data.Configurations;
 
 namespace CourseLibrary.Course.Application.Operations.Comments.Create;
 
@@ -42,10 +43,12 @@ internal sealed class CreateCommentOperation(
                 parentId = OperationInput.CommentId(parentCommentId, nameof(parentCommentId));
             }
             var now = DateTimeOffset.UtcNow;
+            var normalizedCourseId = OperationInput.CourseId(courseId);
             var comment = new Comment
             {
                 Id = Guid.NewGuid().ToString(),
-                CourseId = OperationInput.CourseId(courseId),
+                CourseId = normalizedCourseId,
+                PartitionKey = CoursePartitionKeyFormats.ForCourse(normalizedCourseId),
                 AuthorId = authorId,
                 Content = content,
                 ParentCommentId = parentId,

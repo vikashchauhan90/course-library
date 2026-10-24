@@ -1,6 +1,6 @@
 using CourseLibrary.Core.Results;
 using CourseLibrary.Course.Contracts.DTOs;
-using CourseLibrary.Course.Domain.ValueObjects;
+using CourseLibrary.Course.Persistence.Data.Configurations;
 using CourseLibrary.Course.Persistence.Data.Repositories.Abstractions;
 using CourseLibrary.Course.Persistence.Observability;
 using CourseLibrary.Platform.Persistence.CosmosDB;
@@ -9,6 +9,7 @@ using CourseLibrary.Platform.Persistence.CosmosDB.Repositories;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using static CourseLibrary.Course.Domain.EventIds;
 
 namespace CourseLibrary.Course.Persistence.Data.Repositories;
 
@@ -38,6 +39,7 @@ internal sealed class CourseRepository
 
                 return base.SingleOrDefaultAsync(query, cancellationToken: cancellationToken);
             });
+
     }
 
     public Task<PageResult<Domain.Entities.Course>> GetByAuthorAsync(
@@ -52,13 +54,11 @@ internal sealed class CourseRepository
             {
                 var query = new QueryDefinition(
                     "SELECT * FROM c WHERE c.authorId = @authorId ORDER BY c.updatedAt DESC")
-                    .WithParameter(
-                        "@authorId",
-                        Configuration.CreatePartitionKey(authorId));
+                    .WithParameter("@authorId", authorId);
 
                 return base.QueryPageAsync(
                     query,
-                    partitionKey: [authorId],
+                    partitionKey: CoursePartitionKeyFormats.ForAuthor(authorId),
                     continuationToken,
                     pageSize,
                     cancellationToken);
@@ -87,9 +87,7 @@ internal sealed class CourseRepository
                 if (!string.IsNullOrWhiteSpace(criteria.AuthorId))
                 {
                     predicates.Add("c.authorId = @authorId");
-                    parameters.Add((
-                        "@authorId",
-                        Configuration.CreatePartitionKey(criteria.AuthorId)));
+                    parameters.Add(("@authorId", criteria.AuthorId));
                 }
 
                 if (!criteria.IncludeDeleted)
@@ -114,11 +112,11 @@ internal sealed class CourseRepository
                     cancellationToken: cancellationToken);
             });
 
-    public Task<bool> DeleteAsync(string courseId, string partitionKey, CancellationToken cancellationToken = default)
+    public Task<bool> DeleteAsync(string courseId, string authorId, CancellationToken cancellationToken = default)
         => CourseRepositoryObservability.ExecuteAsync(
             nameof(CourseRepository),
             nameof(DeleteAsync),
-            () => base.DeleteAsync(courseId, [partitionKey], cancellationToken));
+            () => base.DeleteAsync(courseId, CoursePartitionKeyFormats.ForAuthor(authorId), cancellationToken));
 
     public new Task UpsertAsync(Domain.Entities.Course course, CancellationToken cancellationToken = default)
         => CourseRepositoryObservability.ExecuteAsync(

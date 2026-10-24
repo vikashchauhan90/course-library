@@ -1,14 +1,12 @@
-﻿namespace CourseLibrary.Platform.Persistence.CosmosDB.Configurations;
+﻿using Microsoft.Azure.Cosmos;
 
-public interface ICosmosDocumentConfiguration
+namespace CourseLibrary.Platform.Persistence.CosmosDB.Configurations;
+
+public interface ICosmosDocumentConfiguration<TDocument>
+    where TDocument : class
 {
     string ContainerName { get; }
     string PartitionKeyPath { get; }
-}
-public interface ICosmosDocumentConfiguration<TDocument>
-    : ICosmosDocumentConfiguration
-    where TDocument : class
-{
-    string GetPartitionKey(TDocument document);
-    string CreatePartitionKey(params ReadOnlySpan<object?> args);
+
+    PartitionKey GetPartitionKey(TDocument document);
 }

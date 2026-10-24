@@ -1,27 +1,15 @@
 ﻿using CourseLibrary.Course.Domain.Entities;
 using CourseLibrary.Platform.Persistence.CosmosDB.Configurations;
-using System.Globalization;
+using Microsoft.Azure.Cosmos;
 
 namespace CourseLibrary.Course.Persistence.Data.Configurations;
 
 internal class CourseAuditEntryConfiguration: ICosmosDocumentConfiguration<CourseAuditEntry>
 {
-    public const string PartitionKeyFormat = CoursePartitionKeyFormats.CourseFormat;
     public string ContainerName => "course-audit";
-    public string PartitionKeyPath => "/courseId";
-
-    public string GetPartitionKey(CourseAuditEntry document)
+    public string PartitionKeyPath => "/partitionKey";
+    public PartitionKey GetPartitionKey(CourseAuditEntry document)
     {
-        ArgumentNullException.ThrowIfNull(document);
-
-        return CreatePartitionKey(document.CourseId);
-    }
-
-    public string CreatePartitionKey(params ReadOnlySpan<object?> args)
-    {
-        return string.Format(
-            CultureInfo.InvariantCulture,
-            PartitionKeyFormat,
-            args);
+        return new PartitionKey(document.PartitionKey);
     }
 }

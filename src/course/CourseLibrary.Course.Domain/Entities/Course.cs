@@ -9,6 +9,7 @@ public sealed record Course : IEntity<string>, IAuditableEntity
     public required string Title { get; init; }
     public required string Description { get; init; }
     public required string AuthorId { get; init; }
+    public required string PartitionKey { get; init; }
     public required string AuthorName { get; init; }
     public required DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset? UpdatedAt { get; set; }

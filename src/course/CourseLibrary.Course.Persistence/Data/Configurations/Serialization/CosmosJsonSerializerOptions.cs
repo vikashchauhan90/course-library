@@ -1,16 +1,14 @@
 using System.Text.Json;
+
 namespace CourseLibrary.Course.Persistence.Data.Configurations.Serialization;
 
-internal static class ValueObjectJsonConverters
+internal static class CosmosJsonSerializerOptions
 {
     public static JsonSerializerOptions CreateOptions()
     {
-        var options = new JsonSerializerOptions(JsonSerializerDefaults.Web)
+        return new JsonSerializerOptions(JsonSerializerDefaults.Web)
         {
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         };
-
-        return options;
     }
-
 }
