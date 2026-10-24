@@ -4,7 +4,7 @@ using CourseLibrary.Core.Domain.Abstractions.Entities;
 
 namespace CourseLibrary.Course.Domain.Entities;
 
-public sealed record Comment : IEntity<string>, IAuditableEntity
+public sealed record Comment : IEntity<string>, IAuditableEntity, IPartitionedEntity
 {
     public required string Id { get; init; }
     public required string CourseId { get; init; }

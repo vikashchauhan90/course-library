@@ -3,7 +3,7 @@ using CourseLibrary.Core.Domain.Abstractions.Entities;
 
 namespace CourseLibrary.Course.Domain.Entities;
 
-public sealed record Course : IEntity<string>, IAuditableEntity
+public sealed record Course : IEntity<string>, IAuditableEntity, IPartitionedEntity
 {
     public required string Id { get; init; }
     public required string Title { get; init; }
