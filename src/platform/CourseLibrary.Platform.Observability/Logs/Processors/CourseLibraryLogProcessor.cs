@@ -1,55 +1,85 @@
-﻿using CourseLibrary.Platform.Observability.Exceptions;
-using OpenTelemetry;
+﻿using OpenTelemetry;
 using OpenTelemetry.Logs;
 
 namespace CourseLibrary.Platform.Observability.Logs.Processors;
 
-public sealed class CourseLibraryLogProcessor(
-    string propertyPrefix = "course.library.platform")
+public sealed class CourseLibraryLogProcessor
     : BaseProcessor<LogRecord>
 {
+    private const string DefaultPrefix = "course.library.platform";
+    private const char PrefixSeparator = '.';
+    private const string OriginalFormatKey = "{OriginalFormat}";
+
+    private readonly string _prefixWithSeparator;
+
+    public CourseLibraryLogProcessor(IPrefixProvider? prefixProvider)
+    {
+        var supplied = prefixProvider?.Prefix;
+        var prefix = string.IsNullOrWhiteSpace(supplied) ? DefaultPrefix : supplied;
+        _prefixWithSeparator = prefix + PrefixSeparator;
+    }
+
     public override void OnEnd(LogRecord logRecord)
     {
-        var attributeCount = logRecord.Attributes?.Count ?? 0;
-        var exceptionDataCount = logRecord.Exception?.Data.Count ?? 0;
-        if (attributeCount == 0 && exceptionDataCount == 0)
+        ArgumentNullException.ThrowIfNull(logRecord);
+
+        var attributes = logRecord.Attributes;
+        if (attributes is null || attributes.Count == 0)
         {
             return;
         }
 
-        var updated = new List<KeyValuePair<string, object?>>(attributeCount + exceptionDataCount);
-
-        foreach (var attribute in LogAttributeHelper.GetAttributes(logRecord))
+        if (!AnyNeedsPrefixing(attributes))
         {
-            updated.Add(
-                new KeyValuePair<string, object?>(
-                    NormalizeKey(attribute.Key),
-                    attribute.Value));
+            return;
         }
 
-        foreach (var entry in ExceptionDataHelper.GetEntries(logRecord.Exception))
+        var updated = new List<KeyValuePair<string, object?>>(attributes.Count);
+        foreach (var attribute in attributes)
         {
-            updated.Add(
-                new KeyValuePair<string, object?>(
-                    NormalizeKey(entry.Key),
-                    entry.Value));
+            var key = NeedsPrefix(attribute.Key)
+                ? _prefixWithSeparator + attribute.Key
+                : attribute.Key;
+            updated.Add(new KeyValuePair<string, object?>(key, attribute.Value));
         }
+
         logRecord.Attributes = updated;
     }
 
-    private string NormalizeKey(string key)
+    private bool AnyNeedsPrefixing(IReadOnlyList<KeyValuePair<string, object?>> attributes)
     {
-        // Preserve OpenTelemetry semantic attributes.
-        if (key.Contains('.'))
+        for (var i = 0; i < attributes.Count; i++)
         {
-            return key;
+            if (NeedsPrefix(attributes[i].Key))
+            {
+                return true;
+            }
         }
-
-        if (key == "{OriginalFormat}")
-        {
-            return key;
-        }
-
-        return $"{propertyPrefix}.{key}";
+        return false;
     }
+
+    private bool NeedsPrefix(string key)
+    {
+        if (IsOriginalFormat(key))
+        {
+            return false;
+        }
+
+        // Already prefixed (idempotency).
+        if (key.StartsWith(_prefixWithSeparator, StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        // Preserve OTel semantic conventions and any other dotted key.
+        if (key.IndexOf(PrefixSeparator) > 0)
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    private static bool IsOriginalFormat(string key)
+        => string.Equals(key, OriginalFormatKey, StringComparison.Ordinal);
 }

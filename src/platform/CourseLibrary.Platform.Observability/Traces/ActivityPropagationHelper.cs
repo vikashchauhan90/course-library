@@ -8,29 +8,41 @@ namespace CourseLibrary.Platform.Observability.Traces;
 public static class ActivityPropagationHelper
 {
     public static void Inject(
-        ActivityContext context,
-        IDictionary<string, string> headers)
+       ActivityContext context,
+       IDictionary<string, string> headers)
     {
+        ArgumentNullException.ThrowIfNull(headers);
+
         Propagators.DefaultTextMapPropagator.Inject(
-            new PropagationContext(
-                context,
-                Baggage.Current),
+            new PropagationContext(context, Baggage.Current),
             headers,
-            static (carrier, key, value)
-                => carrier[key] = value);
+            static (carrier, key, value) => carrier[key] = value);
     }
 
-    public static PropagationContext Extract(
-        IDictionary<string, string> headers)
+    public static void InjectCurrent(IDictionary<string, string> headers)
     {
+        var current = Activity.Current;
+        if (current is null)
+        {
+            return;
+        }
+
+        Inject(current.Context, headers);
+    }
+
+    public static PropagationContext Extract(IDictionary<string, string> headers)
+       => Extract(default, headers);
+
+    public static PropagationContext Extract(
+       ActivityContext parent,
+       IDictionary<string, string> headers)
+    {
+        ArgumentNullException.ThrowIfNull(headers);
+
         return Propagators.DefaultTextMapPropagator.Extract(
-            default,
+            new PropagationContext(parent, Baggage.Current),
             headers,
             static (carrier, key) =>
-            {
-                return carrier.TryGetValue(key, out var value)
-                    ? [value]
-                    : [];
-            });
+                carrier.TryGetValue(key, out var value) ? [value] : null);
     }
 }
