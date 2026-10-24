@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace CourseLibrary.Course.Persistence.Serialization;
+namespace CourseLibrary.Course.Persistence.Core.Serialization;
 
 internal static class CosmosJsonSerializerOptions
 {

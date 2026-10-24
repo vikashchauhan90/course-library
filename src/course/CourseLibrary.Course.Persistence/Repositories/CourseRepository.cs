@@ -1,4 +1,5 @@
 using CourseLibrary.Course.Contracts.DTOs;
+using CourseLibrary.Course.Persistence.Core;
 using CourseLibrary.Course.Persistence.Observability;
 using CourseLibrary.Course.Persistence.Repositories.Abstractions;
 using Microsoft.Azure.Cosmos;
@@ -15,7 +16,7 @@ internal sealed class CourseRepository
     CosmosClient client,
     IOptions<CosmosOptions> options,
     ILogger<CourseRepository> logger)
-    : base(client, options, "courses")
+    : base(client, options)
     {
     }
 

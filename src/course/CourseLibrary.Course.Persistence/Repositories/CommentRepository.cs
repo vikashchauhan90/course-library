@@ -1,3 +1,4 @@
+using CourseLibrary.Course.Persistence.Core;
 using CourseLibrary.Course.Persistence.Entities;
 using CourseLibrary.Course.Persistence.Observability;
 using CourseLibrary.Course.Persistence.Repositories.Abstractions;
@@ -16,7 +17,7 @@ internal sealed class CommentRepository
         CosmosClient client,
         IOptions<CosmosOptions> options,
         ILogger<CommentRepository> logger)
-        : base(client, options, "comments")
+        : base(client, options)
     {
         _logger = logger;
     }

@@ -1,3 +1,4 @@
+using CourseLibrary.Course.Persistence.Core;
 using CourseLibrary.Course.Persistence.Entities;
 using CourseLibrary.Course.Persistence.Observability;
 using CourseLibrary.Course.Persistence.Repositories.Abstractions;
@@ -15,7 +16,7 @@ internal sealed class CourseAuditRepository
     CosmosClient client,
     IOptions<CosmosOptions> options,
     ILogger<CourseAuditRepository> logger)
-    : base(client, options, "course-audits")
+    : base(client, options)
     {
     }
     public Task AddAsync(CourseAuditEntry entry, CancellationToken cancellationToken = default)

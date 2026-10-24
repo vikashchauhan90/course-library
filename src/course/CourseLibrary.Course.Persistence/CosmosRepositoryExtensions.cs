@@ -1,3 +1,5 @@
+using CourseLibrary.Course.Persistence.Core;
+using CourseLibrary.Course.Persistence.Core.Serialization;
 using CourseLibrary.Course.Persistence.Repositories;
 using CourseLibrary.Course.Persistence.Repositories.Abstractions;
 using CourseLibrary.Course.Persistence.Serialization;

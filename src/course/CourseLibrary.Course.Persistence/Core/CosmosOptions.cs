@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace CourseLibrary.Course.Persistence;
+namespace CourseLibrary.Course.Persistence.Core;
 
 public sealed class CosmosOptions : IValidatableObject
 {
