@@ -33,7 +33,7 @@ internal sealed class CourseEventPublisher(
                 CourseId = course.Id,
                 ActorId = actorId,
                 OccurredAt = occurredAt,
-                EventKind = eventKind,
+                EventKind = eventKind.ToString(),
                 ChangedProperties = changes
             });
         var activity = Activity.Current;

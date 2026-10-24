@@ -9,7 +9,7 @@ internal static class CourseAuthorization
 {
     public static void EnsureAuthor(CourseEntity course, string actorId)
     {
-        if (!string.Equals(course.AuthorId.Value, actorId, StringComparison.Ordinal))
+        if (!string.Equals(course.AuthorId, actorId, StringComparison.Ordinal))
         {
             throw new ForbiddenException("The current user is not authorized to modify this course.");
         }
@@ -21,7 +21,7 @@ internal static class CourseAuditEntry
     public static AuditEntry Added(string name, object? value)
         => new()
         {
-            Action = AuditAction.Add,
+            Action = AuditAction.Add.ToString(),
             Name = name,
             Value = value,
             ValueTypeName = value?.GetType().Name
@@ -30,7 +30,7 @@ internal static class CourseAuditEntry
     public static AuditEntry Updated(string name, object? value)
         => new()
         {
-            Action = AuditAction.Updated,
+            Action = AuditAction.Updated.ToString(),
             Name = name,
             Value = value,
             ValueTypeName = value?.GetType().Name

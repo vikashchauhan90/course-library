@@ -5,8 +5,8 @@ namespace CourseLibrary.Course.Domain.Events;
 
 public sealed class CourseEvent : IAuditableEntity
 {
-    public required CourseId CourseId { get; init; }
-    public required CourseEventType EventKind { get; init; }
+    public required string CourseId { get; init; }
+    public required string EventKind { get; init; }
 
     public required string EventId { get; init; }
 

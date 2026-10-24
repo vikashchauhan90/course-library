@@ -7,7 +7,7 @@ namespace CourseLibrary.Course.EventConsumer.Consumers.Courses;
 internal sealed class CourseEventPayload
 {
     public string CourseId { get; init; } = string.Empty;
-    public Guid EventKind { get; init; }
+    public string EventKind { get; init; } = string.Empty;
     public string EventId { get; init; } = string.Empty;
     public string ActorId { get; init; } = string.Empty;
     public DateTimeOffset OccurredAt { get; init; }
@@ -16,8 +16,8 @@ internal sealed class CourseEventPayload
     public static CourseEventPayload FromDomain(CourseEvent courseEvent)
         => new()
         {
-            CourseId = courseEvent.CourseId.Value,
-            EventKind = courseEvent.EventKind.Value,
+            CourseId = courseEvent.CourseId,
+            EventKind = courseEvent.EventKind,
             EventId = courseEvent.EventId,
             ActorId = courseEvent.ActorId,
             OccurredAt = courseEvent.OccurredAt,
@@ -29,8 +29,8 @@ internal sealed class CourseEventPayload
     public CourseEvent ToDomain()
         => new()
         {
-            CourseId = new CourseId(CourseId),
-            EventKind = (CourseEventType)EventKind,
+            CourseId = CourseId,
+            EventKind = EventKind,
             EventId = EventId,
             ActorId = ActorId,
             OccurredAt = OccurredAt,
@@ -42,7 +42,7 @@ internal sealed class CourseEventPayload
 
 internal sealed class AuditEntryPayload
 {
-    public Guid Action { get; init; }
+    public string Action { get; init; } = string.Empty;
     public string Name { get; init; } = string.Empty;
     public object? Value { get; init; }
     public string? ValueTypeName { get; init; }
@@ -50,7 +50,7 @@ internal sealed class AuditEntryPayload
     public static AuditEntryPayload FromDomain(AuditEntry entry)
         => new()
         {
-            Action = entry.Action.Value,
+            Action = entry.Action,
             Name = entry.Name,
             Value = entry.Value,
             ValueTypeName = entry.ValueTypeName
@@ -59,7 +59,7 @@ internal sealed class AuditEntryPayload
     public AuditEntry ToDomain()
         => new()
         {
-            Action = (AuditAction)Action,
+            Action = Action,
             Name = Name,
             Value = Value,
             ValueTypeName = ValueTypeName

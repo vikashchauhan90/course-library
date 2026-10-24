@@ -36,7 +36,7 @@ internal sealed class CreateCommentOperation(
         {
             ValidationErrors.ThrowIfInvalid(await validator.ValidateAsync(
                 new CreateCommentOperationRequest(courseId, authorId, content, parentCommentId), cancellationToken));
-            CommentId? parentId = default;
+            string? parentId = default;
             if (!string.IsNullOrWhiteSpace(parentCommentId))
             {
                 parentId = OperationInput.CommentId(parentCommentId, nameof(parentCommentId));
@@ -44,7 +44,7 @@ internal sealed class CreateCommentOperation(
             var now = DateTimeOffset.UtcNow;
             var comment = new Comment
             {
-                Id = CommentId.New(),
+                Id = Guid.NewGuid().ToString(),
                 CourseId = OperationInput.CourseId(courseId),
                 AuthorId = authorId,
                 Content = content,

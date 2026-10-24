@@ -5,13 +5,13 @@ namespace CourseLibrary.Course.Application.Core;
 
 internal static class OperationInput
 {
-    public static CourseId CourseId(string value, string parameterName = "courseId")
+    public static string CourseId(string value, string parameterName = "courseId")
         => new(ParseGuid(value, parameterName));
 
-    public static CommentId CommentId(string value, string parameterName = "commentId")
+    public static string CommentId(string value, string parameterName = "commentId")
         => new(ParseGuid(value, parameterName));
 
-    public static DiscussionId DiscussionId(string value, string parameterName = "discussionId")
+    public static string DiscussionId(string value, string parameterName = "discussionId")
         => new(ParseGuid(value, parameterName));
 
     public static void Required(string? value, string parameterName)

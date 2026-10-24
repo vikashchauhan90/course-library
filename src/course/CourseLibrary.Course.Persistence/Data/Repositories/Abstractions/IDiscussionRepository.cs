@@ -1,12 +1,11 @@
 using CourseLibrary.Course.Domain.Entities;
-using CourseLibrary.Course.Domain.ValueObjects;
 
 namespace CourseLibrary.Course.Persistence.Data.Repositories.Abstractions;
 
 public interface IDiscussionRepository
 {
-    Task<Discussion?> GetByIdAsync(DiscussionId discussionId, CourseId courseId, CancellationToken cancellationToken = default);
-    Task<IReadOnlyList<Discussion>> GetByCourseAsync(CourseId courseId, CancellationToken cancellationToken = default);
+    Task<Discussion?> GetByIdAsync(string discussionId, string courseId, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<Discussion>> GetByCourseAsync(string courseId, CancellationToken cancellationToken = default);
     Task UpsertAsync(Discussion discussion, CancellationToken cancellationToken = default);
-    Task<bool> DeleteAsync(DiscussionId discussionId, CourseId courseId, CancellationToken cancellationToken = default);
+    Task<bool> DeleteAsync(string discussionId, string courseId, CancellationToken cancellationToken = default);
 }

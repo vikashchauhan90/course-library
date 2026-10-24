@@ -14,7 +14,7 @@ internal class DiscussionConfiguration : ICosmosDocumentConfiguration<Discussion
     {
         ArgumentNullException.ThrowIfNull(document);
 
-        return CreatePartitionKey(document.CourseId.Value);
+        return CreatePartitionKey(document.CourseId);
     }
 
     public string CreatePartitionKey(params ReadOnlySpan<object?> args)

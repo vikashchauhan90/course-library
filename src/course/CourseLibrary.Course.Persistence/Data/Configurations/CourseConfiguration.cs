@@ -14,7 +14,7 @@ internal class CourseConfiguration : ICosmosDocumentConfiguration<Domain.Entitie
     {
         ArgumentNullException.ThrowIfNull(document);
 
-        return CreatePartitionKey(document.AuthorId.Value);
+        return CreatePartitionKey(document.AuthorId);
     }
     public string CreatePartitionKey(params ReadOnlySpan<object?> args)
     {

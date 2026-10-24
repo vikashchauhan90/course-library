@@ -37,7 +37,7 @@ internal sealed class CreateCourseOperation(
             var now = DateTimeOffset.UtcNow;
             var course = new CourseLibrary.Course.Domain.Entities.Course
             {
-                Id = CourseId.New(),
+                Id = Guid.NewGuid().ToString(),
                 Title = input.Title,
                 Description = input.Description,
                 AuthorId = input.AuthorId,
@@ -52,7 +52,7 @@ internal sealed class CreateCourseOperation(
             [
                 CourseAuditEntry.Added(nameof(course.Title), course.Title),
                 CourseAuditEntry.Added(nameof(course.Description), course.Description),
-                CourseAuditEntry.Added(nameof(course.AuthorId), course.AuthorId.Value),
+                CourseAuditEntry.Added(nameof(course.AuthorId), course.AuthorId),
                 CourseAuditEntry.Added(nameof(course.AuthorName), course.AuthorName),
                 CourseAuditEntry.Added(nameof(course.CreatedAt), course.CreatedAt),
                 CourseAuditEntry.Added(nameof(course.UpdatedAt), course.UpdatedAt)

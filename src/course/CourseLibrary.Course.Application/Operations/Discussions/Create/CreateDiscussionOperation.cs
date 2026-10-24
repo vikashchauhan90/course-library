@@ -28,7 +28,7 @@ internal sealed class CreateDiscussionOperation(
             var now = DateTimeOffset.UtcNow;
             var discussion = new Discussion
             {
-                Id = DiscussionId.New(),
+                Id = Guid.NewGuid().ToString(),
                 CourseId = OperationInput.CourseId(courseId),
                 Title = title,
                 Description = description,

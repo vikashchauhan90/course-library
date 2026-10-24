@@ -12,7 +12,7 @@ using Microsoft.Extensions.Options;
 namespace CourseLibrary.Course.Persistence.Data.Repositories;
 
 internal sealed class CommentRepository
-    : CosmosRepositoryBase<Comment, CommentId>,
+    : CosmosRepositoryBase<Comment, string>,
     ICommentRepository
 {
     public CommentRepository(
@@ -24,13 +24,13 @@ internal sealed class CommentRepository
     {
     }
 
-    public Task<Comment?> GetByIdAsync(CommentId commentId, CourseId courseId, CancellationToken cancellationToken = default)
+    public Task<Comment?> GetByIdAsync(string commentId, string courseId, CancellationToken cancellationToken = default)
         => CourseRepositoryObservability.ExecuteAsync(
             nameof(CommentRepository),
             nameof(GetByIdAsync),
-            () => base.GetByIdAsync(commentId, [courseId.Value], cancellationToken));
+            () => base.GetByIdAsync(commentId, [courseId], cancellationToken));
 
-    public Task<IReadOnlyList<Comment>> GetByCourseAsync(CourseId courseId, CancellationToken cancellationToken = default)
+    public Task<IReadOnlyList<Comment>> GetByCourseAsync(string courseId, CancellationToken cancellationToken = default)
         => CourseRepositoryObservability.ExecuteAsync(
             nameof(CommentRepository),
             nameof(GetByCourseAsync),
@@ -40,19 +40,19 @@ internal sealed class CommentRepository
                     "SELECT * FROM c WHERE c.courseId = @courseId ORDER BY c.createdAt DESC")
                     .WithParameter(
                         "@courseId",
-                        Configuration.CreatePartitionKey(courseId.Value));
+                        Configuration.CreatePartitionKey(courseId));
 
                 return base.QueryAsync(
                     query,
-                    partitionKey: [courseId.Value],
+                    partitionKey: [courseId],
                     cancellationToken: cancellationToken);
             });
 
-    public Task<bool> DeleteAsync(CommentId commentId, CourseId courseId, CancellationToken cancellationToken = default)
+    public Task<bool> DeleteAsync(string commentId, string courseId, CancellationToken cancellationToken = default)
         => CourseRepositoryObservability.ExecuteAsync(
             nameof(CommentRepository),
             nameof(DeleteAsync),
-            () => base.DeleteAsync(commentId, [courseId.Value], cancellationToken));
+            () => base.DeleteAsync(commentId, [courseId], cancellationToken));
 
     public new Task UpsertAsync(Comment comment, CancellationToken cancellationToken = default)
         => CourseRepositoryObservability.ExecuteAsync(
