@@ -6,12 +6,12 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 	<ItemGroup>
-		<PackageReference Include="Microsoft.Azure.Cosmos" Version="3.63.0" />
-		<PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.12" />
-		<PackageReference Include="Microsoft.Extensions.Options" Version="10.0.12" />
-		<PackageReference Include="Microsoft.Extensions.Options.DataAnnotations" Version="10.0.12" />
+		<PackageReference Include="Microsoft.Azure.Cosmos" Version="3.63.2" />
+		<PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.13" />
+		<PackageReference Include="Microsoft.Extensions.Options" Version="10.0.13" />
+		<PackageReference Include="Microsoft.Extensions.Options.DataAnnotations" Version="10.0.13" />
 		<PackageReference Include="Azure.Identity" Version="1.21.0" />
-		<PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+		<PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
 	</ItemGroup>
 	<ItemGroup>
 	  <ProjectReference Include="..\..\core\CourseLibrary.Core.Domain.Exceptions\CourseLibrary.Core.Domain.Exceptions.csproj" />

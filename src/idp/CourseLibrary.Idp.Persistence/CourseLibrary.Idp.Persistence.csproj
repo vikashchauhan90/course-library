@@ -9,15 +9,15 @@
 
 	<ItemGroup>
 		<PackageReference Include="EFCore.NamingConventions" Version="10.0.1" />
-		<PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.11" />
-		<PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.11">
+		<PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.13" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.13">
 			<PrivateAssets>all</PrivateAssets>
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
-		<PackageReference Include="Microsoft.EntityFrameworkCore.Proxies" Version="10.0.11" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore.Proxies" Version="10.0.13" />
 		<PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
-		<PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="10.0.11" />
-		<PackageReference Include="OpenIddict.Abstractions" Version="7.6.1" />
+		<PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="10.0.13" />
+		<PackageReference Include="OpenIddict.Abstractions" Version="7.7.2" />
 	</ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\platform\CourseLibrary.Platform.Persistence.Sql\CourseLibrary.Platform.Persistence.Sql.csproj" />

@@ -6,7 +6,7 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 	<ItemGroup>
-		<PackageReference Include="Microsoft.AspNetCore.OutputCaching.StackExchangeRedis" Version="10.0.12" />
+		<PackageReference Include="Microsoft.AspNetCore.OutputCaching.StackExchangeRedis" Version="10.0.13" />
 	</ItemGroup>
 	<ItemGroup>
 	  <ProjectReference Include="..\CourseLibrary.Platform.Caching\CourseLibrary.Platform.Caching.csproj" />
