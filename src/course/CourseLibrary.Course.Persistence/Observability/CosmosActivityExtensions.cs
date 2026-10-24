@@ -1,7 +1,7 @@
 ﻿using System.Diagnostics;
 using Microsoft.Azure.Cosmos;
 
-namespace CourseLibrary.Course.Persistence.Data.Extensions;
+namespace CourseLibrary.Course.Persistence.Observability;
 
 internal static class CosmosActivityExtensions
 {

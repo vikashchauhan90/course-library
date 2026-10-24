@@ -1,10 +1,11 @@
-﻿using CourseLibrary.Core.Domain.Exceptions;
+﻿using System.Net;
+using CourseLibrary.Core.Domain.Exceptions;
 using Microsoft.Azure.Cosmos;
-using System.Net;
 
-namespace CourseLibrary.Course.Persistence.Data.Extensions;
 
-internal static class CosmosExceptionExtensions
+namespace CourseLibrary.Course.Persistence;
+
+public static class CosmosExceptionExtensions
 {
     public static DomainException ToApplicationException(
         this CosmosException exception)
@@ -39,8 +40,13 @@ internal static class CosmosExceptionExtensions
                     exception),
 
             HttpStatusCode.BadRequest =>
-                new DataAccessException(
+                new BadRequestException(
                     "The data service rejected the request.",
+                    exception),
+
+            HttpStatusCode.UnprocessableEntity =>
+                new ValidationFailedException(
+                    "The data service rejected the request due to validation errors.",
                     exception),
 
             _ =>

@@ -1,13 +1,14 @@
 using System.Collections.Immutable;
 using System.Diagnostics;
 using CourseLibrary.Course.Application.UseCases.Courses;
+using CourseLibrary.Course.Contracts.ValueObjects;
 using CourseLibrary.Course.Domain.Entities;
 using CourseLibrary.Course.Domain.Events;
-using CourseLibrary.Course.Domain.ValueObjects;
+using CourseLibrary.Course.Persistence.Entities;
 using CourseLibrary.Platform.Messaging.Abstractions;
 using CourseLibrary.Platform.Serialization.Abstractions;
 using Microsoft.Extensions.Logging;
-using CourseEntity = CourseLibrary.Course.Domain.Entities.Course;
+using CourseEntity = CourseLibrary.Course.Persistence.Entities.Course;
 
 namespace CourseLibrary.Course.Application.UseCases.Courses;
 

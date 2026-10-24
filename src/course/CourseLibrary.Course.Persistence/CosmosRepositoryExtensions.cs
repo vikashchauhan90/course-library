@@ -1,10 +1,6 @@
-using CourseLibrary.Course.Domain.Entities;
-using CourseLibrary.Course.Persistence.Data.Configurations;
-using CourseLibrary.Course.Persistence.Data.Configurations.Serialization;
-using CourseLibrary.Course.Persistence.Data.Repositories;
-using CourseLibrary.Course.Persistence.Data.Repositories.Abstractions;
-using CourseLibrary.Platform.Persistence.CosmosDB;
-using CourseLibrary.Platform.Persistence.CosmosDB.Configurations;
+using CourseLibrary.Course.Persistence.Repositories;
+using CourseLibrary.Course.Persistence.Repositories.Abstractions;
+using CourseLibrary.Course.Persistence.Serialization;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -54,30 +50,11 @@ public static class CosmosRepositoryExtensions
     public static void AddRepositories(
         this IServiceCollection services)
     {
-        // Register document configurations
-        services.AddCosmosDocumentConfiguration<Comment, CommentConfiguration>();
-        services.AddCosmosDocumentConfiguration<Domain.Entities.Course, CourseConfiguration>();
-        services.AddCosmosDocumentConfiguration<CourseAuditEntry, CourseAuditEntryConfiguration>();
-        services.AddCosmosDocumentConfiguration<Discussion, DiscussionConfiguration>();
-
         // Register repositories
         services.AddSingleton<ICommentRepository, CommentRepository>();
         services.AddSingleton<ICourseRepository, CourseRepository>();
         services.AddSingleton<ICourseAuditRepository, CourseAuditRepository>();
         services.AddSingleton<IDiscussionRepository, DiscussionRepository>();
         
-    }
-    public static IServiceCollection AddCosmosDocumentConfiguration<TDocument, TConfiguration>(
-    this IServiceCollection services)
-    where TDocument : class
-    where TConfiguration :
-        class,
-        ICosmosDocumentConfiguration<TDocument>
-    {
-        services.AddSingleton<
-            ICosmosDocumentConfiguration<TDocument>>(sp =>
-            sp.GetRequiredService<TConfiguration>());
-
-        return services;
     }
 }

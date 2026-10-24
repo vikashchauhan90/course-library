@@ -29,7 +29,6 @@
 		<ProjectReference Include="..\..\core\CourseLibrary.Core.Results\CourseLibrary.Core.Results.csproj" />
 		<ProjectReference Include="..\CourseLibrary.Course.Application\CourseLibrary.Course.Application.csproj" />
 		<ProjectReference Include="..\CourseLibrary.Course.Contracts\CourseLibrary.Course.Contracts.csproj" />
-		<ProjectReference Include="..\CourseLibrary.Course.Domain\CourseLibrary.Course.Domain.csproj" />
 		<ProjectReference Include="..\CourseLibrary.Course.Persistence\CourseLibrary.Course.Persistence.csproj" />
 		<ProjectReference Include="..\..\platform\CourseLibrary.Platform.AspNetCore.RequestContext\CourseLibrary.Platform.AspNetCore.RequestContext.csproj" />
 		<ProjectReference Include="..\..\platform\CourseLibrary.Platform.Caching\CourseLibrary.Platform.Caching.csproj" />

@@ -3,9 +3,9 @@ using CourseLibrary.Course.Contracts.DTOs;
 using CourseLibrary.Core.Results;
 using FluentValidation;
 using Microsoft.Extensions.Logging;
-using CourseLibrary.Course.Persistence.Data.Repositories.Abstractions;
 using CourseLibrary.Course.Application.UseCases.Courses;
 using CourseLibrary.Course.Application.UseCases.Courses;
+using CourseLibrary.Course.Persistence.Repositories.Abstractions;
 
 namespace CourseLibrary.Course.Application.UseCases.Courses.Search;
 

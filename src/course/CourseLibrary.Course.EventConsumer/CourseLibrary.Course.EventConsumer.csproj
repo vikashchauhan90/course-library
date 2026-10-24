@@ -28,7 +28,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\CourseLibrary.Course.Application\CourseLibrary.Course.Application.csproj" />
-    <ProjectReference Include="..\CourseLibrary.Course.Domain\CourseLibrary.Course.Domain.csproj" />
     <ProjectReference Include="..\CourseLibrary.Course.Persistence\CourseLibrary.Course.Persistence.csproj" />
     <ProjectReference Include="..\..\platform\CourseLibrary.Platform.Messaging\CourseLibrary.Platform.Messaging.csproj" />
     <ProjectReference Include="..\..\platform\CourseLibrary.Platform.Observability\CourseLibrary.Platform.Observability.csproj" />

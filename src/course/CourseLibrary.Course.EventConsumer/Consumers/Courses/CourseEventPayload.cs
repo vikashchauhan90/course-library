@@ -1,6 +1,7 @@
 using CourseLibrary.Course.Domain.Entities;
 using CourseLibrary.Course.Domain.Events;
 using CourseLibrary.Course.Domain.ValueObjects;
+using CourseLibrary.Course.Persistence.Entities;
 
 namespace CourseLibrary.Course.EventConsumer.Consumers.Courses;
 

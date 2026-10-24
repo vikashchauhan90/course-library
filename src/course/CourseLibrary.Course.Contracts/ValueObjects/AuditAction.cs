@@ -1,4 +1,4 @@
-﻿namespace CourseLibrary.Course.Domain.ValueObjects;
+﻿namespace CourseLibrary.Course.Contracts.ValueObjects;
 
 public readonly struct AuditAction
 {

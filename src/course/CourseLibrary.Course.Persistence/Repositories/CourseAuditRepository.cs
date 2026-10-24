@@ -1,25 +1,21 @@
-using CourseLibrary.Course.Domain.Entities;
-using CourseLibrary.Course.Persistence.Data.Repositories.Abstractions;
+using CourseLibrary.Course.Persistence.Entities;
 using CourseLibrary.Course.Persistence.Observability;
-using CourseLibrary.Platform.Persistence.CosmosDB;
-using CourseLibrary.Platform.Persistence.CosmosDB.Configurations;
-using CourseLibrary.Platform.Persistence.CosmosDB.Repositories;
+using CourseLibrary.Course.Persistence.Repositories.Abstractions;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
-namespace CourseLibrary.Course.Persistence.Data.Repositories;
+namespace CourseLibrary.Course.Persistence.Repositories;
 
 internal sealed class CourseAuditRepository
-    : CosmosRepositoryBase<CourseAuditEntry, string>,
+    : CosmosContainerBase,
     ICourseAuditRepository
 {
     public CourseAuditRepository(
     CosmosClient client,
     IOptions<CosmosOptions> options,
-    ICosmosDocumentConfiguration<CourseAuditEntry> configuration,
     ILogger<CourseAuditRepository> logger)
-    : base(client, options, configuration, logger)
+    : base(client, options, "course-audits")
     {
     }
     public Task AddAsync(CourseAuditEntry entry, CancellationToken cancellationToken = default)

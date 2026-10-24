@@ -1,7 +1,6 @@
 <Solution>
   <Folder Name="/src/" />
   <Folder Name="/src/Core/">
-    <Project Path="src/core/CourseLibrary.Core.Domain.Abstractions/CourseLibrary.Core.Domain.Abstractions.csproj" />
     <Project Path="src/core/CourseLibrary.Core.Domain.Exceptions/CourseLibrary.Core.Domain.Exceptions.csproj" />
     <Project Path="src/core/CourseLibrary.Core.Results/CourseLibrary.Core.Results.csproj" />
   </Folder>
@@ -11,7 +10,6 @@
     <Project Path="src/course/CourseLibrary.Course.Application/CourseLibrary.Course.Application.csproj" />
     <Project Path="src/course/CourseLibrary.Course.Client/CourseLibrary.Course.Client.csproj" />
     <Project Path="src/course/CourseLibrary.Course.Contracts/CourseLibrary.Course.Contracts.csproj" />
-    <Project Path="src/course/CourseLibrary.Course.Domain/CourseLibrary.Course.Domain.csproj" />
     <Project Path="src/course/CourseLibrary.Course.EventConsumer/CourseLibrary.Course.EventConsumer.csproj" />
     <Project Path="src/course/CourseLibrary.Course.Persistence/CourseLibrary.Course.Persistence.csproj" />
   </Folder>

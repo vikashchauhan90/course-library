@@ -1,32 +1,25 @@
-using CourseLibrary.Core.Results;
 using CourseLibrary.Course.Contracts.DTOs;
-using CourseLibrary.Course.Persistence.Data.Configurations;
-using CourseLibrary.Course.Persistence.Data.Repositories.Abstractions;
 using CourseLibrary.Course.Persistence.Observability;
-using CourseLibrary.Platform.Persistence.CosmosDB;
-using CourseLibrary.Platform.Persistence.CosmosDB.Configurations;
-using CourseLibrary.Platform.Persistence.CosmosDB.Repositories;
+using CourseLibrary.Course.Persistence.Repositories.Abstractions;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using static CourseLibrary.Course.Domain.EventIds;
 
-namespace CourseLibrary.Course.Persistence.Data.Repositories;
+namespace CourseLibrary.Course.Persistence.Repositories;
 
 internal sealed class CourseRepository 
-    : CosmosRepositoryBase<Domain.Entities.Course, string>,
+    : CosmosContainerBase,
     ICourseRepository
 {
     public CourseRepository(
     CosmosClient client,
     IOptions<CosmosOptions> options,
-    ICosmosDocumentConfiguration<Domain.Entities.Course> configuration,
     ILogger<CourseRepository> logger)
-    : base(client, options, configuration, logger)
+    : base(client, options, "courses")
     {
     }
 
-    public async Task<Domain.Entities.Course?> GetByIdAsync(string courseId, CancellationToken cancellationToken = default)
+    public async Task<Entities.Course?> GetByIdAsync(string courseId, CancellationToken cancellationToken = default)
     {
         return await CourseRepositoryObservability.ExecuteAsync(
             nameof(CourseRepository),
@@ -42,7 +35,7 @@ internal sealed class CourseRepository
 
     }
 
-    public Task<PageResult<Domain.Entities.Course>> GetByAuthorAsync(
+    public Task<PageResult<Entities.Course>> GetByAuthorAsync(
         string authorId,
         int pageSize,
         string? continuationToken,
@@ -64,7 +57,7 @@ internal sealed class CourseRepository
                     cancellationToken);
             });
 
-    public Task<PageResult<Domain.Entities.Course>> SearchAsync(
+    public Task<PageResult<Entities.Course>> SearchAsync(
         CourseSearchCriteria criteria,
         int pageSize,
         string? continuationToken = null,
@@ -118,7 +111,7 @@ internal sealed class CourseRepository
             nameof(DeleteAsync),
             () => base.DeleteAsync(courseId, CoursePartitionKeyFormats.ForAuthor(authorId), cancellationToken));
 
-    public new Task UpsertAsync(Domain.Entities.Course course, CancellationToken cancellationToken = default)
+    public new Task UpsertAsync(Entities.Course course, CancellationToken cancellationToken = default)
         => CourseRepositoryObservability.ExecuteAsync(
             nameof(CourseRepository),
             nameof(UpsertAsync),

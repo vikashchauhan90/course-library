@@ -1,4 +1,4 @@
-﻿namespace CourseLibrary.Core.Results;
+﻿namespace CourseLibrary.Course.Contracts.DTOs;
 
 public sealed record PageResult<T>(
     IReadOnlyList<T> Items,

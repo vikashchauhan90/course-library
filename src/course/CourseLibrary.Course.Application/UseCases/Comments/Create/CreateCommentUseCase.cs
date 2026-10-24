@@ -6,9 +6,9 @@ using CourseLibrary.Course.Domain.ValueObjects;
 using FluentValidation;
 using Microsoft.Extensions.Logging;
 using CourseLibrary.Course.Application.UseCases.Comments;
-using CourseLibrary.Course.Persistence.Data.Repositories.Abstractions;
 using CourseLibrary.Course.Persistence.Data.Configurations;
 using CourseLibrary.Course.Application.UseCases.Courses;
+using CourseLibrary.Course.Persistence.Repositories.Abstractions;
 
 namespace CourseLibrary.Course.Application.UseCases.Comments.Create;
 

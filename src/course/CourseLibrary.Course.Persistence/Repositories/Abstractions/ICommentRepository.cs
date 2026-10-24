@@ -1,6 +1,6 @@
-using CourseLibrary.Course.Domain.Entities;
+using CourseLibrary.Course.Persistence.Entities;
 
-namespace CourseLibrary.Course.Persistence.Data.Repositories.Abstractions;
+namespace CourseLibrary.Course.Persistence.Repositories.Abstractions;
 
 public interface ICommentRepository
 {

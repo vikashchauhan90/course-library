@@ -1,4 +1,4 @@
-using CourseLibrary.Course.Domain.ValueObjects;
+using CourseLibrary.Course.Contracts.ValueObjects;
 using Microsoft.Extensions.Logging;
 
 namespace CourseLibrary.Course.Application.UseCases.Courses;

@@ -1,27 +1,24 @@
-using CourseLibrary.Course.Domain.Entities;
-using CourseLibrary.Course.Persistence.Data.Configurations;
-using CourseLibrary.Course.Persistence.Data.Repositories.Abstractions;
+using CourseLibrary.Course.Persistence.Entities;
 using CourseLibrary.Course.Persistence.Observability;
-using CourseLibrary.Platform.Persistence.CosmosDB;
-using CourseLibrary.Platform.Persistence.CosmosDB.Configurations;
-using CourseLibrary.Platform.Persistence.CosmosDB.Repositories;
+using CourseLibrary.Course.Persistence.Repositories.Abstractions;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
-namespace CourseLibrary.Course.Persistence.Data.Repositories;
+namespace CourseLibrary.Course.Persistence.Repositories;
 
 internal sealed class CommentRepository
-    : CosmosRepositoryBase<Comment, string>,
+    : CosmosContainerBase,
     ICommentRepository
 {
+    private readonly ILogger<CommentRepository> _logger;
     public CommentRepository(
         CosmosClient client,
         IOptions<CosmosOptions> options,
-        ICosmosDocumentConfiguration<Comment> configuration,
         ILogger<CommentRepository> logger)
-        : base(client, options, configuration, logger)
+        : base(client, options, "comments")
     {
+        _logger = logger;
     }
 
     public Task<Comment?> GetByIdAsync(string commentId, string courseId, CancellationToken cancellationToken = default)

@@ -3,12 +3,12 @@ using CourseLibrary.Course.Contracts.DTOs;
 using CourseLibrary.Core.Domain.Exceptions;
 using CourseLibrary.Core.Results;
 using CourseLibrary.Course.Domain.Events;
-using CourseLibrary.Course.Domain.ValueObjects;
 using FluentValidation;
 using Microsoft.Extensions.Logging;
-using CourseLibrary.Course.Persistence.Data.Repositories.Abstractions;
 using CourseLibrary.Course.Application.UseCases.Courses;
 using CourseLibrary.Course.Application.UseCases.Courses;
+using CourseLibrary.Course.Contracts.ValueObjects;
+using CourseLibrary.Course.Persistence.Repositories.Abstractions;
 
 namespace CourseLibrary.Course.Application.UseCases.Courses.Retire;
 
