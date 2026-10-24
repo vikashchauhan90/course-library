@@ -7,7 +7,7 @@ namespace CourseLibrary.Course.Persistence.Data.Configurations;
 internal sealed class CommentConfiguration
     : ICosmosDocumentConfiguration<Comment>
 {
-    public const string PartitionKeyFormat = "#COURSE#{0}";
+    public const string PartitionKeyFormat = CoursePartitionKeyFormats.CourseFormat;
     public  string ContainerName => "comments";
     public  string PartitionKeyPath => "/courseId";
 

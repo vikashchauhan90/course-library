@@ -1,5 +1,6 @@
 using CourseLibrary.Course.Persistence.Observability;
 using CourseLibrary.Platform.Messaging.Observability;
+using CourseLibrary.Platform.Observability;
 using CourseLibrary.Platform.Observability.Logs.Processors;
 using CourseLibrary.Platform.Observability.Metrics;
 using CourseLibrary.Platform.Observability.Traces;
@@ -29,7 +30,7 @@ public static class CourseLibraryEventConsumerObservabilityExtensions
             resourceBuilder,
             builder.Environment.EnvironmentName);
 
-
+        builder.Services.AddObservabilityServices();
         builder.Logging.AddOpenTelemetry(options =>
         {
             options.SetResourceBuilder(resourceBuilder);

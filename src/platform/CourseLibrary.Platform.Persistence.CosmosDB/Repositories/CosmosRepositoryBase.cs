@@ -79,7 +79,7 @@ public abstract class CosmosRepositoryBase<TDocument, TKey>
 
         try
         {
-            var partitionKeyValue = _configuration.CreatePartitionKey(partitionKey);
+            var partitionKeyValue = FormatPartitionKey(partitionKey);
             var response = await Container.ReadItemAsync<TDocument>(
                 id.ToString(),
                 new PartitionKey(partitionKeyValue),
@@ -143,7 +143,7 @@ public abstract class CosmosRepositoryBase<TDocument, TKey>
             if (partitionKey?.Count > 0)
             {
                 requestOptions.PartitionKey =
-                    new PartitionKey(_configuration.CreatePartitionKey(partitionKey));
+                    new PartitionKey(FormatPartitionKey(partitionKey));
             }
 
             using var iterator =
@@ -234,7 +234,7 @@ public abstract class CosmosRepositoryBase<TDocument, TKey>
             if (partitionKey?.Count > 0)
             {
                 requestOptions.PartitionKey =
-                    new PartitionKey(_configuration.CreatePartitionKey(partitionKey));
+                    new PartitionKey(FormatPartitionKey(partitionKey));
             }
 
             using var iterator =
@@ -323,7 +323,7 @@ public abstract class CosmosRepositoryBase<TDocument, TKey>
             var identifiers = items
                 .Select(item => (
                     item.Id.ToString() ?? string.Empty,
-                    new PartitionKey(_configuration.CreatePartitionKey(item.PartitionKey))))
+                    new PartitionKey(FormatPartitionKey(item.PartitionKey))))
                 .ToList();
             var response = await Container.ReadManyItemsAsync<TDocument>(
                 identifiers,
@@ -439,7 +439,7 @@ public abstract class CosmosRepositoryBase<TDocument, TKey>
             var response = await Container.ReplaceItemAsync(
                 item,
                 id.ToString(),
-                new PartitionKey(_configuration.CreatePartitionKey(partitionKey)),
+                new PartitionKey(FormatPartitionKey(partitionKey)),
                 requestOptions,
                 cancellationToken);
             RecordSuccess(activity, OperationNames.ReplaceItem, startedAt, response.RequestCharge);
@@ -490,7 +490,7 @@ public abstract class CosmosRepositoryBase<TDocument, TKey>
         {
             var response = await Container.PatchItemAsync<TDocument>(
                 id.ToString(),
-                new PartitionKey(_configuration.CreatePartitionKey(partitionKey)),
+                new PartitionKey(FormatPartitionKey(partitionKey)),
                 operations,
                 cancellationToken: cancellationToken);
             RecordSuccess(activity, OperationNames.PatchItem, startedAt, response.RequestCharge);
@@ -584,7 +584,7 @@ public abstract class CosmosRepositoryBase<TDocument, TKey>
             var response =
            await Container.DeleteItemAsync<TDocument>(
                id.ToString(),
-               new PartitionKey(_configuration.CreatePartitionKey(partitionKey)),
+               new PartitionKey(FormatPartitionKey(partitionKey)),
                cancellationToken: cancellationToken);
 
             RecordSuccess(activity, OperationNames.DeleteItem, startedAt, response.RequestCharge);
@@ -668,7 +668,7 @@ public abstract class CosmosRepositoryBase<TDocument, TKey>
             if (partitionKey?.Count > 0)
             {
                 requestOptions.PartitionKey =
-                    new PartitionKey(_configuration.CreatePartitionKey(partitionKey));
+                    new PartitionKey(FormatPartitionKey(partitionKey));
             }
 
             using var iterator = Container.GetItemQueryIterator<TDocument>(
@@ -729,7 +729,7 @@ public abstract class CosmosRepositoryBase<TDocument, TKey>
 
         try
         {
-            var partitionKeyValue = _configuration.CreatePartitionKey(partitionKey);
+            var partitionKeyValue = FormatPartitionKey(partitionKey);
             var batch = Container.CreateTransactionalBatch(new PartitionKey(partitionKeyValue));
             configure(batch);
             using var response = await batch.ExecuteAsync(cancellationToken);
@@ -761,6 +761,26 @@ public abstract class CosmosRepositoryBase<TDocument, TKey>
             RecordFailure(activity, OperationNames.ExecuteBatch, startedAt, ex);
             throw;
         }
+    }
+
+    private string FormatPartitionKey(IReadOnlyList<object?> partitionKey)
+    {
+        ArgumentNullException.ThrowIfNull(partitionKey);
+
+        if (partitionKey.Count == 0)
+        {
+            throw new ArgumentException(
+                "At least one partition key value is required.",
+                nameof(partitionKey));
+        }
+
+        var formattedPartitionKey = partitionKey is object?[] values
+            ? _configuration.CreatePartitionKey(values)
+            : _configuration.CreatePartitionKey(partitionKey.ToArray());
+
+        ArgumentException.ThrowIfNullOrWhiteSpace(formattedPartitionKey);
+
+        return formattedPartitionKey;
     }
 
     private void RecordSuccess(

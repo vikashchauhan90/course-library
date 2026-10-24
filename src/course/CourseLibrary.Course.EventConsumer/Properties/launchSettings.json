@@ -2,7 +2,7 @@
   "profiles": {
     "CourseLibrary.Course.EventConsumer": {
       "commandName": "Project",
-      "commandLineArgs": "--port 7103",
+      "commandLineArgs": "--port 7005",
       "launchBrowser": false
     }
   }

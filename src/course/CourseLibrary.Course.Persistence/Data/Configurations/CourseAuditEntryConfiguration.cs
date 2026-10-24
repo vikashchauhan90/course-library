@@ -6,7 +6,7 @@ namespace CourseLibrary.Course.Persistence.Data.Configurations;
 
 internal class CourseAuditEntryConfiguration: ICosmosDocumentConfiguration<CourseAuditEntry>
 {
-    public const string PartitionKeyFormat = "#COURSE#{0}";
+    public const string PartitionKeyFormat = CoursePartitionKeyFormats.CourseFormat;
     public string ContainerName => "course-audit";
     public string PartitionKeyPath => "/courseId";
 

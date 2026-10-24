@@ -6,7 +6,7 @@ namespace CourseLibrary.Course.Persistence.Data.Configurations;
 
 internal class DiscussionConfiguration : ICosmosDocumentConfiguration<Discussion>
 {
-    public const string PartitionKeyFormat = "#COURSE#{0}";
+    public const string PartitionKeyFormat = CoursePartitionKeyFormats.CourseFormat;
     public string ContainerName => "discussions";
     public string PartitionKeyPath => "/courseId";
 

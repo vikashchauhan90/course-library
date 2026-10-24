@@ -38,7 +38,9 @@ internal sealed class DiscussionRepository
             {
                 var query = new QueryDefinition(
                     "SELECT * FROM c WHERE c.courseId = @courseId ORDER BY c.updatedAt DESC")
-                    .WithParameter("@courseId", courseId);
+                    .WithParameter(
+                        "@courseId",
+                        Configuration.CreatePartitionKey(courseId.Value));
 
                 return base.QueryAsync(
                     query,

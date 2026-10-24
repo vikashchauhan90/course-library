@@ -6,7 +6,7 @@ namespace CourseLibrary.Course.Persistence.Data.Configurations;
 
 internal class CourseConfiguration : ICosmosDocumentConfiguration<Domain.Entities.Course>
 {
-    public const string PartitionKeyFormat = "#AUTHOR#{0}";
+    public const string PartitionKeyFormat = CoursePartitionKeyFormats.AuthorFormat;
     public string ContainerName => "courses";
     public string PartitionKeyPath => "/authorId";
 

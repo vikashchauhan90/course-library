@@ -52,7 +52,9 @@ internal sealed class CourseRepository
             {
                 var query = new QueryDefinition(
                     "SELECT * FROM c WHERE c.authorId = @authorId ORDER BY c.updatedAt DESC")
-                    .WithParameter("@authorId", authorId.Value);
+                    .WithParameter(
+                        "@authorId",
+                        Configuration.CreatePartitionKey(authorId.Value));
 
                 return base.QueryPageAsync(
                     query,
@@ -85,7 +87,9 @@ internal sealed class CourseRepository
                 if (!string.IsNullOrWhiteSpace(criteria.AuthorId))
                 {
                     predicates.Add("c.authorId = @authorId");
-                    parameters.Add(("@authorId", criteria.AuthorId));
+                    parameters.Add((
+                        "@authorId",
+                        Configuration.CreatePartitionKey(criteria.AuthorId)));
                 }
 
                 if (!criteria.IncludeDeleted)

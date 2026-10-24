@@ -38,7 +38,9 @@ internal sealed class CommentRepository
             {
                 var query = new QueryDefinition(
                     "SELECT * FROM c WHERE c.courseId = @courseId ORDER BY c.createdAt DESC")
-                    .WithParameter("@courseId", courseId);
+                    .WithParameter(
+                        "@courseId",
+                        Configuration.CreatePartitionKey(courseId.Value));
 
                 return base.QueryAsync(
                     query,
