@@ -10,4 +10,5 @@ public interface ICosmosDocumentConfiguration<TDocument>
     where TDocument : class
 {
     string GetPartitionKey(TDocument document);
+    string CreatePartitionKey(params ReadOnlySpan<object?> args);
 }
