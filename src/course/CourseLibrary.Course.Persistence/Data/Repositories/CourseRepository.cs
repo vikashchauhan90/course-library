@@ -56,7 +56,7 @@ internal sealed class CourseRepository
 
                 return base.QueryPageAsync(
                     query,
-                    partitionKey: authorId.Value,
+                    partitionKey: [authorId.Value],
                     continuationToken,
                     pageSize,
                     cancellationToken);
@@ -114,7 +114,7 @@ internal sealed class CourseRepository
         => CourseRepositoryObservability.ExecuteAsync(
             nameof(CourseRepository),
             nameof(DeleteAsync),
-            () => base.DeleteAsync(courseId, partitionKey.Value, cancellationToken));
+            () => base.DeleteAsync(courseId, [partitionKey.Value], cancellationToken));
 
     public new Task UpsertAsync(Domain.Entities.Course course, CancellationToken cancellationToken = default)
         => CourseRepositoryObservability.ExecuteAsync(

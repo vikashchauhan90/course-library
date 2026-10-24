@@ -28,7 +28,7 @@ internal sealed class DiscussionRepository
         => CourseRepositoryObservability.ExecuteAsync(
             nameof(DiscussionRepository),
             nameof(GetByIdAsync),
-            () => base.GetByIdAsync(discussionId, courseId.Value, cancellationToken));
+            () => base.GetByIdAsync(discussionId, [courseId.Value], cancellationToken));
 
     public Task<IReadOnlyList<Discussion>> GetByCourseAsync(CourseId courseId, CancellationToken cancellationToken = default)
         => CourseRepositoryObservability.ExecuteAsync(
@@ -40,14 +40,17 @@ internal sealed class DiscussionRepository
                     "SELECT * FROM c WHERE c.courseId = @courseId ORDER BY c.updatedAt DESC")
                     .WithParameter("@courseId", courseId);
 
-                return base.QueryAsync(query, partitionKey: courseId.Value, cancellationToken: cancellationToken);
+                return base.QueryAsync(
+                    query,
+                    partitionKey: [courseId.Value],
+                    cancellationToken: cancellationToken);
             });
 
     public Task<bool> DeleteAsync(DiscussionId discussionId, CourseId courseId, CancellationToken cancellationToken = default)
         => CourseRepositoryObservability.ExecuteAsync(
             nameof(DiscussionRepository),
             nameof(DeleteAsync),
-            () => base.DeleteAsync(discussionId, courseId.Value, cancellationToken));
+            () => base.DeleteAsync(discussionId, [courseId.Value], cancellationToken));
 
     public new Task UpsertAsync(Discussion discussion, CancellationToken cancellationToken = default)
         => CourseRepositoryObservability.ExecuteAsync(
