@@ -1,5 +1,6 @@
 using CourseLibrary.Course.Client;
 using CourseLibrary.Course.Contracts.DTOs;
+using CourseLibrary.Course.Contracts.DTOs.Courses;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
@@ -104,7 +105,7 @@ public sealed class HomeController(ICourseApiClient courseApiClient) : Controlle
         var userId = User.FindFirstValue("sub");
         var userName = User.FindFirstValue("email");
         await courseApiClient.CreateAsync(
-            new CreateCourseRequest(
+            new CourseRequest(
                 model.Title,
                 model.Description,
                 userId!,

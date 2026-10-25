@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using Microsoft.Azure.Cosmos;
 
 namespace CourseLibrary.Course.Persistence.Observability;
@@ -11,72 +11,45 @@ internal static class CosmosActivityExtensions
         string containerName,
         string databaseName)
     {
-        if (activity is null)
-        {
-            return;
-        }
-
-        activity.SetTag(
-            "db.system",
-            "cosmosdb");
-
-        activity.SetTag(
-            "cosmos.operation.name",
-            operation);
-
-        activity.SetTag(
-            "cosmos.database.name",
-            databaseName);
-
-        activity.SetTag(
-            "cosmos.collection.name",
-            containerName);
+        activity?.SetTag(CosmosActivityTagConstants.DbSystem, "cosmosdb");
+        activity?.SetTag(CosmosActivityTagConstants.DbOperationName, operation);
+        activity?.SetTag(CosmosActivityTagConstants.DbNamespace, databaseName);
+        activity?.SetTag(CosmosActivityTagConstants.ContainerName, containerName);
     }
 
     public static void RecordSuccess(
         this Activity? activity,
         double requestCharge)
     {
-        if (activity is null)
-        {
-            return;
-        }
+        activity?.SetTag(CosmosActivityTagConstants.RequestCharge, requestCharge);
+        activity?.SetTag(CosmosActivityTagConstants.OperationSuccess, true);
+        activity?.SetStatus(ActivityStatusCode.Ok);
+    }
 
-        activity.SetTag(
-            "cosmos.request_charge",
-            requestCharge);
-
-        activity.SetStatus(
-            ActivityStatusCode.Ok);
+    public static void RecordNotFound(this Activity? activity)
+    {
+        activity?.SetTag("http.response.status_code", 404);
+        activity?.SetStatus(ActivityStatusCode.Ok);
     }
 
     public static void RecordFailure(
         this Activity? activity,
-        CosmosException exception)
+        Exception exception)
     {
-        if (activity is null)
+        activity?.SetTag(CosmosActivityTagConstants.ErrorType, exception.GetType().Name);
+
+        if (exception is CosmosException cosmosException)
         {
-            return;
+            activity?.SetTag("http.response.status_code", (int)cosmosException.StatusCode);
+            activity?.SetTag(CosmosActivityTagConstants.ActivityId, cosmosException.ActivityId);
+            activity?.SetTag(CosmosActivityTagConstants.RequestCharge, cosmosException.RequestCharge);
         }
 
-        activity.SetTag(
-            "http.response.status_code",
-            (int)exception.StatusCode);
+        if (exception is OperationCanceledException)
+        {
+            activity?.SetTag(CosmosActivityTagConstants.OperationCancelled, true);
+        }
 
-        activity.SetTag(
-            "cosmos.activity_id",
-            exception.ActivityId);
-
-        activity.SetTag(
-            "cosmos.request_charge",
-            exception.RequestCharge);
-
-        activity.SetTag(
-            "error.type",
-            exception.GetType().Name);
-
-        activity.SetStatus(
-            ActivityStatusCode.Error,
-            exception.Message);
+        activity?.SetStatus(ActivityStatusCode.Error, exception.Message);
     }
 }

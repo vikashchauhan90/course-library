@@ -1,4 +1,6 @@
-using CourseLibrary.Course.Contracts.DTOs;
+using CourseLibrary.Course.Contracts.DTOs.Courses;
+using CourseLibrary.Course.Contracts.DTOs.Courses.Comments;
+using CourseLibrary.Course.Contracts.DTOs.Courses.Discussions;
 using CourseLibrary.Course.Domain.Entities;
 using CourseLibrary.Course.Persistence.Entities;
 using CourseEntity = CourseLibrary.Course.Persistence.Entities.Course;

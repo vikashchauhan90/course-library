@@ -4,7 +4,7 @@ using CourseLibrary.Course.Domain.ValueObjects;
 using FluentValidation;
 using Microsoft.Extensions.Logging;
 using CourseLibrary.Course.Application.UseCases.Discussions;
-using CourseLibrary.Course.Persistence.Repositories.Abstractions;
+using CourseLibrary.Course.Persistence.Repositories.Courses.Discussions;
 
 namespace CourseLibrary.Course.Application.UseCases.Discussions.Delete;
 

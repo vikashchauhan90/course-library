@@ -1,5 +1,4 @@
 using CourseLibrary.Course.Application.Core;
-using CourseLibrary.Course.Contracts.DTOs;
 using CourseLibrary.Core.Domain.Exceptions;
 using CourseLibrary.Core.Results;
 using CourseLibrary.Course.Domain.Events;
@@ -8,7 +7,8 @@ using Microsoft.Extensions.Logging;
 using CourseLibrary.Course.Application.UseCases.Courses;
 using CourseLibrary.Course.Application.UseCases.Courses;
 using CourseLibrary.Course.Contracts.ValueObjects;
-using CourseLibrary.Course.Persistence.Repositories.Abstractions;
+using CourseLibrary.Course.Contracts.DTOs.Courses;
+using CourseLibrary.Course.Persistence.Repositories.Courses;
 
 namespace CourseLibrary.Course.Application.UseCases.Courses.Retire;
 

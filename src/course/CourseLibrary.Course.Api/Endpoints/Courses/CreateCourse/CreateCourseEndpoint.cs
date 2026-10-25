@@ -2,7 +2,7 @@ using Carter;
 using CourseLibrary.Course.Api.Configuration;
 using CourseLibrary.Course.Api.Http;
 using CourseLibrary.Course.Application.UseCases.Courses.Create;
-using CourseLibrary.Course.Contracts.DTOs;
+using CourseLibrary.Course.Contracts.DTOs.Courses;
 using CourseLibrary.Platform.AspNetCore.RequestContext;
 
 namespace CourseLibrary.Course.Api.Endpoints.Courses.CreateCourse;
@@ -14,7 +14,7 @@ public sealed class CreateCourseEndpoint : ICarterModule
         var group = app.MapApiV1Group("courses", "Courses");
 
         group.MapPost("/", async (
-                CreateCourseRequest request,
+                CourseRequest request,
                 IRequestContext requestContext,
                 ICreateCourseUseCase useCase,
                 CancellationToken cancellationToken) =>

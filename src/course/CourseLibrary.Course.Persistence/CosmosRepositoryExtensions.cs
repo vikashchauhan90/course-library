@@ -1,8 +1,10 @@
-using CourseLibrary.Course.Persistence.Core;
-using CourseLibrary.Course.Persistence.Core.Serialization;
+using CourseLibrary.Course.Persistence.Cosmos;
+using CourseLibrary.Course.Persistence.Cosmos.Serialization;
 using CourseLibrary.Course.Persistence.Repositories;
-using CourseLibrary.Course.Persistence.Repositories.Abstractions;
-using CourseLibrary.Course.Persistence.Serialization;
+using CourseLibrary.Course.Persistence.Repositories.Courses;
+using CourseLibrary.Course.Persistence.Repositories.Courses.Audits;
+using CourseLibrary.Course.Persistence.Repositories.Courses.Comments;
+using CourseLibrary.Course.Persistence.Repositories.Courses.Discussions;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -13,7 +15,7 @@ namespace CourseLibrary.Course.Persistence;
 public static class CosmosRepositoryExtensions
 {
 
-    public static void AddCosmosDatabase(
+    public static IServiceCollection AddCosmosDatabase(
         this IServiceCollection services,
         IConfiguration configuration)
     {
@@ -47,16 +49,25 @@ public static class CosmosRepositoryExtensions
                 clientOptions);
         });
 
+        return services;
+
     }
 
-    public static void AddRepositories(
+    public static IServiceCollection AddRepositories(
         this IServiceCollection services)
     {
+        ArgumentNullException.ThrowIfNull(services);
+
+        services.AddSingleton<
+            ICosmosContainerFactory,
+            CosmosContainerFactory>();
+
         // Register repositories
         services.AddSingleton<ICommentRepository, CommentRepository>();
         services.AddSingleton<ICourseRepository, CourseRepository>();
         services.AddSingleton<ICourseAuditRepository, CourseAuditRepository>();
         services.AddSingleton<IDiscussionRepository, DiscussionRepository>();
-        
+
+        return services;
     }
 }

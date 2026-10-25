@@ -1,5 +1,6 @@
 using CourseLibrary.Core.Results;
 using CourseLibrary.Course.Contracts.DTOs;
+using CourseLibrary.Course.Contracts.DTOs.Courses;
 
 namespace CourseLibrary.Course.Client;
 
@@ -14,7 +15,7 @@ public interface ICourseApiClient
         string? continuationToken = null,
         CancellationToken cancellationToken = default);
     Task<CourseResponse> CreateAsync(
-        CreateCourseRequest request,
+        CourseRequest request,
         CancellationToken cancellationToken = default);
     Task<CourseResponse> UpdateAsync(
         string courseId,

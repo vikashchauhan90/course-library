@@ -1,10 +1,10 @@
 using CourseLibrary.Course.Application.Core;
-using CourseLibrary.Course.Contracts.DTOs;
+using CourseLibrary.Course.Contracts.DTOs.Courses;
 using FluentValidation;
 
 namespace CourseLibrary.Course.Application.UseCases.Courses.Create;
 
-internal sealed record CreateCourseUseCaseRequest(CreateCourseRequest? Request, string? ActorId);
+internal sealed record CreateCourseUseCaseRequest(CourseRequest? Request, string? ActorId);
 
 internal sealed class CreateCourseValidator : AbstractValidator<CreateCourseUseCaseRequest>
 {

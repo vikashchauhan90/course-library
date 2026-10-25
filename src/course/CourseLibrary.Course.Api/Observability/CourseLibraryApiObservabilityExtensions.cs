@@ -9,7 +9,6 @@ using CourseLibrary.Platform.Observability.Metrics;
 using CourseLibrary.Platform.Observability.Logs.Processors;
 using CourseLibrary.Platform.Observability.Traces;
 using CourseLibrary.Platform.Observability.Traces.Processors;
-using CourseLibrary.Platform.Persistence.CosmosDB.Observability;
 using CourseLibrary.Platform.Resilience.Observability;
 using CourseLibrary.Platform.Serialization.Observability;
 using OpenTelemetry;

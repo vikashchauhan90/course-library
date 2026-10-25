@@ -1,7 +1,9 @@
 using CourseLibrary.Course.Contracts.DTOs;
+using CourseLibrary.Course.Contracts.DTOs.Courses;
 using CourseLibrary.Course.Persistence.Core;
+using CourseLibrary.Course.Persistence.Cosmos;
 using CourseLibrary.Course.Persistence.Observability;
-using CourseLibrary.Course.Persistence.Repositories.Abstractions;
+using CourseLibrary.Course.Persistence.Repositories.Courses;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -9,7 +11,7 @@ using Microsoft.Extensions.Options;
 namespace CourseLibrary.Course.Persistence.Repositories;
 
 internal sealed class CourseRepository 
-    : CosmosContainerBase,
+    : CosmosContainer,
     ICourseRepository
 {
     public CourseRepository(

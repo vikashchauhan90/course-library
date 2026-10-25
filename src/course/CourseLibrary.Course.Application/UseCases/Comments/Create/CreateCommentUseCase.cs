@@ -1,14 +1,14 @@
 using CourseLibrary.Course.Application.Core;
-using CourseLibrary.Course.Contracts.DTOs;
 using CourseLibrary.Core.Results;
 using CourseLibrary.Course.Domain.Entities;
 using CourseLibrary.Course.Domain.ValueObjects;
 using FluentValidation;
 using Microsoft.Extensions.Logging;
 using CourseLibrary.Course.Application.UseCases.Comments;
-using CourseLibrary.Course.Persistence.Data.Configurations;
 using CourseLibrary.Course.Application.UseCases.Courses;
-using CourseLibrary.Course.Persistence.Repositories.Abstractions;
+using CourseLibrary.Course.Contracts.DTOs.Courses.Comments;
+using CourseLibrary.Course.Persistence.Repositories.Courses;
+using CourseLibrary.Course.Persistence.Repositories.Courses.Comments;
 
 namespace CourseLibrary.Course.Application.UseCases.Comments.Create;
 

@@ -1,21 +1,20 @@
 using CourseLibrary.Course.Application.Core;
-using CourseLibrary.Course.Contracts.DTOs;
 using CourseLibrary.Core.Results;
 using CourseLibrary.Course.Domain.Events;
 using FluentValidation;
 using Microsoft.Extensions.Logging;
-using CourseLibrary.Course.Persistence.Data.Configurations;
 using CourseLibrary.Course.Application.UseCases.Courses;
 using CourseLibrary.Course.Application.UseCases.Courses;
 using CourseLibrary.Course.Contracts.ValueObjects;
-using CourseLibrary.Course.Persistence.Repositories.Abstractions;
+using CourseLibrary.Course.Contracts.DTOs.Courses;
+using CourseLibrary.Course.Persistence.Repositories.Courses;
 
 namespace CourseLibrary.Course.Application.UseCases.Courses.Create;
 
 public interface ICreateCourseUseCase
 {
     Task<Result<CourseResponse>> ExecuteAsync(
-        CreateCourseRequest request,
+        CourseRequest request,
         string actorId,
         CancellationToken cancellationToken = default);
 }
@@ -27,7 +26,7 @@ internal sealed class CreateCourseUseCase(
     ILogger<CreateCourseUseCase> logger) : ICreateCourseUseCase
 {
     public Task<Result<CourseResponse>> ExecuteAsync(
-        CreateCourseRequest request,
+        CourseRequest request,
         string actorId,
         CancellationToken cancellationToken = default)
         => CourseApplicationUseCase.ExecuteResultAsync(logger, "courses.create", async () =>

@@ -1,12 +1,12 @@
 using CourseLibrary.Course.Domain.Entities;
 using CourseLibrary.Course.EventConsumer.Core;
 using CourseLibrary.Course.EventConsumer.Observability;
-using CourseLibrary.Course.Persistence.Data.Configurations;
 using CourseLibrary.Platform.Observability.Traces;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
-using CourseLibrary.Course.Persistence.Repositories.Abstractions;
+using CourseLibrary.Course.Persistence.Repositories.Courses;
+using CourseLibrary.Course.Persistence.Repositories.Courses.Audits;
 
 namespace CourseLibrary.Course.EventConsumer.Consumers.Courses;
 

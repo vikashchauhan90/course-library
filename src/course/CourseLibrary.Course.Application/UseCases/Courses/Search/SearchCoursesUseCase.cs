@@ -5,7 +5,8 @@ using FluentValidation;
 using Microsoft.Extensions.Logging;
 using CourseLibrary.Course.Application.UseCases.Courses;
 using CourseLibrary.Course.Application.UseCases.Courses;
-using CourseLibrary.Course.Persistence.Repositories.Abstractions;
+using CourseLibrary.Course.Contracts.DTOs.Courses;
+using CourseLibrary.Course.Persistence.Repositories.Courses;
 
 namespace CourseLibrary.Course.Application.UseCases.Courses.Search;
 

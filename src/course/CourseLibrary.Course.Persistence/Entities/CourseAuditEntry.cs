@@ -1,3 +1,5 @@
+using CourseLibrary.Course.Contracts.DTOs.Courses.Audits;
+
 namespace CourseLibrary.Course.Persistence.Entities;
 
 internal sealed record CourseAuditEntry : IEntity<string>

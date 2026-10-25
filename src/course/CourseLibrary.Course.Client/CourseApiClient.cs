@@ -1,6 +1,7 @@
 using CourseLibrary.Core.Results;
 using CourseLibrary.Course.Client.Observability;
 using CourseLibrary.Course.Contracts.DTOs;
+using CourseLibrary.Course.Contracts.DTOs.Courses;
 using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
@@ -48,7 +49,7 @@ internal sealed class CourseApiClient(
     }
 
     public Task<CourseResponse> CreateAsync(
-        CreateCourseRequest request,
+        CourseRequest request,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
