@@ -21,6 +21,7 @@
 	</ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\CourseLibrary.Idp.Domain\CourseLibrary.Idp.Domain.csproj" />
+    <ProjectReference Include="..\..\platform\CourseLibrary.Platform.Observability\CourseLibrary.Platform.Observability.csproj" />
   </ItemGroup>
 
 </Project>

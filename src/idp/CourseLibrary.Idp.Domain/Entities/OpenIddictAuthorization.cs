@@ -1,5 +1,4 @@
-﻿using CourseLibrary.Core.Domain.Abstractions.Auditing;
-using CourseLibrary.Core.Domain.Abstractions.Security;
+using CourseLibrary.Idp.Domain.Abstractions;
 using OpenIddict.EntityFrameworkCore.Models;
 
 namespace CourseLibrary.Idp.Domain.Entities;

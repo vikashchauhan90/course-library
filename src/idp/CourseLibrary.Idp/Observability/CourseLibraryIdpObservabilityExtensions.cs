@@ -3,7 +3,7 @@ using CourseLibrary.Platform.Observability.Logs.Processors;
 using CourseLibrary.Platform.Observability.Metrics;
 using CourseLibrary.Platform.Observability.Traces;
 using CourseLibrary.Platform.Observability.Traces.Processors;
-using CourseLibrary.Platform.Persistence.Sql.Observability;
+using CourseLibrary.Idp.Persistence.Observability;
 using CourseLibrary.Platform.Resilience.Observability;
 using Microsoft.Extensions.DependencyInjection;
 using OpenTelemetry;

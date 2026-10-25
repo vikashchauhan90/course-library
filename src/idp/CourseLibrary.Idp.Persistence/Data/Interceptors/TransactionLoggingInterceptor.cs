@@ -1,4 +1,4 @@
-﻿using CourseLibrary.Platform.Persistence.Sql.Observability;
+using CourseLibrary.Idp.Persistence.Observability;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Logging;

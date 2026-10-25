@@ -1,5 +1,5 @@
 using CourseLibrary.Idp.Persistence.Data;
-using CourseLibrary.Platform.Persistence.Sql;
+using CourseLibrary.Idp.Persistence.Data.Interceptors;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
@@ -25,7 +25,6 @@ public static class IdpPersistenceServiceCollectionExtensions
                 "ConnectionStrings:DefaultConnection must be configured.");
         }
 
-        services.AddCourseLibrarySqlPersistence();
         services.AddDbContext<ApplicationDbContext>((serviceProvider, options) =>
         {
             options.UseNpgsql(

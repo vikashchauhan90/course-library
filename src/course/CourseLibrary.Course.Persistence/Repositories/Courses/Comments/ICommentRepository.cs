@@ -12,7 +12,7 @@ public interface ICommentRepository
         string courseId,
         CancellationToken cancellationToken = default);
     Task UpsertAsync(
-        CommentRequest comment,
+        CommentResponse comment,
         CancellationToken cancellationToken = default);
     Task<bool> DeleteAsync(
         string commentId,
