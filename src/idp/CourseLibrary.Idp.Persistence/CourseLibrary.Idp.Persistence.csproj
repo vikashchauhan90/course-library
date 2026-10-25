@@ -20,7 +20,6 @@
 		<PackageReference Include="OpenIddict.Abstractions" Version="7.7.2" />
 	</ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\platform\CourseLibrary.Platform.Persistence.Sql\CourseLibrary.Platform.Persistence.Sql.csproj" />
     <ProjectReference Include="..\CourseLibrary.Idp.Domain\CourseLibrary.Idp.Domain.csproj" />
   </ItemGroup>
 
