@@ -1,5 +1,8 @@
 using CourseLibrary.Course.Contracts.DTOs;
 using CourseLibrary.Course.Contracts.DTOs.Courses;
+using CourseLibrary.Course.Contracts.DTOs.Courses.Comments;
+using CourseLibrary.Course.Contracts.DTOs.Courses.Discussions;
+using CourseLibrary.Course.Persistence.Entities;
 using CourseLibrary.Course.Persistence;
 using CourseLibrary.Course.Persistence.Core;
 using CourseLibrary.Course.Persistence.Cosmos;
@@ -8,6 +11,7 @@ using CourseLibrary.Course.Persistence.Repositories.Courses;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
+using CourseEntity = CourseLibrary.Course.Persistence.Entities.Course;
 
 namespace CourseLibrary.Course.Persistence.Repositories;
 
@@ -27,7 +31,7 @@ internal sealed class CourseRepository : ICourseRepository
         _logger = logger;
     }
 
-    public async Task<Entities.Course?> GetByIdAsync(
+    public async Task<CourseResponse?> GetByIdAsync(
         string courseId,
         CancellationToken cancellationToken = default)
     {
@@ -52,7 +56,7 @@ internal sealed class CourseRepository : ICourseRepository
                 "SELECT TOP 1 * FROM c WHERE c.id = @courseId")
                 .WithParameter("@courseId", courseId);
 
-            using var iterator = container.GetItemQueryIterator<Entities.Course>(query);
+            using var iterator = container.GetItemQueryIterator<CourseEntity>(query);
             var response = await iterator.ReadNextAsync(cancellationToken).ConfigureAwait(false);
             var course = response.Resource.FirstOrDefault();
 
@@ -78,7 +82,7 @@ internal sealed class CourseRepository : ICourseRepository
                 startedAt,
                 response.RequestCharge);
 
-            return course;
+            return ToResponse(course);
         }
         catch (CosmosException ex)
         {
@@ -115,7 +119,7 @@ internal sealed class CourseRepository : ICourseRepository
         }
     }
 
-    public async Task<PageResult<Entities.Course>> GetByAuthorAsync(
+    public async Task<PageResult<CourseResponse>> GetByAuthorAsync(
         string authorId,
         int pageSize,
         string? continuationToken,
@@ -148,12 +152,12 @@ internal sealed class CourseRepository : ICourseRepository
                 MaxItemCount = pageSize
             };
 
-            using var iterator = container.GetItemQueryIterator<Entities.Course>(
+            using var iterator = container.GetItemQueryIterator<CourseEntity>(
                 query,
                 !string.IsNullOrWhiteSpace(continuationToken) ? continuationToken : null,
                 requestOptions);
             var response = await iterator.ReadNextAsync(cancellationToken).ConfigureAwait(false);
-            var items = response.Resource.ToList();
+            var items = response.Resource.Select(ToResponse).ToList();
             var nextToken = response.ContinuationToken;
             var hasNextPage = !string.IsNullOrWhiteSpace(nextToken);
             SetResultTags(activity, items.Count, hasNextPage);
@@ -166,7 +170,7 @@ internal sealed class CourseRepository : ICourseRepository
                 startedAt,
                 response.RequestCharge);
 
-            return new PageResult<Entities.Course>(items, nextToken, hasNextPage);
+            return new PageResult<CourseResponse>(items, nextToken, hasNextPage);
         }
         catch (CosmosException ex)
         {
@@ -185,7 +189,7 @@ internal sealed class CourseRepository : ICourseRepository
         }
     }
 
-    public async Task<PageResult<Entities.Course>> SearchAsync(
+    public async Task<PageResult<CourseResponse>> SearchAsync(
         CourseSearchCriteria criteria,
         int pageSize,
         string? continuationToken = null,
@@ -246,12 +250,12 @@ internal sealed class CourseRepository : ICourseRepository
                     CoursePartitionKeyFormats.ForAuthor(criteria.AuthorId));
             }
 
-            using var iterator = container.GetItemQueryIterator<Entities.Course>(
+            using var iterator = container.GetItemQueryIterator<CourseEntity>(
                 query,
                 !string.IsNullOrWhiteSpace(continuationToken) ? continuationToken : null,
                 requestOptions);
             var response = await iterator.ReadNextAsync(cancellationToken).ConfigureAwait(false);
-            var items = response.Resource.ToList();
+            var items = response.Resource.Select(ToResponse).ToList();
             var nextToken = response.ContinuationToken;
             var hasNextPage = !string.IsNullOrWhiteSpace(nextToken);
             SetResultTags(activity, items.Count, hasNextPage);
@@ -264,7 +268,7 @@ internal sealed class CourseRepository : ICourseRepository
                 startedAt,
                 response.RequestCharge);
 
-            return new PageResult<Entities.Course>(items, nextToken, hasNextPage);
+            return new PageResult<CourseResponse>(items, nextToken, hasNextPage);
         }
         catch (CosmosException ex)
         {
@@ -306,7 +310,7 @@ internal sealed class CourseRepository : ICourseRepository
                 SupportedContainers.Courses,
                 container.Database.Id);
 
-            var response = await container.DeleteItemAsync<Entities.Course>(
+            var response = await container.DeleteItemAsync<CourseEntity>(
                 courseId,
                 new PartitionKey(CoursePartitionKeyFormats.ForAuthor(authorId)),
                 cancellationToken: cancellationToken).ConfigureAwait(false);
@@ -350,7 +354,7 @@ internal sealed class CourseRepository : ICourseRepository
     }
 
     public async Task UpsertAsync(
-        Entities.Course course,
+        CourseResponse course,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(course);
@@ -370,9 +374,10 @@ internal sealed class CourseRepository : ICourseRepository
                 SupportedContainers.Courses,
                 container.Database.Id);
 
+            var entity = ToEntity(course);
             var response = await container.UpsertItemAsync(
-                course,
-                new PartitionKey(course.PartitionKey),
+                entity,
+                new PartitionKey(entity.PartitionKey),
                 cancellationToken: cancellationToken).ConfigureAwait(false);
             CosmosOperationObserver.RecordSuccess(
                 activity,
@@ -409,6 +414,35 @@ internal sealed class CourseRepository : ICourseRepository
             CosmosActivityTagConstants.HasContinuationToken,
             !string.IsNullOrWhiteSpace(continuationToken));
     }
+
+    private static CourseResponse ToResponse(CourseEntity course)
+        => new(
+            course.Id,
+            course.Title,
+            course.Description,
+            course.AuthorId,
+            course.AuthorName,
+            course.CreatedAt,
+            course.UpdatedAt,
+            course.RetiredAt,
+            course.DeletedAt,
+            Array.Empty<CommentResponse>(),
+            Array.Empty<DiscussionResponse>());
+
+    private static CourseEntity ToEntity(CourseResponse course)
+        => new()
+        {
+            Id = course.Id,
+            Title = course.Title,
+            Description = course.Description,
+            AuthorId = course.AuthorId,
+            PartitionKey = CoursePartitionKeyFormats.ForAuthor(course.AuthorId),
+            AuthorName = course.AuthorName,
+            CreatedAt = course.CreatedAt,
+            UpdatedAt = course.UpdatedAt,
+            RetiredAt = course.RetiredAt,
+            DeletedAt = course.DeletedAt
+        };
 
     private static void SetResultTags(Activity? activity, int resultCount, bool hasNextPage)
     {

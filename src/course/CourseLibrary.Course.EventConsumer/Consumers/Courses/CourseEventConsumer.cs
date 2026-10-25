@@ -1,5 +1,5 @@
 using Azure.Messaging.ServiceBus;
-using CourseLibrary.Course.Domain.Events;
+using CourseLibrary.Course.Contracts.DTOs.Courses.Audits;
 using CourseLibrary.Course.EventConsumer.Core;
 using CourseLibrary.Course.EventConsumer.Observability;
 using CourseLibrary.Platform.Messaging.Observability;
@@ -20,8 +20,8 @@ internal sealed class CourseEventConsumer(
     private const string TopicName = "CourseEvent";
     private const string SubscriptionName = "CourseEventConsumer";
 
-    private readonly ISerializer<CourseEvent> _serializer =
-        serializerFactory.Create<CourseEvent>(SerializerType.Json);
+    private readonly ISerializer<CourseEventRequest> _serializer =
+        serializerFactory.Create<CourseEventRequest>(SerializerType.Json);
 
     [Function(nameof(CourseEventConsumer))]
     public async Task RunAsync(
@@ -105,7 +105,7 @@ internal sealed class CourseEventConsumer(
                     metadataEventType);
             }
 
-            CourseEvent? courseEvent;
+            CourseEventRequest? courseEvent;
             try
             {
                 courseEvent = _serializer.Deserialize(message.Body.ToArray());
@@ -158,7 +158,7 @@ internal sealed class CourseEventConsumer(
 
             var orchestrationInput = new OrchestrationInput<CourseEventPayload>
             {
-                Event = CourseEventPayload.FromDomain(courseEvent),
+                Event = CourseEventPayload.FromRequest(courseEvent),
                 MessageId = message.MessageId,
                 Metadata = eventMetadata
             };

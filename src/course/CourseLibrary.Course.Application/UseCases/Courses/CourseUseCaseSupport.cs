@@ -1,14 +1,13 @@
-using CourseLibrary.Core.Domain.Exceptions;
+using CourseLibrary.Course.Contracts.DTOs.Courses;
+using CourseLibrary.Course.Contracts.DTOs.Courses.Audits;
 using CourseLibrary.Course.Contracts.ValueObjects;
-using CourseLibrary.Course.Domain.Entities;
-using CourseLibrary.Course.Persistence.Entities;
-using CourseEntity = CourseLibrary.Course.Persistence.Entities.Course;
+using CourseLibrary.Platform.Exceptions;
 
 namespace CourseLibrary.Course.Application.UseCases.Courses;
 
 internal static class CourseAuthorization
 {
-    public static void EnsureAuthor(CourseEntity course, string actorId)
+    public static void EnsureAuthor(CourseResponse course, string actorId)
     {
         if (!string.Equals(course.AuthorId, actorId, StringComparison.Ordinal))
         {

@@ -1,7 +1,6 @@
 using CourseLibrary.Course.Application.Core;
-using CourseLibrary.Core.Domain.Exceptions;
-using CourseLibrary.Core.Results;
-using CourseLibrary.Course.Domain.ValueObjects;
+using CourseLibrary.Platform.Exceptions;
+using CourseLibrary.Platform.Results;
 using FluentValidation;
 using Microsoft.Extensions.Logging;
 using CourseLibrary.Course.Application.UseCases.Courses;
@@ -28,6 +27,6 @@ internal sealed class GetCommentUseCase(
                 UseCaseInput.CommentId(commentId),
                 UseCaseInput.CourseId(courseId),
                 cancellationToken);
-            return CourseMapper.ToResponse(comment ?? throw new DataNotFoundException($"Comment '{commentId}' was not found."));
+            return comment ?? throw new DataNotFoundException($"Comment '{commentId}' was not found.");
         });
 }

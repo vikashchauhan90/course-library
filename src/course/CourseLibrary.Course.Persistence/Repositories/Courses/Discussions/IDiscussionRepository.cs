@@ -1,11 +1,11 @@
-using CourseLibrary.Course.Persistence.Entities;
+using CourseLibrary.Course.Contracts.DTOs.Courses.Discussions;
 
 namespace CourseLibrary.Course.Persistence.Repositories.Courses.Discussions;
 
 public interface IDiscussionRepository
 {
-    Task<Discussion?> GetByIdAsync(string discussionId, string courseId, CancellationToken cancellationToken = default);
-    Task<IReadOnlyList<Discussion>> GetByCourseAsync(string courseId, CancellationToken cancellationToken = default);
-    Task UpsertAsync(Discussion discussion, CancellationToken cancellationToken = default);
+    Task<DiscussionResponse?> GetByIdAsync(string discussionId, string courseId, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<DiscussionResponse>> GetByCourseAsync(string courseId, CancellationToken cancellationToken = default);
+    Task UpsertAsync(DiscussionResponse discussion, CancellationToken cancellationToken = default);
     Task<bool> DeleteAsync(string discussionId, string courseId, CancellationToken cancellationToken = default);
 }

@@ -1,7 +1,5 @@
 using CourseLibrary.Course.Application.Core;
-using CourseLibrary.Core.Results;
-using CourseLibrary.Course.Domain.Entities;
-using CourseLibrary.Course.Domain.ValueObjects;
+using CourseLibrary.Platform.Results;
 using FluentValidation;
 using Microsoft.Extensions.Logging;
 using CourseLibrary.Course.Application.UseCases.Discussions;
@@ -14,32 +12,30 @@ namespace CourseLibrary.Course.Application.UseCases.Discussions.Create;
 
 public interface ICreateDiscussionUseCase
 {
-    Task<Result<DiscussionResponse>> ExecuteAsync(string courseId, string title, string description, CancellationToken cancellationToken = default);
+    Task<Result<DiscussionResponse>> ExecuteAsync(DiscussionRequest request, CancellationToken cancellationToken = default);
 }
 
 internal sealed class CreateDiscussionUseCase(
     IDiscussionRepository repository,
-    IValidator<CreateDiscussionRequest> validator,
+    IValidator<DiscussionRequest> validator,
     ILogger<CreateDiscussionUseCase> logger) : ICreateDiscussionUseCase
 {
-    public Task<Result<DiscussionResponse>> ExecuteAsync(string courseId, string title, string description, CancellationToken cancellationToken = default)
+    public Task<Result<DiscussionResponse>> ExecuteAsync(DiscussionRequest request, CancellationToken cancellationToken = default)
         => CourseApplicationUseCase.ExecuteResultAsync(logger, "discussions.create", async () =>
         {
-            ValidationErrors.ThrowIfInvalid(await validator.ValidateAsync(new CreateDiscussionRequest(courseId, title, description), cancellationToken));
+            ArgumentNullException.ThrowIfNull(request);
+            ValidationErrors.ThrowIfInvalid(await validator.ValidateAsync(request, cancellationToken));
             var now = DateTimeOffset.UtcNow;
-            var normalizedCourseId = UseCaseInput.CourseId(courseId);
-            var discussion = new Discussion
-            {
-                Id = Guid.NewGuid().ToString(),
-                CourseId = normalizedCourseId,
-                PartitionKey = CoursePartitionKeyFormats.ForCourse(normalizedCourseId),
-                Title = title,
-                Description = description,
-                CreatedAt = now,
-                UpdatedAt = now
-            };
-            logger.PersistingDiscussion(discussion.Id.ToString(), courseId);
+            var normalizedCourseId = UseCaseInput.CourseId(request.CourseId!);
+            var discussion = new DiscussionResponse(
+                Guid.NewGuid().ToString(),
+                normalizedCourseId,
+                request.Title!,
+                request.Description!,
+                now,
+                now);
+            logger.PersistingDiscussion(discussion.Id.ToString(), request.CourseId!);
             await repository.UpsertAsync(discussion, cancellationToken);
-            return CourseMapper.ToResponse(discussion);
+            return discussion;
         });
 }

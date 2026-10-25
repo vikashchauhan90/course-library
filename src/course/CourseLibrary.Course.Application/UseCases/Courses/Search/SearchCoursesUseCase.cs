@@ -1,9 +1,8 @@
 using CourseLibrary.Course.Application.Core;
 using CourseLibrary.Course.Contracts.DTOs;
-using CourseLibrary.Core.Results;
+using CourseLibrary.Platform.Results;
 using FluentValidation;
 using Microsoft.Extensions.Logging;
-using CourseLibrary.Course.Application.UseCases.Courses;
 using CourseLibrary.Course.Application.UseCases.Courses;
 using CourseLibrary.Course.Contracts.DTOs.Courses;
 using CourseLibrary.Course.Persistence.Repositories.Courses;
@@ -40,6 +39,6 @@ internal sealed class SearchCoursesUseCase(
                 searchCriteria.IncludeRetired);
             var page = await repository.SearchAsync(searchCriteria, pageSize, continuationToken, cancellationToken);
             logger.CoursesSearched(page.Items.Count);
-            return page.Map(course => CourseMapper.ToResponse(course));
+            return page;
         });
 }

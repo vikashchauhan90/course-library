@@ -4,25 +4,13 @@ using FluentValidation;
 
 namespace CourseLibrary.Course.Application.UseCases.Courses.Create;
 
-internal sealed record CreateCourseUseCaseRequest(CourseRequest? Request, string? ActorId);
-
-internal sealed class CreateCourseValidator : AbstractValidator<CreateCourseUseCaseRequest>
+internal sealed class CreateCourseValidator : AbstractValidator<CourseRequest>
 {
     public CreateCourseValidator()
     {
-        RuleFor(request => request.Request).NotNull();
-        RuleFor(request => request.Request!.Title)
-            .RequiredText()
-            .When(request => request.Request is not null);
-        RuleFor(request => request.Request!.Description)
-            .RequiredText()
-            .When(request => request.Request is not null);
-        RuleFor(request => request.Request!.AuthorId)
-            .RequiredText()
-            .When(request => request.Request is not null);
-        RuleFor(request => request.Request!.AuthorName)
-            .RequiredText()
-            .When(request => request.Request is not null);
-        RuleFor(request => request.ActorId).RequiredText();
+        RuleFor(request => request.Title).RequiredText();
+        RuleFor(request => request.Description).RequiredText();
+        RuleFor(request => request.AuthorId).RequiredText();
+        RuleFor(request => request.AuthorName).RequiredText();
     }
 }

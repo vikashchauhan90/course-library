@@ -4,6 +4,7 @@ using CourseLibrary.Course.Persistence.Cosmos;
 using CourseLibrary.Course.Persistence.Entities;
 using CourseLibrary.Course.Persistence.Observability;
 using CourseLibrary.Course.Persistence.Repositories.Courses;
+using CourseLibrary.Course.Contracts.DTOs.Courses.Discussions;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
@@ -27,7 +28,7 @@ internal sealed class DiscussionRepository : IDiscussionRepository
         _logger = logger;
     }
 
-    public async Task<Discussion?> GetByIdAsync(
+    public async Task<DiscussionResponse?> GetByIdAsync(
         string discussionId,
         string courseId,
         CancellationToken cancellationToken = default)
@@ -62,7 +63,7 @@ internal sealed class DiscussionRepository : IDiscussionRepository
                 SupportedContainers.Discussions,
                 startedAt,
                 response.RequestCharge);
-            return response.Resource;
+            return ToResponse(response.Resource);
         }
         catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
         {
@@ -93,7 +94,7 @@ internal sealed class DiscussionRepository : IDiscussionRepository
         }
     }
 
-    public async Task<IReadOnlyList<Discussion>> GetByCourseAsync(
+    public async Task<IReadOnlyList<DiscussionResponse>> GetByCourseAsync(
         string courseId,
         CancellationToken cancellationToken = default)
     {
@@ -143,7 +144,7 @@ internal sealed class DiscussionRepository : IDiscussionRepository
                 SupportedContainers.Discussions,
                 startedAt,
                 requestCharge);
-            return items;
+            return items.Select(ToResponse).ToArray();
         }
         catch (CosmosException ex)
         {
@@ -228,7 +229,7 @@ internal sealed class DiscussionRepository : IDiscussionRepository
     }
 
     public async Task UpsertAsync(
-        Discussion discussion,
+        DiscussionResponse discussion,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(discussion);
@@ -248,9 +249,10 @@ internal sealed class DiscussionRepository : IDiscussionRepository
                 SupportedContainers.Discussions,
                 container.Database.Id);
 
+            var entity = ToEntity(discussion);
             var response = await container.UpsertItemAsync(
-                discussion,
-                new PartitionKey(discussion.PartitionKey),
+                entity,
+                new PartitionKey(entity.PartitionKey),
                 cancellationToken: cancellationToken).ConfigureAwait(false);
             CosmosOperationObserver.RecordSuccess(
                 activity,
@@ -276,4 +278,25 @@ internal sealed class DiscussionRepository : IDiscussionRepository
             throw;
         }
     }
+
+    private static DiscussionResponse ToResponse(Discussion discussion)
+        => new(
+            discussion.Id,
+            discussion.CourseId,
+            discussion.Title,
+            discussion.Description,
+            discussion.CreatedAt,
+            discussion.UpdatedAt);
+
+    private static Discussion ToEntity(DiscussionResponse discussion)
+        => new()
+        {
+            Id = discussion.Id,
+            CourseId = discussion.CourseId,
+            PartitionKey = CoursePartitionKeyFormats.ForCourse(discussion.CourseId),
+            Title = discussion.Title,
+            Description = discussion.Description,
+            CreatedAt = discussion.CreatedAt,
+            UpdatedAt = discussion.UpdatedAt
+        };
 }

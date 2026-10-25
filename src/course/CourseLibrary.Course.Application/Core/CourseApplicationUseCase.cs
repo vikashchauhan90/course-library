@@ -1,6 +1,6 @@
 using System.Diagnostics;
-using CourseLibrary.Core.Domain.Exceptions;
-using CourseLibrary.Core.Results;
+using CourseLibrary.Platform.Exceptions;
+using CourseLibrary.Platform.Results;
 using CourseLibrary.Course.Application.Observability;
 using Microsoft.Extensions.Logging;
 

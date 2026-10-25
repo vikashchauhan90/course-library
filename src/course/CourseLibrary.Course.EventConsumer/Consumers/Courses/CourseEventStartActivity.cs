@@ -56,7 +56,7 @@ internal sealed class CourseEventStartActivity(
                 nameof(CourseEventStartActivity));
             activity.SetTag(
                 CourseEventConsumerActivityTagConstants.ActivityEventType,
-                nameof(CourseLibrary.Course.Domain.Events.CourseEvent));
+                "CourseEvent");
             activity.SetTag(
                 CourseEventConsumerActivityTagConstants.ActivityCourseId,
                 input.Event.CourseId);

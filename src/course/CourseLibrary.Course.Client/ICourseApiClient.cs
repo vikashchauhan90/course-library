@@ -1,4 +1,4 @@
-using CourseLibrary.Core.Results;
+using CourseLibrary.Platform.Results;
 using CourseLibrary.Course.Contracts.DTOs;
 using CourseLibrary.Course.Contracts.DTOs.Courses;
 

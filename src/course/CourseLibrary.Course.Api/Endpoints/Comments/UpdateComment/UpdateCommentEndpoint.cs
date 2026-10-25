@@ -1,6 +1,7 @@
 using Carter;
 using CourseLibrary.Course.Api.Configuration;
 using CourseLibrary.Course.Api.Http;
+using CourseLibrary.Course.Contracts.DTOs.Courses.Comments;
 using CourseLibrary.Course.Application.UseCases.Comments.Update;
 
 namespace CourseLibrary.Course.Api.Endpoints.Comments.UpdateComment;
@@ -20,11 +21,9 @@ public sealed class UpdateCommentEndpoint : ICarterModule
                 (await useCase.ExecuteAsync(
                     commentId,
                     courseId,
-                    request.Content,
+                    request.Content!,
                     cancellationToken)).ToHttpResult())
             .WithName("UpdateComment")
             .HasApiVersion(1.0);
     }
-
-    public sealed record UpdateCommentRequest(string Content);
 }

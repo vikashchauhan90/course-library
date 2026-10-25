@@ -5,7 +5,6 @@ using CourseLibrary.Platform.Observability.Logs.Processors;
 using CourseLibrary.Platform.Observability.Metrics;
 using CourseLibrary.Platform.Observability.Traces;
 using CourseLibrary.Platform.Observability.Traces.Processors;
-using CourseLibrary.Platform.Persistence.CosmosDB.Observability;
 using CourseLibrary.Platform.Serialization.Observability;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -53,7 +52,6 @@ public static class CourseLibraryEventConsumerObservabilityExtensions
                 tracing
                     .AddSource(CourseEventConsumerTelemetry.ActivitySourceName)
                     .AddSource(MessagingTelemetry.ActivitySourceName)
-                    .AddSource(CoursePersistenceTelemetry.ActivitySourceName)
                     .AddSource(CosmosTelemetry.ActivitySourceName)
                     .AddSource(SerializationTelemetry.ActivitySourceName)
                     .AddSource(PlatformActivitySource.ActivitySourceName)
@@ -74,7 +72,6 @@ public static class CourseLibraryEventConsumerObservabilityExtensions
                 metrics
                     .AddMeter(CourseEventConsumerTelemetry.MeterName)
                     .AddMeter(MessagingTelemetry.MeterName)
-                    .AddMeter(CoursePersistenceTelemetry.MeterName)
                     .AddMeter(CosmosTelemetry.MeterName)
                     .AddMeter(SerializationTelemetry.MeterName)
                     .AddMeter(PlatformMeter.MeterName)

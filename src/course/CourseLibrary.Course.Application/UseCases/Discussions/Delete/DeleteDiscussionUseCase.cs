@@ -1,6 +1,5 @@
 using CourseLibrary.Course.Application.Core;
-using CourseLibrary.Core.Results;
-using CourseLibrary.Course.Domain.ValueObjects;
+using CourseLibrary.Platform.Results;
 using FluentValidation;
 using Microsoft.Extensions.Logging;
 using CourseLibrary.Course.Application.UseCases.Discussions;

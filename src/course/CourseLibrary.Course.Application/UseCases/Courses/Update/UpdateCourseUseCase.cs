@@ -1,16 +1,13 @@
 using CourseLibrary.Course.Application.Core;
 using CourseLibrary.Course.Contracts.DTOs;
-using CourseLibrary.Core.Domain.Exceptions;
-using CourseLibrary.Core.Results;
-using CourseLibrary.Course.Domain.Events;
-using CourseLibrary.Course.Domain.Entities;
+using CourseLibrary.Platform.Exceptions;
+using CourseLibrary.Platform.Results;
 using FluentValidation;
 using Microsoft.Extensions.Logging;
 using CourseLibrary.Course.Application.UseCases.Courses;
-using CourseLibrary.Course.Application.UseCases.Courses;
 using CourseLibrary.Course.Contracts.ValueObjects;
-using CourseLibrary.Course.Persistence.Entities;
 using CourseLibrary.Course.Contracts.DTOs.Courses;
+using CourseLibrary.Course.Contracts.DTOs.Courses.Audits;
 using CourseLibrary.Course.Persistence.Repositories.Courses;
 
 namespace CourseLibrary.Course.Application.UseCases.Courses.Update;
@@ -27,7 +24,7 @@ public interface IUpdateCourseUseCase
 internal sealed class UpdateCourseUseCase(
     ICourseRepository repository,
     ICourseEventPublisher eventPublisher,
-    IValidator<UpdateCourseUseCaseRequest> validator,
+    IValidator<UpdateCourseRequest> validator,
     ILogger<UpdateCourseUseCase> logger) : IUpdateCourseUseCase
 {
     public Task<Result<CourseResponse>> ExecuteAsync(
@@ -37,8 +34,9 @@ internal sealed class UpdateCourseUseCase(
         CancellationToken cancellationToken = default)
         => CourseApplicationUseCase.ExecuteResultAsync(logger, "courses.update", async () =>
         {
-            ValidationErrors.ThrowIfInvalid(await validator.ValidateAsync(
-                new UpdateCourseUseCaseRequest(courseId, request, actorId), cancellationToken));
+            ArgumentNullException.ThrowIfNull(request);
+            ValidationErrors.ThrowIfInvalid(await validator.ValidateAsync(request, cancellationToken));
+            UseCaseInput.Required(actorId, nameof(actorId));
             var input = request!;
             var id = UseCaseInput.CourseId(courseId);
             var course = await repository.GetByIdAsync(id, cancellationToken)
@@ -46,7 +44,7 @@ internal sealed class UpdateCourseUseCase(
             CourseAuthorization.EnsureAuthor(course, actorId);
 
             var now = DateTimeOffset.UtcNow;
-            var updated = course with { Title = input.Title, Description = input.Description, UpdatedAt = now };
+            var updated = course with { Title = input.Title!, Description = input.Description!, UpdatedAt = now };
             logger.UpdatingCourse(updated.Id);
             await repository.UpsertAsync(updated, cancellationToken);
             var changes = new List<AuditEntry>();
@@ -58,6 +56,6 @@ internal sealed class UpdateCourseUseCase(
             }
 
             await eventPublisher.PublishAsync(updated, actorId, CourseEventType.Updated, now, changes, cancellationToken);
-            return CourseMapper.ToResponse(updated);
+            return updated;
         });
 }

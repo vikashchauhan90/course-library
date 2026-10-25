@@ -11,6 +11,7 @@
 	</ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\CourseLibrary.Course.Contracts\CourseLibrary.Course.Contracts.csproj" />
+    <ProjectReference Include="..\..\platform\CourseLibrary.Platform.Results\CourseLibrary.Platform.Results.csproj" />
     <ProjectReference Include="..\..\platform\CourseLibrary.Platform.Observability\CourseLibrary.Platform.Observability.csproj" />
     <ProjectReference Include="..\..\platform\CourseLibrary.Platform.Resilience\CourseLibrary.Platform.Resilience.csproj" />
   </ItemGroup>

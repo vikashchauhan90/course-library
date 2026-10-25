@@ -47,7 +47,6 @@ internal static class CourseLibraryApiObservabilityExtensions
                 tracing
                     .AddSource(CourseApiTelemetry.ActivitySourceName)
                     .AddSource(CourseApplicationTelemetry.ActivitySourceName)
-                    .AddSource(CoursePersistenceTelemetry.ActivitySourceName)
                     .AddSource(ResilienceTelemetry.ActivitySourceName)
                     .AddSource(SerializationTelemetry.ActivitySourceName)
                     .AddSource(PlatformActivitySource.ActivitySourceName)
@@ -67,7 +66,6 @@ internal static class CourseLibraryApiObservabilityExtensions
                 metrics
                     .AddMeter(CourseApiTelemetry.MeterName)
                     .AddMeter(CourseApplicationTelemetry.MeterName)
-                    .AddMeter(CoursePersistenceTelemetry.MeterName)
                     .AddMeter(ResilienceTelemetry.MeterName)
                     .AddMeter(SerializationTelemetry.MeterName)
                     .AddMeter(CacheTelemetry.MeterName)

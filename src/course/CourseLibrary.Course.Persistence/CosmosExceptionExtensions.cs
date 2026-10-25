@@ -1,5 +1,5 @@
 ﻿using System.Net;
-using CourseLibrary.Core.Domain.Exceptions;
+using CourseLibrary.Platform.Exceptions;
 using Microsoft.Azure.Cosmos;
 
 

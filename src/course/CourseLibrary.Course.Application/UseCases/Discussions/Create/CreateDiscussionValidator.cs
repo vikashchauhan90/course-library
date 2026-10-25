@@ -1,11 +1,10 @@
 using CourseLibrary.Course.Application.Core;
+using CourseLibrary.Course.Contracts.DTOs.Courses.Discussions;
 using FluentValidation;
 
 namespace CourseLibrary.Course.Application.UseCases.Discussions.Create;
 
-internal sealed record CreateDiscussionRequest(string? CourseId, string? Title, string? Description);
-
-internal sealed class CreateDiscussionValidator : AbstractValidator<CreateDiscussionRequest>
+internal sealed class CreateDiscussionValidator : AbstractValidator<DiscussionRequest>
 {
     public CreateDiscussionValidator()
     {

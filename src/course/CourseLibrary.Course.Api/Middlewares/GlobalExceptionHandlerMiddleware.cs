@@ -1,4 +1,4 @@
-﻿using CourseLibrary.Core.Domain.Exceptions;
+using CourseLibrary.Platform.Exceptions;
 using CourseLibrary.Course.Api.Http;
 using CourseLibrary.Course.Api.Observability;
 using Microsoft.AspNetCore.Mvc;

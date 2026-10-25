@@ -1,15 +1,10 @@
 using CourseLibrary.Course.Application.Core;
+using CourseLibrary.Course.Contracts.DTOs.Courses.Comments;
 using FluentValidation;
 
 namespace CourseLibrary.Course.Application.UseCases.Comments.Create;
 
-internal sealed record CreateCommentUseCaseRequest(
-    string? CourseId,
-    string? AuthorId,
-    string? Content,
-    string? ParentCommentId);
-
-internal sealed class CreateCommentValidator : AbstractValidator<CreateCommentUseCaseRequest>
+internal sealed class CreateCommentValidator : AbstractValidator<CommentRequest>
 {
     public CreateCommentValidator()
     {

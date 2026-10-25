@@ -1,9 +1,7 @@
 using CourseLibrary.Course.Application.Core;
-using CourseLibrary.Core.Results;
-using CourseLibrary.Course.Domain.Events;
+using CourseLibrary.Platform.Results;
 using FluentValidation;
 using Microsoft.Extensions.Logging;
-using CourseLibrary.Course.Application.UseCases.Courses;
 using CourseLibrary.Course.Application.UseCases.Courses;
 using CourseLibrary.Course.Contracts.ValueObjects;
 using CourseLibrary.Course.Persistence.Repositories.Courses;

@@ -4,6 +4,7 @@ using CourseLibrary.Course.Persistence.Cosmos;
 using CourseLibrary.Course.Persistence.Entities;
 using CourseLibrary.Course.Persistence.Observability;
 using CourseLibrary.Course.Persistence.Repositories.Courses;
+using CourseLibrary.Course.Contracts.DTOs.Courses.Comments;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
@@ -27,7 +28,7 @@ internal sealed class CommentRepository : ICommentRepository
         _logger = logger;
     }
 
-    public async Task<Comment?> GetByIdAsync(
+    public async Task<CommentResponse?> GetByIdAsync(
         string commentId,
         string courseId,
         CancellationToken cancellationToken = default)
@@ -62,7 +63,7 @@ internal sealed class CommentRepository : ICommentRepository
                 startedAt,
                 response.RequestCharge);
 
-            return response.Resource;
+            return ToResponse(response.Resource);
         }
         catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
         {
@@ -93,7 +94,7 @@ internal sealed class CommentRepository : ICommentRepository
         }
     }
 
-    public async Task<IReadOnlyList<Comment>> GetByCourseAsync(
+    public async Task<IReadOnlyList<CommentResponse>> GetByCourseAsync(
         string courseId,
         CancellationToken cancellationToken = default)
     {
@@ -143,7 +144,7 @@ internal sealed class CommentRepository : ICommentRepository
                 SupportedContainers.Comments,
                 startedAt,
                 requestCharge);
-            return items;
+            return items.Select(ToResponse).ToArray();
         }
         catch (CosmosException ex)
         {
@@ -228,7 +229,7 @@ internal sealed class CommentRepository : ICommentRepository
     }
 
     public async Task UpsertAsync(
-        Comment comment,
+        CommentResponse comment,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(comment);
@@ -248,9 +249,10 @@ internal sealed class CommentRepository : ICommentRepository
                 SupportedContainers.Comments,
                 container.Database.Id);
 
+            var entity = ToEntity(comment);
             var response = await container.UpsertItemAsync(
-                comment,
-                new PartitionKey(comment.PartitionKey),
+                entity,
+                new PartitionKey(entity.PartitionKey),
                 cancellationToken: cancellationToken).ConfigureAwait(false);
             CosmosOperationObserver.RecordSuccess(
                 activity,
@@ -276,4 +278,29 @@ internal sealed class CommentRepository : ICommentRepository
             throw;
         }
     }
+
+    private static CommentResponse ToResponse(Comment comment)
+        => new(
+            comment.Id,
+            comment.CourseId,
+            comment.AuthorId,
+            comment.Content,
+            comment.ParentCommentId,
+            comment.CreatedAt,
+            comment.UpdatedAt,
+            comment.DeletedAt);
+
+    private static Comment ToEntity(CommentResponse comment)
+        => new()
+        {
+            Id = comment.Id,
+            CourseId = comment.CourseId,
+            PartitionKey = CoursePartitionKeyFormats.ForCourse(comment.CourseId),
+            AuthorId = comment.AuthorId,
+            Content = comment.Content,
+            ParentCommentId = comment.ParentCommentId,
+            CreatedAt = comment.CreatedAt,
+            UpdatedAt = comment.UpdatedAt,
+            DeletedAt = comment.DeletedAt
+        };
 }

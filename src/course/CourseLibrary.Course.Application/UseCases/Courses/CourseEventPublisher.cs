@@ -1,14 +1,11 @@
 using System.Collections.Immutable;
 using System.Diagnostics;
-using CourseLibrary.Course.Application.UseCases.Courses;
 using CourseLibrary.Course.Contracts.ValueObjects;
-using CourseLibrary.Course.Domain.Entities;
-using CourseLibrary.Course.Domain.Events;
-using CourseLibrary.Course.Persistence.Entities;
+using CourseLibrary.Course.Contracts.DTOs.Courses.Audits;
+using CourseLibrary.Course.Contracts.DTOs.Courses;
 using CourseLibrary.Platform.Messaging.Abstractions;
 using CourseLibrary.Platform.Serialization.Abstractions;
 using Microsoft.Extensions.Logging;
-using CourseEntity = CourseLibrary.Course.Persistence.Entities.Course;
 
 namespace CourseLibrary.Course.Application.UseCases.Courses;
 
@@ -19,7 +16,7 @@ internal sealed class CourseEventPublisher(
     : ICourseEventPublisher
 {
     public async Task PublishAsync(
-        CourseEntity course,
+        CourseResponse course,
         string actorId,
         CourseEventType eventKind,
         DateTimeOffset occurredAt,
@@ -28,8 +25,8 @@ internal sealed class CourseEventPublisher(
     {
         var eventId = Guid.NewGuid();
         var payload = serializerFactory
-            .Create<CourseEvent>(SerializerType.Json)
-            .Serialize(new CourseEvent
+            .Create<CourseEventRequest>(SerializerType.Json)
+            .Serialize(new CourseEventRequest
             {
                 EventId = eventId.ToString(),
                 CourseId = course.Id,
@@ -41,11 +38,11 @@ internal sealed class CourseEventPublisher(
         var activity = Activity.Current;
 
         await eventPublisher.PublishAsync(
-            nameof(CourseEvent),
+            "CourseEvent",
             new ServiceBusEventPayload
             {
                 EventId = eventId,
-                EventType = nameof(CourseEvent),
+                EventType = "CourseEvent",
                 OccurredAt = occurredAt,
                 Payload = new BinaryData(payload),
                 Source = "CourseLibrary.Course.Application",

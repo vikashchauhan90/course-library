@@ -1,5 +1,5 @@
-using CourseLibrary.Core.Domain.Exceptions;
-using CourseLibrary.Core.Results;
+using CourseLibrary.Platform.Exceptions;
+using CourseLibrary.Platform.Results;
 
 namespace CourseLibrary.Course.Application.Core;
 

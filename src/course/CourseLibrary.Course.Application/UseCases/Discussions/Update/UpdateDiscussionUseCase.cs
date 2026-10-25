@@ -1,7 +1,6 @@
 using CourseLibrary.Course.Application.Core;
-using CourseLibrary.Core.Domain.Exceptions;
-using CourseLibrary.Core.Results;
-using CourseLibrary.Course.Domain.ValueObjects;
+using CourseLibrary.Platform.Exceptions;
+using CourseLibrary.Platform.Results;
 using FluentValidation;
 using Microsoft.Extensions.Logging;
 using CourseLibrary.Course.Application.UseCases.Discussions;
@@ -34,7 +33,8 @@ internal sealed class UpdateDiscussionUseCase(
         CancellationToken cancellationToken = default)
         => CourseApplicationUseCase.ExecuteResultAsync(logger, "discussions.update", async () =>
         {
-            ValidationErrors.ThrowIfInvalid(await validator.ValidateAsync(new UpdateDiscussionRequest(discussionId, courseId, title, description), cancellationToken));
+            var request = new UpdateDiscussionRequest(title, description);
+            ValidationErrors.ThrowIfInvalid(await validator.ValidateAsync(request, cancellationToken));
             var id = UseCaseInput.DiscussionId(discussionId);
             var parentCourseId = UseCaseInput.CourseId(courseId);
             var existing = await repository.GetByIdAsync(id, parentCourseId, cancellationToken)
@@ -42,6 +42,6 @@ internal sealed class UpdateDiscussionUseCase(
             var updated = existing with { Title = title, Description = description, UpdatedAt = DateTimeOffset.UtcNow };
             logger.UpdatingDiscussion(updated.Id.ToString());
             await repository.UpsertAsync(updated, cancellationToken);
-            return CourseMapper.ToResponse(updated);
+            return updated;
         });
 }

@@ -1,4 +1,5 @@
 using Azure.Messaging.ServiceBus;
+using CourseLibrary.Course.Contracts.DTOs.Courses.Audits;
 using CourseLibrary.Course.EventConsumer.Observability;
 using CourseLibrary.Platform.Messaging.Abstractions;
 using CourseLibrary.Platform.Messaging.Observability;
@@ -21,9 +22,8 @@ internal sealed class CourseEventDqlMessageHandler(
     private const string TopicName = "CourseEvent";
     private const string DeadLetterSubscription = "CourseEventConsumer/$deadletterqueue";
 
-    private readonly ISerializer<CourseLibrary.Course.Domain.Events.CourseEvent> _serializer =
-        serializerFactory.Create<CourseLibrary.Course.Domain.Events.CourseEvent>(
-            SerializerType.Json);
+    private readonly ISerializer<CourseEventRequest> _serializer =
+        serializerFactory.Create<CourseEventRequest>(SerializerType.Json);
 
     [Function(nameof(CourseEventDqlMessageHandler))]
     public async Task RunAsync(

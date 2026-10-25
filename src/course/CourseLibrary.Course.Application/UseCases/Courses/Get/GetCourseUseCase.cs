@@ -1,7 +1,6 @@
 using CourseLibrary.Course.Application.Core;
-using CourseLibrary.Core.Domain.Exceptions;
-using CourseLibrary.Core.Results;
-using CourseLibrary.Course.Domain.ValueObjects;
+using CourseLibrary.Platform.Exceptions;
+using CourseLibrary.Platform.Results;
 using FluentValidation;
 using Microsoft.Extensions.Logging;
 using CourseLibrary.Course.Application.UseCases.Courses;
@@ -36,9 +35,10 @@ internal sealed class GetCourseUseCase(
             var discussionsTask = discussionRepository.GetByCourseAsync(id, cancellationToken);
             await Task.WhenAll(commentsTask, discussionsTask);
 
-            return CourseMapper.ToResponse(
-                course,
-                (await commentsTask).Select(CourseMapper.ToResponse).ToArray(),
-                (await discussionsTask).Select(CourseMapper.ToResponse).ToArray());
+            return course with
+            {
+                Comments = await commentsTask,
+                Discussions = await discussionsTask
+            };
         });
 }

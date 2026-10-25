@@ -1,18 +1,17 @@
-using CourseLibrary.Course.Domain.ValueObjects;
-using CourseLibrary.Core.Domain.Exceptions;
+using CourseLibrary.Platform.Exceptions;
 
 namespace CourseLibrary.Course.Application.Core;
 
 internal static class UseCaseInput
 {
     public static string CourseId(string value, string parameterName = "courseId")
-        => new(ParseGuid(value, parameterName));
+        => ParseGuid(value, parameterName);
 
     public static string CommentId(string value, string parameterName = "commentId")
-        => new(ParseGuid(value, parameterName));
+        => ParseGuid(value, parameterName);
 
     public static string DiscussionId(string value, string parameterName = "discussionId")
-        => new(ParseGuid(value, parameterName));
+        => ParseGuid(value, parameterName);
 
     public static void Required(string? value, string parameterName)
     {

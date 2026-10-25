@@ -1,4 +1,4 @@
-using CourseLibrary.Core.Results;
+using CourseLibrary.Platform.Results;
 
 namespace CourseLibrary.Course.Api.Http;
 

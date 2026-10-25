@@ -1,6 +1,5 @@
 using CourseLibrary.Course.Application.Core;
-using CourseLibrary.Core.Results;
-using CourseLibrary.Course.Domain.ValueObjects;
+using CourseLibrary.Platform.Results;
 using FluentValidation;
 using Microsoft.Extensions.Logging;
 using CourseLibrary.Course.Application.UseCases.Courses;
@@ -24,6 +23,6 @@ internal sealed class GetCommentsByCourseUseCase(
         {
             ValidationErrors.ThrowIfInvalid(await validator.ValidateAsync(new GetCommentsByCourseRequest(courseId), cancellationToken));
             var comments = await repository.GetByCourseAsync(UseCaseInput.CourseId(courseId), cancellationToken);
-            return (IReadOnlyList<CommentResponse>)comments.Select(CourseMapper.ToResponse).ToArray();
+            return comments;
         });
 }

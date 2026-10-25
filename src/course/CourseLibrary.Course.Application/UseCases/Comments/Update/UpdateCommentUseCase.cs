@@ -1,7 +1,6 @@
 using CourseLibrary.Course.Application.Core;
-using CourseLibrary.Core.Domain.Exceptions;
-using CourseLibrary.Core.Results;
-using CourseLibrary.Course.Domain.ValueObjects;
+using CourseLibrary.Platform.Exceptions;
+using CourseLibrary.Platform.Results;
 using FluentValidation;
 using Microsoft.Extensions.Logging;
 using CourseLibrary.Course.Application.UseCases.Comments;
@@ -24,14 +23,15 @@ internal sealed class UpdateCommentUseCase(
     public Task<Result<CommentResponse>> ExecuteAsync(string commentId, string courseId, string content, CancellationToken cancellationToken = default)
         => CourseApplicationUseCase.ExecuteResultAsync(logger, "comments.update", async () =>
         {
-            ValidationErrors.ThrowIfInvalid(await validator.ValidateAsync(new UpdateCommentRequest(commentId, courseId, content), cancellationToken));
-            var id = UseCaseInput.CommentId(commentId);
+        var request = new UpdateCommentRequest(content);
+        ValidationErrors.ThrowIfInvalid(await validator.ValidateAsync(request, cancellationToken));
+        var id = UseCaseInput.CommentId(commentId);
             var parentCourseId = UseCaseInput.CourseId(courseId);
             var existing = await repository.GetByIdAsync(id, parentCourseId, cancellationToken)
                 ?? throw new DataNotFoundException($"Comment '{commentId}' was not found.");
             var updated = existing with { Content = content, UpdatedAt = DateTimeOffset.UtcNow };
             logger.UpdatingComment(updated.Id.ToString());
             await repository.UpsertAsync(updated, cancellationToken);
-            return CourseMapper.ToResponse(updated);
+            return updated;
         });
 }

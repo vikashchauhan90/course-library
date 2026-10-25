@@ -3,6 +3,7 @@ using CourseLibrary.Course.Api.Configuration;
 using CourseLibrary.Course.Api.Http;
 using CourseLibrary.Course.Application.UseCases.Courses.Search;
 using CourseLibrary.Course.Contracts.DTOs;
+using CourseLibrary.Course.Contracts.DTOs.Courses;
 using CourseLibrary.Platform.AspNetCore.RequestContext;
 
 namespace CourseLibrary.Course.Api.Endpoints.Courses.GetCourses;

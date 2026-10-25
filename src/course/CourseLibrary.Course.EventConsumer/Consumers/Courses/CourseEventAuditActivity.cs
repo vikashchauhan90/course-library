@@ -1,11 +1,10 @@
-using CourseLibrary.Course.Domain.Entities;
 using CourseLibrary.Course.EventConsumer.Core;
 using CourseLibrary.Course.EventConsumer.Observability;
+using CourseLibrary.Course.Contracts.DTOs.Courses.Audits;
 using CourseLibrary.Platform.Observability.Traces;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
-using CourseLibrary.Course.Persistence.Repositories.Courses;
 using CourseLibrary.Course.Persistence.Repositories.Courses.Audits;
 
 namespace CourseLibrary.Course.EventConsumer.Consumers.Courses;
@@ -19,7 +18,7 @@ internal sealed class CourseEventAuditActivity(
         [ActivityTrigger] OrchestrationActivityInput<CourseEventPayload> input,
         CancellationToken cancellationToken)
     {
-        var courseEvent = input.Event.ToDomain();
+        var courseEvent = input.Event.ToRequest();
         var startedAt = Stopwatch.GetTimestamp();
         using var scope = logger.BeginScope(new Dictionary<string, object?>
         {
@@ -57,17 +56,14 @@ internal sealed class CourseEventAuditActivity(
         try
         {
             await auditRepository.AddAsync(
-                new CourseAuditEntry
+                new CourseAuditRequest
                 {
-                    Id = courseEvent.EventId,
                     CourseId = courseEvent.CourseId,
-                    PartitionKey = CoursePartitionKeyFormats.ForCourse(courseEvent.CourseId),
                     Action = courseEvent.EventKind,
                     EventId = courseEvent.EventId,
                     OccurredAt = courseEvent.OccurredAt,
                     ChangedProperties = courseEvent.ChangedProperties,
-                    ActorId = courseEvent.ActorId,
-                    CreatedAt = DateTimeOffset.UtcNow
+                    ActorId = courseEvent.ActorId
                 },
                 cancellationToken);
 

@@ -1,10 +1,8 @@
 using CourseLibrary.Course.Application.Core;
-using CourseLibrary.Core.Domain.Exceptions;
-using CourseLibrary.Core.Results;
-using CourseLibrary.Course.Domain.Events;
+using CourseLibrary.Platform.Exceptions;
+using CourseLibrary.Platform.Results;
 using FluentValidation;
 using Microsoft.Extensions.Logging;
-using CourseLibrary.Course.Application.UseCases.Courses;
 using CourseLibrary.Course.Application.UseCases.Courses;
 using CourseLibrary.Course.Contracts.ValueObjects;
 using CourseLibrary.Course.Contracts.DTOs.Courses;
@@ -33,7 +31,7 @@ internal sealed class RetireCourseUseCase(
             CourseAuthorization.EnsureAuthor(course, actorId);
             if (course.RetiredAt is not null)
             {
-                return CourseMapper.ToResponse(course);
+                return course;
             }
 
             var now = DateTimeOffset.UtcNow;
@@ -45,6 +43,6 @@ internal sealed class RetireCourseUseCase(
                 CourseAuditEntry.Added(nameof(retired.RetiredAt), retired.RetiredAt),
                 CourseAuditEntry.Updated(nameof(retired.UpdatedAt), retired.UpdatedAt)
             ], cancellationToken);
-            return CourseMapper.ToResponse(retired);
+            return retired;
         });
 }
