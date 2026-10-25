@@ -1,0 +1,9 @@
+namespace CourseLibrary.Platform.Exceptions;
+
+public sealed class BadRequestException(
+    string message = "The request is invalid.",
+    Exception? innerException = null)
+    : DomainException(message, innerException)
+{
+    public IDictionary<string, string[]> Errors { get; init; } = new Dictionary<string, string[]>();
+}

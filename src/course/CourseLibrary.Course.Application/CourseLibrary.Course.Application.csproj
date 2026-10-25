@@ -13,8 +13,6 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <ProjectReference Include="..\..\core\CourseLibrary.Core.Domain.Exceptions\CourseLibrary.Core.Domain.Exceptions.csproj" />
-	  <ProjectReference Include="..\..\core\CourseLibrary.Core.Results\CourseLibrary.Core.Results.csproj" />
 	  <ProjectReference Include="..\CourseLibrary.Course.Contracts\CourseLibrary.Course.Contracts.csproj" />
 	  <ProjectReference Include="..\CourseLibrary.Course.Persistence\CourseLibrary.Course.Persistence.csproj" />
 	  <ProjectReference Include="..\..\platform\CourseLibrary.Platform.Caching\CourseLibrary.Platform.Caching.csproj" />

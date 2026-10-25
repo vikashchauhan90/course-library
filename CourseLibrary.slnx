@@ -1,9 +1,5 @@
 <Solution>
   <Folder Name="/src/" />
-  <Folder Name="/src/Core/">
-    <Project Path="src/core/CourseLibrary.Core.Domain.Exceptions/CourseLibrary.Core.Domain.Exceptions.csproj" />
-    <Project Path="src/core/CourseLibrary.Core.Results/CourseLibrary.Core.Results.csproj" />
-  </Folder>
   <Folder Name="/src/course/">
     <Project Path="src/course/CourseLibrary.Course.Api/CourseLibrary.Course.Api.csproj" />
     <Project Path="src/course/CourseLibrary.Course.App/CourseLibrary.Course.App.csproj" />
@@ -27,13 +23,14 @@
     <Project Path="src/platform/CourseLibrary.Platform.AspNetCore.RequestContext/CourseLibrary.Platform.AspNetCore.RequestContext.csproj" />
     <Project Path="src/platform/CourseLibrary.Platform.Caching/CourseLibrary.Platform.Caching.csproj" />
     <Project Path="src/platform/CourseLibrary.Platform.DataProtection/CourseLibrary.Platform.DataProtection.csproj" />
+    <Project Path="src/platform/CourseLibrary.Platform.Exceptions/CourseLibrary.Platform.Exceptions.csproj" Id="603c35bc-33f6-4e12-9e87-4e9efc617e98" />
     <Project Path="src/platform/CourseLibrary.Platform.Idempotency/CourseLibrary.Platform.Idempotency.csproj" />
     <Project Path="src/platform/CourseLibrary.Platform.Messaging/CourseLibrary.Platform.Messaging.csproj" />
     <Project Path="src/platform/CourseLibrary.Platform.Observability/CourseLibrary.Platform.Observability.csproj" />
-    <Project Path="src/platform/CourseLibrary.Platform.Persistence.CosmosDB/CourseLibrary.Platform.Persistence.CosmosDB.csproj" />
     <Project Path="src/platform/CourseLibrary.Platform.Persistence.Sql/CourseLibrary.Platform.Persistence.Sql.csproj" />
-    <Project Path="src/platform/CourseLibrary.Platform.Resilience/CourseLibrary.Platform.Resilience.csproj" />
     <Project Path="src/platform/CourseLibrary.Platform.Resilience.Distributed/CourseLibrary.Platform.Resilience.Distributed.csproj" />
+    <Project Path="src/platform/CourseLibrary.Platform.Resilience/CourseLibrary.Platform.Resilience.csproj" />
+    <Project Path="src/platform/CourseLibrary.Platform.Results/CourseLibrary.Platform.Results.csproj" Id="1935abf1-8afb-4ae3-80ed-60d25e941465" />
     <Project Path="src/platform/CourseLibrary.Platform.Serialization/CourseLibrary.Platform.Serialization.csproj" />
   </Folder>
   <Folder Name="/tests/" />

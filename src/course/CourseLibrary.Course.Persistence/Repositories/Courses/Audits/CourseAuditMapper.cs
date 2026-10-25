@@ -26,6 +26,8 @@ internal static class CourseAuditMapper
         this CourseAuditRequest request)
     {
         ArgumentNullException.ThrowIfNull(request);
+        ArgumentException.ThrowIfNullOrWhiteSpace(request.EventId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(request.CourseId);
 
         var partitionKeyValue =
             CoursePartitionKeyFormats
@@ -33,7 +35,7 @@ internal static class CourseAuditMapper
 
         return  new CourseAuditEntry
         {
-            Id = Guid.NewGuid().ToString(),
+            Id = request.EventId,
             CourseId = request.CourseId,
             PartitionKey = partitionKeyValue,
             ActorId = request.ActorId,
