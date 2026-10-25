@@ -1,122 +1,418 @@
 using CourseLibrary.Course.Contracts.DTOs;
 using CourseLibrary.Course.Contracts.DTOs.Courses;
+using CourseLibrary.Course.Persistence;
 using CourseLibrary.Course.Persistence.Core;
 using CourseLibrary.Course.Persistence.Cosmos;
 using CourseLibrary.Course.Persistence.Observability;
 using CourseLibrary.Course.Persistence.Repositories.Courses;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
+using System.Diagnostics;
 
 namespace CourseLibrary.Course.Persistence.Repositories;
 
-internal sealed class CourseRepository 
-    : CosmosContainer,
-    ICourseRepository
+internal sealed class CourseRepository : ICourseRepository
 {
+    private readonly ICosmosContainerFactory _containerFactory;
+    private readonly ILogger<CourseRepository> _logger;
+    private static readonly CosmosActivitySource ActivitySource = CosmosActivitySource.Shared;
+
     public CourseRepository(
-    CosmosClient client,
-    IOptions<CosmosOptions> options,
-    ILogger<CourseRepository> logger)
-    : base(client, options)
+        ICosmosContainerFactory containerFactory,
+        ILogger<CourseRepository> logger)
     {
+        ArgumentNullException.ThrowIfNull(containerFactory);
+        ArgumentNullException.ThrowIfNull(logger);
+        _containerFactory = containerFactory;
+        _logger = logger;
     }
 
-    public async Task<Entities.Course?> GetByIdAsync(string courseId, CancellationToken cancellationToken = default)
+    public async Task<Entities.Course?> GetByIdAsync(
+        string courseId,
+        CancellationToken cancellationToken = default)
     {
-        return await CourseRepositoryObservability.ExecuteAsync(
-            nameof(CourseRepository),
-            nameof(GetByIdAsync),
-            () =>
+        ArgumentException.ThrowIfNullOrWhiteSpace(courseId);
+
+        using var activity = ActivitySource.StartActivity(
+            CosmosActivityNames.QueryItems,
+            ActivityKind.Client);
+        var startedAt = Stopwatch.GetTimestamp();
+
+        try
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var container = _containerFactory.GetContainer(SupportedContainers.Courses);
+            activity.SetCosmosOperation(
+                OperationNames.QueryItems,
+                SupportedContainers.Courses,
+                container.Database.Id);
+
+            var query = new QueryDefinition(
+                "SELECT TOP 1 * FROM c WHERE c.id = @courseId")
+                .WithParameter("@courseId", courseId);
+
+            using var iterator = container.GetItemQueryIterator<Entities.Course>(query);
+            var response = await iterator.ReadNextAsync(cancellationToken).ConfigureAwait(false);
+            var course = response.Resource.FirstOrDefault();
+
+            if (course is null)
             {
-                var query = new QueryDefinition(
-                    "SELECT TOP 1 * FROM c WHERE c.id = @courseId")
-                    .WithParameter("@courseId", courseId);
+                CosmosOperationObserver.RecordNotFound(
+                    activity,
+                    _logger,
+                    OperationNames.QueryItems,
+                    SupportedContainers.Courses,
+                    startedAt,
+                    response.RequestCharge,
+                    courseId);
+                return null;
+            }
 
-                return base.SingleOrDefaultAsync(query, cancellationToken: cancellationToken);
-            });
+            activity?.SetTag(CosmosActivityTagConstants.ResultCount, 1);
+            CosmosOperationObserver.RecordSuccess(
+                activity,
+                _logger,
+                OperationNames.QueryItems,
+                SupportedContainers.Courses,
+                startedAt,
+                response.RequestCharge);
 
+            return course;
+        }
+        catch (CosmosException ex)
+        {
+            CosmosOperationObserver.RecordFailure(
+                activity,
+                _logger,
+                OperationNames.QueryItems,
+                SupportedContainers.Courses,
+                startedAt,
+                ex);
+            throw ex.ToApplicationException();
+        }
+        catch (OperationCanceledException ex)
+        {
+            CosmosOperationObserver.RecordFailure(
+                activity,
+                _logger,
+                OperationNames.QueryItems,
+                SupportedContainers.Courses,
+                startedAt,
+                ex);
+            throw;
+        }
+        catch (Exception ex)
+        {
+            CosmosOperationObserver.RecordFailure(
+                activity,
+                _logger,
+                OperationNames.QueryItems,
+                SupportedContainers.Courses,
+                startedAt,
+                ex);
+            throw;
+        }
     }
 
-    public Task<PageResult<Entities.Course>> GetByAuthorAsync(
+    public async Task<PageResult<Entities.Course>> GetByAuthorAsync(
         string authorId,
         int pageSize,
         string? continuationToken,
         CancellationToken cancellationToken = default)
-        => CourseRepositoryObservability.ExecuteAsync(
-            nameof(CourseRepository),
-            nameof(GetByAuthorAsync),
-            () =>
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(authorId);
+
+        using var activity = ActivitySource.StartActivity(
+            CosmosActivityNames.QueryPage,
+            ActivityKind.Client);
+        var startedAt = Stopwatch.GetTimestamp();
+
+        try
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var container = _containerFactory.GetContainer(SupportedContainers.Courses);
+            activity.SetCosmosOperation(
+                OperationNames.QueryPage,
+                SupportedContainers.Courses,
+                container.Database.Id);
+            SetPageTags(activity, pageSize, continuationToken);
+
+            var query = new QueryDefinition(
+                "SELECT * FROM c WHERE c.authorId = @authorId ORDER BY c.updatedAt DESC")
+                .WithParameter("@authorId", authorId);
+            var requestOptions = new QueryRequestOptions
             {
-                var query = new QueryDefinition(
-                    "SELECT * FROM c WHERE c.authorId = @authorId ORDER BY c.updatedAt DESC")
-                    .WithParameter("@authorId", authorId);
+                PartitionKey = new PartitionKey(CoursePartitionKeyFormats.ForAuthor(authorId)),
+                MaxItemCount = pageSize
+            };
 
-                return base.QueryPageAsync(
-                    query,
-                    partitionKey: CoursePartitionKeyFormats.ForAuthor(authorId),
-                    continuationToken,
-                    pageSize,
-                    cancellationToken);
-            });
+            using var iterator = container.GetItemQueryIterator<Entities.Course>(
+                query,
+                !string.IsNullOrWhiteSpace(continuationToken) ? continuationToken : null,
+                requestOptions);
+            var response = await iterator.ReadNextAsync(cancellationToken).ConfigureAwait(false);
+            var items = response.Resource.ToList();
+            var nextToken = response.ContinuationToken;
+            var hasNextPage = !string.IsNullOrWhiteSpace(nextToken);
+            SetResultTags(activity, items.Count, hasNextPage);
 
-    public Task<PageResult<Entities.Course>> SearchAsync(
+            CosmosOperationObserver.RecordSuccess(
+                activity,
+                _logger,
+                OperationNames.QueryPage,
+                SupportedContainers.Courses,
+                startedAt,
+                response.RequestCharge);
+
+            return new PageResult<Entities.Course>(items, nextToken, hasNextPage);
+        }
+        catch (CosmosException ex)
+        {
+            CosmosOperationObserver.RecordFailure(activity, _logger, OperationNames.QueryPage, SupportedContainers.Courses, startedAt, ex);
+            throw ex.ToApplicationException();
+        }
+        catch (OperationCanceledException ex)
+        {
+            CosmosOperationObserver.RecordFailure(activity, _logger, OperationNames.QueryPage, SupportedContainers.Courses, startedAt, ex);
+            throw;
+        }
+        catch (Exception ex)
+        {
+            CosmosOperationObserver.RecordFailure(activity, _logger, OperationNames.QueryPage, SupportedContainers.Courses, startedAt, ex);
+            throw;
+        }
+    }
+
+    public async Task<PageResult<Entities.Course>> SearchAsync(
         CourseSearchCriteria criteria,
         int pageSize,
         string? continuationToken = null,
         CancellationToken cancellationToken = default)
-        => CourseRepositoryObservability.ExecuteAsync(
-            nameof(CourseRepository),
-            nameof(SearchAsync),
-            () =>
+    {
+        ArgumentNullException.ThrowIfNull(criteria);
+
+        using var activity = ActivitySource.StartActivity(
+            CosmosActivityNames.QueryPage,
+            ActivityKind.Client);
+        var startedAt = Stopwatch.GetTimestamp();
+
+        try
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var container = _containerFactory.GetContainer(SupportedContainers.Courses);
+            activity.SetCosmosOperation(
+                OperationNames.QueryPage,
+                SupportedContainers.Courses,
+                container.Database.Id);
+            SetPageTags(activity, pageSize, continuationToken);
+
+            var predicates = new List<string>();
+            var parameters = new List<(string Name, object Value)>();
+
+            if (!string.IsNullOrWhiteSpace(criteria.SearchTerm))
             {
-                var predicates = new List<string>();
-                var sql = "SELECT * FROM c";
-                var parameters = new List<(string Name, object Value)>();
+                predicates.Add("(CONTAINS(c.title, @searchTerm, true) OR CONTAINS(c.description, @searchTerm, true))");
+                parameters.Add(("@searchTerm", criteria.SearchTerm));
+            }
 
-                if (!string.IsNullOrWhiteSpace(criteria.SearchTerm))
-                {
-                    predicates.Add("(CONTAINS(c.title, @searchTerm, true) OR CONTAINS(c.description, @searchTerm, true))");
-                    parameters.Add(("@searchTerm", criteria.SearchTerm));
-                }
+            if (!string.IsNullOrWhiteSpace(criteria.AuthorId))
+            {
+                predicates.Add("c.authorId = @authorId");
+                parameters.Add(("@authorId", criteria.AuthorId));
+            }
 
-                if (!string.IsNullOrWhiteSpace(criteria.AuthorId))
-                {
-                    predicates.Add("c.authorId = @authorId");
-                    parameters.Add(("@authorId", criteria.AuthorId));
-                }
+            if (!criteria.IncludeDeleted)
+                predicates.Add("(NOT IS_DEFINED(c.deletedAt) OR IS_NULL(c.deletedAt))");
 
-                if (!criteria.IncludeDeleted)
-                    predicates.Add("(NOT IS_DEFINED(c.deletedAt) OR IS_NULL(c.deletedAt))");
+            if (!criteria.IncludeRetired)
+                predicates.Add("(NOT IS_DEFINED(c.retiredAt) OR IS_NULL(c.retiredAt))");
 
-                if (!criteria.IncludeRetired)
-                    predicates.Add("(NOT IS_DEFINED(c.retiredAt) OR IS_NULL(c.retiredAt))");
+            var sql = "SELECT * FROM c";
+            if (predicates.Count > 0)
+                sql += " WHERE " + string.Join(" AND ", predicates);
+            sql += " ORDER BY c.updatedAt DESC";
 
-                if (predicates.Count > 0)
-                    sql += " WHERE " + string.Join(" AND ", predicates);
+            var query = new QueryDefinition(sql);
+            foreach (var parameter in parameters)
+                query = query.WithParameter(parameter.Name, parameter.Value);
 
-                sql += " ORDER BY c.updatedAt DESC";
+            var requestOptions = new QueryRequestOptions { MaxItemCount = pageSize };
+            if (!string.IsNullOrWhiteSpace(criteria.AuthorId))
+            {
+                requestOptions.PartitionKey = new PartitionKey(
+                    CoursePartitionKeyFormats.ForAuthor(criteria.AuthorId));
+            }
 
-                var queryDefinition = new QueryDefinition(sql);
-                foreach (var parameter in parameters)
-                    queryDefinition = queryDefinition.WithParameter(parameter.Name, parameter.Value);
+            using var iterator = container.GetItemQueryIterator<Entities.Course>(
+                query,
+                !string.IsNullOrWhiteSpace(continuationToken) ? continuationToken : null,
+                requestOptions);
+            var response = await iterator.ReadNextAsync(cancellationToken).ConfigureAwait(false);
+            var items = response.Resource.ToList();
+            var nextToken = response.ContinuationToken;
+            var hasNextPage = !string.IsNullOrWhiteSpace(nextToken);
+            SetResultTags(activity, items.Count, hasNextPage);
 
-                return base.QueryPageAsync(
-                    queryDefinition,
-                    continuationToken: !string.IsNullOrWhiteSpace(continuationToken) ? continuationToken : null,
-                    pageSize: pageSize,
-                    cancellationToken: cancellationToken);
-            });
+            CosmosOperationObserver.RecordSuccess(
+                activity,
+                _logger,
+                OperationNames.QueryPage,
+                SupportedContainers.Courses,
+                startedAt,
+                response.RequestCharge);
 
-    public Task<bool> DeleteAsync(string courseId, string authorId, CancellationToken cancellationToken = default)
-        => CourseRepositoryObservability.ExecuteAsync(
-            nameof(CourseRepository),
-            nameof(DeleteAsync),
-            () => base.DeleteAsync(courseId, CoursePartitionKeyFormats.ForAuthor(authorId), cancellationToken));
+            return new PageResult<Entities.Course>(items, nextToken, hasNextPage);
+        }
+        catch (CosmosException ex)
+        {
+            CosmosOperationObserver.RecordFailure(activity, _logger, OperationNames.QueryPage, SupportedContainers.Courses, startedAt, ex);
+            throw ex.ToApplicationException();
+        }
+        catch (OperationCanceledException ex)
+        {
+            CosmosOperationObserver.RecordFailure(activity, _logger, OperationNames.QueryPage, SupportedContainers.Courses, startedAt, ex);
+            throw;
+        }
+        catch (Exception ex)
+        {
+            CosmosOperationObserver.RecordFailure(activity, _logger, OperationNames.QueryPage, SupportedContainers.Courses, startedAt, ex);
+            throw;
+        }
+    }
 
-    public new Task UpsertAsync(Entities.Course course, CancellationToken cancellationToken = default)
-        => CourseRepositoryObservability.ExecuteAsync(
-            nameof(CourseRepository),
-            nameof(UpsertAsync),
-            () => base.UpsertAsync(course, cancellationToken));
+    public async Task<bool> DeleteAsync(
+        string courseId,
+        string authorId,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(courseId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(authorId);
+
+        using var activity = ActivitySource.StartActivity(
+            CosmosActivityNames.DeleteItem,
+            ActivityKind.Client);
+        var startedAt = Stopwatch.GetTimestamp();
+
+        try
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var container = _containerFactory.GetContainer(SupportedContainers.Courses);
+            activity.SetCosmosOperation(
+                OperationNames.DeleteItem,
+                SupportedContainers.Courses,
+                container.Database.Id);
+
+            var response = await container.DeleteItemAsync<Entities.Course>(
+                courseId,
+                new PartitionKey(CoursePartitionKeyFormats.ForAuthor(authorId)),
+                cancellationToken: cancellationToken).ConfigureAwait(false);
+            CosmosOperationObserver.RecordSuccess(
+                activity,
+                _logger,
+                OperationNames.DeleteItem,
+                SupportedContainers.Courses,
+                startedAt,
+                response.RequestCharge);
+
+            return true;
+        }
+        catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            CosmosOperationObserver.RecordNotFound(
+                activity,
+                _logger,
+                OperationNames.DeleteItem,
+                SupportedContainers.Courses,
+                startedAt,
+                ex.RequestCharge,
+                courseId);
+            return false;
+        }
+        catch (CosmosException ex)
+        {
+            CosmosOperationObserver.RecordFailure(activity, _logger, OperationNames.DeleteItem, SupportedContainers.Courses, startedAt, ex);
+            throw ex.ToApplicationException();
+        }
+        catch (OperationCanceledException ex)
+        {
+            CosmosOperationObserver.RecordFailure(activity, _logger, OperationNames.DeleteItem, SupportedContainers.Courses, startedAt, ex);
+            throw;
+        }
+        catch (Exception ex)
+        {
+            CosmosOperationObserver.RecordFailure(activity, _logger, OperationNames.DeleteItem, SupportedContainers.Courses, startedAt, ex);
+            throw;
+        }
+    }
+
+    public async Task UpsertAsync(
+        Entities.Course course,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(course);
+
+        using var activity = ActivitySource.StartActivity(
+            CosmosActivityNames.UpsertItem,
+            ActivityKind.Client);
+        var startedAt = Stopwatch.GetTimestamp();
+
+        try
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var container = _containerFactory.GetContainer(SupportedContainers.Courses);
+            activity.SetCosmosOperation(
+                OperationNames.UpsertItem,
+                SupportedContainers.Courses,
+                container.Database.Id);
+
+            var response = await container.UpsertItemAsync(
+                course,
+                new PartitionKey(course.PartitionKey),
+                cancellationToken: cancellationToken).ConfigureAwait(false);
+            CosmosOperationObserver.RecordSuccess(
+                activity,
+                _logger,
+                OperationNames.UpsertItem,
+                SupportedContainers.Courses,
+                startedAt,
+                response.RequestCharge);
+        }
+        catch (CosmosException ex)
+        {
+            CosmosOperationObserver.RecordFailure(activity, _logger, OperationNames.UpsertItem, SupportedContainers.Courses, startedAt, ex);
+            throw ex.ToApplicationException();
+        }
+        catch (OperationCanceledException ex)
+        {
+            CosmosOperationObserver.RecordFailure(activity, _logger, OperationNames.UpsertItem, SupportedContainers.Courses, startedAt, ex);
+            throw;
+        }
+        catch (Exception ex)
+        {
+            CosmosOperationObserver.RecordFailure(activity, _logger, OperationNames.UpsertItem, SupportedContainers.Courses, startedAt, ex);
+            throw;
+        }
+    }
+
+    private static void SetPageTags(
+        Activity? activity,
+        int pageSize,
+        string? continuationToken)
+    {
+        activity?.SetTag(CosmosActivityTagConstants.PageSize, pageSize);
+        activity?.SetTag(
+            CosmosActivityTagConstants.HasContinuationToken,
+            !string.IsNullOrWhiteSpace(continuationToken));
+    }
+
+    private static void SetResultTags(Activity? activity, int resultCount, bool hasNextPage)
+    {
+        activity?.SetTag(CosmosActivityTagConstants.ResultCount, resultCount);
+        activity?.SetTag(CosmosActivityTagConstants.HasNextPage, hasNextPage);
+    }
 }

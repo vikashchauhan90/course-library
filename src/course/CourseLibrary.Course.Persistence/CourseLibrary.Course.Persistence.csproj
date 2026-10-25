@@ -15,6 +15,8 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\platform\CourseLibrary.Platform.Exceptions\CourseLibrary.Platform.Exceptions.csproj" />
+    <ProjectReference Include="..\..\platform\CourseLibrary.Platform.Results\CourseLibrary.Platform.Results.csproj" />
     <ProjectReference Include="..\CourseLibrary.Course.Contracts\CourseLibrary.Course.Contracts.csproj" />
     <ProjectReference Include="..\..\platform\CourseLibrary.Platform.Observability\CourseLibrary.Platform.Observability.csproj" />
   </ItemGroup>

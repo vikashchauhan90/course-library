@@ -7,7 +7,6 @@ using CourseLibrary.Course.Persistence.Observability;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
-using System.Drawing.Printing;
 using System.Net;
 
 namespace CourseLibrary.Course.Persistence.Repositories.Courses.Audits;
