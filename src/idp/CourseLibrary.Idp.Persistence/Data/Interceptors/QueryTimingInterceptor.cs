@@ -5,7 +5,7 @@ using System.Collections.Concurrent;
 using System.Data.Common;
 using System.Diagnostics;
 
-namespace CourseLibrary.Platform.Persistence.Sql.Interceptors;
+namespace CourseLibrary.Idp.Persistence.Data.Interceptors;
 
 public sealed class QueryTimingInterceptor(ILogger<QueryTimingInterceptor> logger) : DbCommandInterceptor
 {

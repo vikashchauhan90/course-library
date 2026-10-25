@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Logging;
 using System.Data.Common;
 
-namespace CourseLibrary.Platform.Persistence.Sql.Interceptors;
+namespace CourseLibrary.Idp.Persistence.Data.Interceptors;
 
 
 public sealed class TransactionLoggingInterceptor(ILogger<TransactionLoggingInterceptor> logger) : DbTransactionInterceptor

@@ -28,7 +28,6 @@
     <Project Path="src/platform/CourseLibrary.Platform.Messaging/CourseLibrary.Platform.Messaging.csproj" />
     <Project Path="src/platform/CourseLibrary.Platform.Observability/CourseLibrary.Platform.Observability.csproj" />
     <Project Path="src/platform/CourseLibrary.Platform.Persistence.Sql/CourseLibrary.Platform.Persistence.Sql.csproj" />
-    <Project Path="src/platform/CourseLibrary.Platform.Resilience.Distributed/CourseLibrary.Platform.Resilience.Distributed.csproj" />
     <Project Path="src/platform/CourseLibrary.Platform.Resilience/CourseLibrary.Platform.Resilience.csproj" />
     <Project Path="src/platform/CourseLibrary.Platform.Results/CourseLibrary.Platform.Results.csproj" Id="1935abf1-8afb-4ae3-80ed-60d25e941465" />
     <Project Path="src/platform/CourseLibrary.Platform.Serialization/CourseLibrary.Platform.Serialization.csproj" />

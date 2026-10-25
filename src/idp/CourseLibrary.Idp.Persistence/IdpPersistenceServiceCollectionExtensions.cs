@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace CourseLibrary.Idp.Persistence;
 
@@ -36,6 +37,17 @@ public static class IdpPersistenceServiceCollectionExtensions
             options.UseSnakeCaseNamingConvention();
             options.AddInterceptors(serviceProvider.GetServices<IInterceptor>());
         }, optionsLifetime: ServiceLifetime.Scoped);
+
+        services.TryAddEnumerable(
+           ServiceDescriptor.Scoped<IInterceptor, AuditEntityInterceptor>());
+        services.TryAddEnumerable(
+            ServiceDescriptor.Scoped<IInterceptor, ConnectionLoggingInterceptor>());
+        services.TryAddEnumerable(
+            ServiceDescriptor.Scoped<IInterceptor, QueryTimingInterceptor>());
+        services.TryAddEnumerable(
+            ServiceDescriptor.Scoped<IInterceptor, SecurityEntityInterceptor>());
+        services.TryAddEnumerable(
+            ServiceDescriptor.Scoped<IInterceptor, TransactionLoggingInterceptor>());
 
         return services;
     }

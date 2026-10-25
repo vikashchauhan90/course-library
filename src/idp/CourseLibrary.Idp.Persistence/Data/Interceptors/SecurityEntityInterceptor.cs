@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Logging;
 
-namespace CourseLibrary.Platform.Persistence.Sql.Interceptors;
+namespace CourseLibrary.Idp.Persistence.Data.Interceptors;
 
 public sealed class SecurityEntityInterceptor(ILogger<SecurityEntityInterceptor> logger) : SaveChangesInterceptor
 {
