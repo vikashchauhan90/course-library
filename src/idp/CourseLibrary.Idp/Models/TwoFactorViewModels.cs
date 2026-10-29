@@ -17,5 +17,6 @@ public sealed class EnableAuthenticatorViewModel
 {
     public string SharedKey { get; set; } = string.Empty;
     public string AuthenticatorUri { get; set; } = string.Empty;
+    public bool IsEnabled { get; set; }
     [Required, StringLength(7, MinimumLength = 6)] public string Code { get; set; } = string.Empty;
 }

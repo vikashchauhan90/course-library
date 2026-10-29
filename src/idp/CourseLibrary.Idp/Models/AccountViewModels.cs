@@ -43,6 +43,9 @@ public sealed class ProfileViewModel
     [Required, StringLength(100, MinimumLength = 2)] public string FullName { get; set; } = string.Empty;
     [Required, EmailAddress] public string Email { get; set; } = string.Empty;
     public string? UserName { get; set; }
+    public bool TwoFactorEnabled { get; set; }
+    public DateTimeOffset? LastLoginAt { get; set; }
+    public DateTimeOffset? PasswordChangedAt { get; set; }
 }
 
 public sealed class ExternalLoginItem

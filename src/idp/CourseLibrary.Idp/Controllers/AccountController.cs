@@ -32,6 +32,7 @@ public sealed class AccountController(SignInManager<ApplicationUser> signInManag
         if (result.RequiresTwoFactor) return RedirectToAction(nameof(LoginWithAuthenticator), new { model.ReturnUrl, model.RememberMe });
         if (!result.Succeeded) { ModelState.AddModelError(string.Empty, "Administrator credentials are invalid."); return View("Login", model); }
         if (!user.TwoFactorEnabled) { await signInManager.SignOutAsync(); TempData["Error"] = "Administrators must enable two-factor authentication."; return RedirectToAction(nameof(EnableAuthenticator)); }
+        await RecordSuccessfulLoginAsync(user);
         return LocalRedirectOrHome(model.ReturnUrl);
     }
 
@@ -47,7 +48,8 @@ public sealed class AccountController(SignInManager<ApplicationUser> signInManag
             ModelState.AddModelError(nameof(model.Email), "This email is already registered.");
             return View(model);
         }
-        var user = new ApplicationUser { UserName = model.Email, Email = model.Email, FullName = model.FullName, CreatedAt = DateTimeOffset.UtcNow, LockoutEnabled = true };
+        var now = DateTimeOffset.UtcNow;
+        var user = new ApplicationUser { UserName = model.Email, Email = model.Email, FullName = model.FullName, CreatedAt = now, PasswordChangedAt = now, LockoutEnabled = true };
         var result = await userManager.CreateAsync(user, model.Password);
         if (!result.Succeeded) { AddErrors(result); return View(model); }
         await SendConfirmationEmailAsync(user, model.ReturnUrl);
@@ -108,6 +110,7 @@ public sealed class AccountController(SignInManager<ApplicationUser> signInManag
         if (user is null) return View("ResetPasswordConfirmation");
         var result = await userManager.ResetPasswordAsync(user, model.Token, model.Password);
         if (!result.Succeeded) { AddErrors(result); return View(model); }
+        await RecordPasswordChangedAtAsync(user);
         await userManager.UpdateSecurityStampAsync(user);
         return View("ResetPasswordConfirmation");
     }
@@ -117,7 +120,15 @@ public sealed class AccountController(SignInManager<ApplicationUser> signInManag
     public async Task<IActionResult> Profile()
     {
         var user = await CurrentUserAsync();
-        return View(new ProfileViewModel { FullName = user.FullName, Email = user.Email!, UserName = user.UserName });
+        return View(new ProfileViewModel
+        {
+            FullName = user.FullName,
+            Email = user.Email!,
+            UserName = user.UserName,
+            TwoFactorEnabled = user.TwoFactorEnabled,
+            LastLoginAt = user.LastLoginAt,
+            PasswordChangedAt = user.PasswordChangedAt
+        });
     }
 
     [HttpPost("account/profile")]
@@ -125,8 +136,11 @@ public sealed class AccountController(SignInManager<ApplicationUser> signInManag
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Profile(ProfileViewModel model)
     {
-        if (!ModelState.IsValid) return View(model);
         var user = await CurrentUserAsync();
+        model.TwoFactorEnabled = user.TwoFactorEnabled;
+        model.LastLoginAt = user.LastLoginAt;
+        model.PasswordChangedAt = user.PasswordChangedAt;
+        if (!ModelState.IsValid) return View(model);
         user.FullName = model.FullName;
         var result = await userManager.UpdateAsync(user);
         if (!result.Succeeded) { AddErrors(result); return View(model); }
@@ -145,9 +159,11 @@ public sealed class AccountController(SignInManager<ApplicationUser> signInManag
     public async Task<IActionResult> ChangePassword(ChangePasswordViewModel model)
     {
         if (!ModelState.IsValid) return View(model);
-        var result = await userManager.ChangePasswordAsync(await CurrentUserAsync(), model.CurrentPassword, model.NewPassword);
+        var user = await CurrentUserAsync();
+        var result = await userManager.ChangePasswordAsync(user, model.CurrentPassword, model.NewPassword);
         if (!result.Succeeded) { AddErrors(result); return View(model); }
-        await signInManager.RefreshSignInAsync(await CurrentUserAsync());
+        await RecordPasswordChangedAtAsync(user);
+        await signInManager.RefreshSignInAsync(user);
         TempData["Success"] = "Password changed.";
         return RedirectToAction(nameof(Profile));
     }
@@ -244,7 +260,13 @@ public sealed class AccountController(SignInManager<ApplicationUser> signInManag
         if (!ModelState.IsValid) return View(model);
 
         var result = await signInManager.PasswordSignInAsync(model.UserName, model.Password, model.RememberMe, lockoutOnFailure: true);
-        if (result.Succeeded) return LocalRedirectOrHome(model.ReturnUrl);
+        if (result.Succeeded)
+        {
+            var user = await userManager.FindByNameAsync(model.UserName)
+                ?? throw new InvalidOperationException("The signed-in user was not found.");
+            await RecordSuccessfulLoginAsync(user);
+            return LocalRedirectOrHome(model.ReturnUrl);
+        }
         if (result.RequiresTwoFactor) return RedirectToAction(nameof(LoginWithAuthenticator), new { model.ReturnUrl, model.RememberMe });
         ModelState.AddModelError(string.Empty, result.IsLockedOut
             ? "This account is temporarily locked."
@@ -270,7 +292,13 @@ public sealed class AccountController(SignInManager<ApplicationUser> signInManag
         var info = await signInManager.GetExternalLoginInfoAsync();
         if (info is null) { TempData["Error"] = "Could not read the external sign-in result."; return RedirectToAction(nameof(Login), new { returnUrl }); }
         var result = await signInManager.ExternalLoginSignInAsync(info.LoginProvider, info.ProviderKey, isPersistent: false, bypassTwoFactor: false);
-        if (result.Succeeded) return LocalRedirectOrHome(returnUrl);
+        if (result.Succeeded)
+        {
+            var signedInUser = await userManager.FindByLoginAsync(info.LoginProvider, info.ProviderKey)
+                ?? throw new InvalidOperationException("The externally signed-in user was not found.");
+            await RecordSuccessfulLoginAsync(signedInUser);
+            return LocalRedirectOrHome(returnUrl);
+        }
         if (result.RequiresTwoFactor) return RedirectToAction(nameof(LoginWithAuthenticator), new { returnUrl });
         var email = info.Principal.FindFirstValue(ClaimTypes.Email) ?? info.Principal.FindFirstValue("email");
         if (string.IsNullOrWhiteSpace(email)) { TempData["Error"] = "This provider did not provide a verified email address."; return RedirectToAction(nameof(Login), new { returnUrl }); }
@@ -281,6 +309,7 @@ public sealed class AccountController(SignInManager<ApplicationUser> signInManag
         var linked = await userManager.AddLoginAsync(user, info);
         if (!linked.Succeeded) { await userManager.DeleteAsync(user); TempData["Error"] = "Could not link the external account."; return RedirectToAction(nameof(Login), new { returnUrl }); }
         await signInManager.SignInAsync(user, isPersistent: false);
+        await RecordSuccessfulLoginAsync(user);
         return LocalRedirectOrHome(returnUrl);
     }
 
@@ -309,8 +338,14 @@ public sealed class AccountController(SignInManager<ApplicationUser> signInManag
     public async Task<IActionResult> LoginWithAuthenticator(VerifyAuthenticatorViewModel model, string? returnUrl = null, bool rememberMe = false)
     {
         if (!ModelState.IsValid) { ViewData["ReturnUrl"] = returnUrl; ViewData["RememberMe"] = rememberMe; return View(model); }
+        var user = await signInManager.GetTwoFactorAuthenticationUserAsync()
+            ?? throw new InvalidOperationException("The two-factor sign-in user was not found.");
         var result = await signInManager.TwoFactorAuthenticatorSignInAsync(model.Code.Replace(" ", string.Empty).Replace("-", string.Empty), rememberMe, model.RememberMachine);
-        if (result.Succeeded) return LocalRedirectOrHome(returnUrl);
+        if (result.Succeeded)
+        {
+            await RecordSuccessfulLoginAsync(user);
+            return LocalRedirectOrHome(returnUrl);
+        }
         ModelState.AddModelError(string.Empty, result.IsLockedOut ? "This account is temporarily locked." : "The authentication code is invalid.");
         ViewData["ReturnUrl"] = returnUrl; ViewData["RememberMe"] = rememberMe;
         return View(model);
@@ -331,8 +366,14 @@ public sealed class AccountController(SignInManager<ApplicationUser> signInManag
     public async Task<IActionResult> LoginWithRecoveryCode(RecoveryCodeViewModel model, string? returnUrl = null)
     {
         if (!ModelState.IsValid) { ViewData["ReturnUrl"] = returnUrl; return View(model); }
+        var user = await signInManager.GetTwoFactorAuthenticationUserAsync()
+            ?? throw new InvalidOperationException("The two-factor sign-in user was not found.");
         var result = await signInManager.TwoFactorRecoveryCodeSignInAsync(model.Code.Replace(" ", string.Empty));
-        if (result.Succeeded) return LocalRedirectOrHome(returnUrl);
+        if (result.Succeeded)
+        {
+            await RecordSuccessfulLoginAsync(user);
+            return LocalRedirectOrHome(returnUrl);
+        }
         ModelState.AddModelError(string.Empty, "The recovery code is invalid.");
         ViewData["ReturnUrl"] = returnUrl;
         return View(model);
@@ -343,6 +384,9 @@ public sealed class AccountController(SignInManager<ApplicationUser> signInManag
     public async Task<IActionResult> EnableAuthenticator()
     {
         var user = await userManager.GetUserAsync(User) ?? throw new InvalidOperationException("User not found.");
+        if (user.TwoFactorEnabled)
+            return View(new EnableAuthenticatorViewModel { IsEnabled = true });
+
         var key = await userManager.GetAuthenticatorKeyAsync(user);
         if (string.IsNullOrEmpty(key)) { await userManager.ResetAuthenticatorKeyAsync(user); key = await userManager.GetAuthenticatorKeyAsync(user); }
         return View(new EnableAuthenticatorViewModel { SharedKey = FormatKey(key!), AuthenticatorUri = CreateUri(user.Email ?? user.UserName ?? user.Id, key!) });
@@ -370,17 +414,46 @@ public sealed class AccountController(SignInManager<ApplicationUser> signInManag
     public async Task<IActionResult> EnableAuthenticator(EnableAuthenticatorViewModel model)
     {
         var user = await userManager.GetUserAsync(User) ?? throw new InvalidOperationException("User not found.");
+        if (user.TwoFactorEnabled)
+            return RedirectToAction(nameof(EnableAuthenticator));
+
         if (!ModelState.IsValid) { var key = await userManager.GetAuthenticatorKeyAsync(user) ?? string.Empty; model.SharedKey = FormatKey(key); model.AuthenticatorUri = CreateUri(user.Email ?? user.UserName ?? user.Id, key); return View(model); }
         var valid = await userManager.VerifyTwoFactorTokenAsync(user, userManager.Options.Tokens.AuthenticatorTokenProvider, model.Code.Replace(" ", string.Empty).Replace("-", string.Empty));
         if (!valid) { ModelState.AddModelError(nameof(model.Code), "The authentication code is invalid."); var key = await userManager.GetAuthenticatorKeyAsync(user) ?? string.Empty; model.SharedKey = FormatKey(key); model.AuthenticatorUri = CreateUri(user.Email ?? user.UserName ?? user.Id, key); return View(model); }
-        await userManager.SetTwoFactorEnabledAsync(user, true);
+        var result = await userManager.SetTwoFactorEnabledAsync(user, true);
+        if (!result.Succeeded)
+        {
+            AddErrors(result);
+            var key = await userManager.GetAuthenticatorKeyAsync(user) ?? string.Empty;
+            model.SharedKey = FormatKey(key);
+            model.AuthenticatorUri = CreateUri(user.Email ?? user.UserName ?? user.Id, key);
+            return View(model);
+        }
+
         var recoveryCodes = await userManager.GenerateNewTwoFactorRecoveryCodesAsync(user, 10);
         TempData["RecoveryCodes"] = string.Join(" ", recoveryCodes ?? []);
+        TempData["Success"] = "Two-factor authentication is enabled.";
         return RedirectToAction(nameof(EnableAuthenticator));
     }
 
     private async Task<ApplicationUser> CurrentUserAsync() => await userManager.GetUserAsync(User)
         ?? throw new InvalidOperationException("User not found.");
+
+    private async Task RecordSuccessfulLoginAsync(ApplicationUser user)
+    {
+        user.LastLoginAt = DateTimeOffset.UtcNow;
+        var result = await userManager.UpdateAsync(user);
+        if (!result.Succeeded)
+            throw new InvalidOperationException($"Could not record the successful login: {string.Join("; ", result.Errors.Select(error => error.Description))}");
+    }
+
+    private async Task RecordPasswordChangedAtAsync(ApplicationUser user)
+    {
+        user.PasswordChangedAt = DateTimeOffset.UtcNow;
+        var result = await userManager.UpdateAsync(user);
+        if (!result.Succeeded)
+            throw new InvalidOperationException($"Could not record the password change date: {string.Join("; ", result.Errors.Select(error => error.Description))}");
+    }
 
     private async Task<List<ExternalLoginItem>> GetExternalLoginsAsync()
     {

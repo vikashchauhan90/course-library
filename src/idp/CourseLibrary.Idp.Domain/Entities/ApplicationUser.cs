@@ -13,4 +13,6 @@ public class ApplicationUser
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset? UpdatedAt { get; set; }
     public DateTimeOffset? DeletedAt { get; set; }
+    public DateTimeOffset? LastLoginAt { get; set; }
+    public DateTimeOffset? PasswordChangedAt { get; set; }
 }

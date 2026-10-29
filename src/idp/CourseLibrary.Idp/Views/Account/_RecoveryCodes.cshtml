@@ -1,0 +1,40 @@
+@model string
+<div class="recovery-panel mt-4" data-recovery-codes>
+	<h2>Save your recovery codes</h2>
+	<p>These codes can be used if you lose access to your authenticator. Store them somewhere private.</p>
+	<code data-recovery-code-values>@Model</code>
+	<div class="d-flex flex-wrap gap-2 mt-3">
+		<button class="btn btn-outline-primary btn-sm" type="button" data-copy-recovery-codes>Copy codes</button>
+		<button class="btn btn-outline-primary btn-sm" type="button" data-download-recovery-codes>Download codes</button>
+	</div>
+	<p class="small mt-2 mb-0" data-recovery-code-status aria-live="polite"></p>
+</div>
+<script>
+	(() => {
+		const panel = document.currentScript.previousElementSibling;
+		const codeElement = panel?.querySelector("[data-recovery-code-values]");
+		const status = panel?.querySelector("[data-recovery-code-status]");
+		const codes = codeElement?.textContent?.trim();
+		if (!panel || !status || !codes) return;
+
+		panel.querySelector("[data-copy-recovery-codes]")?.addEventListener("click", async () => {
+			try {
+				await navigator.clipboard.writeText(codes);
+				status.textContent = "Recovery codes copied to the clipboard.";
+			} catch {
+				status.textContent = "Could not access the clipboard. Select and copy the codes above.";
+			}
+		});
+
+		panel.querySelector("[data-download-recovery-codes]")?.addEventListener("click", () => {
+			const file = new Blob([codes + "\n"], { type: "text/plain;charset=utf-8" });
+			const url = URL.createObjectURL(file);
+			const link = document.createElement("a");
+			link.href = url;
+			link.download = "course-library-recovery-codes.txt";
+			link.click();
+			URL.revokeObjectURL(url);
+			status.textContent = "Recovery codes downloaded.";
+		});
+	})();
+</script>

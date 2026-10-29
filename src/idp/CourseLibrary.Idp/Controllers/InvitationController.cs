@@ -27,6 +27,7 @@ public sealed class InvitationController(UserManager<ApplicationUser> userManage
         if (user is null || !string.Equals(user.Email, model.Email, StringComparison.OrdinalIgnoreCase))
         { ModelState.AddModelError(string.Empty, "The invitation is invalid or has expired."); return View(model); }
         var token = await userManager.GeneratePasswordResetTokenAsync(user);
+        user.PasswordChangedAt = DateTimeOffset.UtcNow;
         var result = await userManager.ResetPasswordAsync(user, token, model.Password);
         if (!result.Succeeded) { ModelState.AddModelError(string.Empty, "The invitation could not be accepted."); return View(model); }
         user.EmailConfirmed = true;

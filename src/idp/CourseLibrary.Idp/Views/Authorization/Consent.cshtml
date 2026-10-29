@@ -1,15 +1,45 @@
 @model ConsentViewModel
-<h1>Authorize @Model.ClientName</h1>
-<p>This application is requesting:</p>
-<ul>@foreach (var scope in Model.Scopes) { <li>@scope</li> }</ul>
-<form method="post">
-	@foreach (var parameter in Context.Request.Query)
-	{
-		foreach (var value in parameter.Value)
-		{
-			<input type="hidden" name="@parameter.Key" value="@value" />
-		}
-	}
-	<button name="decision" value="approve" type="submit">Approve</button>
-	<button name="decision" value="deny" type="submit">Deny</button>
-</form>
+@{
+	ViewData["Title"] = "Review access request";
+}
+<section class="consent-shell">
+	<div class="consent-card">
+		<div class="consent-heading">
+			<div class="eyebrow">Permission request</div>
+			<h1>Authorize @Model.ClientName</h1>
+			<p>Review what this application will be able to access before you continue.</p>
+		</div>
+
+		<div class="consent-details">
+			<h2>Requested access</h2>
+			@if (Model.Scopes.Count > 0)
+			{
+				<ul class="consent-scopes">
+					@foreach (var scope in Model.Scopes)
+					{
+						<li><span aria-hidden="true" class="consent-scope-icon">✓</span><span>@scope</span></li>
+					}
+				</ul>
+			}
+			else
+			{
+				<p class="text-secondary mb-0">No additional permissions were requested.</p>
+			}
+		</div>
+
+		<form method="post" class="consent-form">
+			@foreach (var parameter in Context.Request.Query)
+			{
+				foreach (var value in parameter.Value)
+				{
+					<input type="hidden" name="@parameter.Key" value="@value" />
+				}
+			}
+			<div class="consent-actions">
+				<button class="btn btn-primary consent-approve" name="decision" value="approve" type="submit">Approve access</button>
+				<button class="btn btn-outline-danger consent-deny" name="decision" value="deny" type="submit">Deny</button>
+			</div>
+			<p class="consent-note">You can deny this request if you don’t recognize or trust this application.</p>
+		</form>
+	</div>
+</section>

@@ -183,7 +183,8 @@ public sealed class AdminController(
     public async Task<IActionResult> CreateUser(CreateUserViewModel model)
     {
         if (!ModelState.IsValid) return View(model);
-        var user = new ApplicationUser { UserName = model.UserName, Email = model.Email, FullName = model.FullName, EmailConfirmed = true, CreatedAt = DateTimeOffset.UtcNow };
+        var now = DateTimeOffset.UtcNow;
+        var user = new ApplicationUser { UserName = model.UserName, Email = model.Email, FullName = model.FullName, EmailConfirmed = true, CreatedAt = now, PasswordChangedAt = now };
         var result = await userManager.CreateAsync(user, model.Password);
         if (!result.Succeeded) { AddErrors(result); return View(model); }
         if (model.IsAdministrator)
@@ -318,7 +319,14 @@ public sealed class AdminController(
         var token = await userManager.GeneratePasswordResetTokenAsync(user);
         var result = await userManager.ResetPasswordAsync(user, token, password);
         if (!result.Succeeded) AddErrors(result);
-        else logger.LogInformation("Administrator {AdministratorId} reset password for user {UserId}.", userManager.GetUserId(User), id);
+        else
+        {
+            user.PasswordChangedAt = DateTimeOffset.UtcNow;
+            var updateResult = await userManager.UpdateAsync(user);
+            if (!updateResult.Succeeded)
+                throw new InvalidOperationException($"Could not record the password change date: {string.Join("; ", updateResult.Errors.Select(error => error.Description))}");
+            logger.LogInformation("Administrator {AdministratorId} reset password for user {UserId}.", userManager.GetUserId(User), id);
+        }
         return RedirectToAction(nameof(Index));
     }
 

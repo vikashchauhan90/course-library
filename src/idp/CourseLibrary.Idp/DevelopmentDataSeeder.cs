@@ -66,6 +66,7 @@ public static class DevelopmentDataSeeder
                 EmailConfirmed = true,
                 FullName = Required(configuration, "Database:DevelopmentAdminFullName"),
                 CreatedAt = DateTimeOffset.UtcNow,
+                PasswordChangedAt = DateTimeOffset.UtcNow,
                 LockoutEnabled = true
             };
             var userResult = await userManager.CreateAsync(user, password);
