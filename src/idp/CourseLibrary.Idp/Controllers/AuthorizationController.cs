@@ -21,7 +21,9 @@ public sealed class AuthorizationController(
     SignInManager<ApplicationUser> signInManager,
     ApplicationDbContext dbContext,
     IOpenIddictScopeManager scopeManager,
-    IOpenIddictApplicationManager applicationManager) : Controller
+    IOpenIddictApplicationManager applicationManager,
+    IConfiguration configuration,
+    ILogger<AuthorizationController> logger) : Controller
 {
     [HttpGet("connect/authorize")]
     [HttpPost("connect/authorize")]
@@ -55,6 +57,22 @@ public sealed class AuthorizationController(
     {
         var request = Microsoft.AspNetCore.OpenIddictServerAspNetCoreHelpers.GetOpenIddictServerRequest(HttpContext)
             ?? throw new InvalidOperationException("The OpenID Connect request cannot be retrieved.");
+
+        if (!string.IsNullOrWhiteSpace(request.ClientId))
+        {
+            var application = await dbContext.OpenIddictApplications
+                .AsNoTracking()
+                .SingleOrDefaultAsync(item => item.ClientId == request.ClientId);
+            if (application is not null &&
+                ClientSecretLifecycle.GetEffectiveExpiry(application, configuration) is { } secretExpiry &&
+                secretExpiry <= DateTimeOffset.UtcNow)
+            {
+                logger.LogWarning(
+                    "Token request rejected because the client secret has expired for OAuth client {ClientId}.",
+                    request.ClientId);
+                return Forbid(OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
+            }
+        }
 
         if (request.IsClientCredentialsGrantType())
         {

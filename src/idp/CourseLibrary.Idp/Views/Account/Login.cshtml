@@ -1,7 +1,7 @@
 @model LoginViewModel
 <div class="auth-shell">
 <div class="card auth-card"><div class="card-body">
-    <div class="text-center mb-4"><div class="text-primary fw-semibold small text-uppercase">Course Library</div><h1 class="h2 mt-2">Welcome back</h1><p class="text-secondary mb-0">Sign in to continue to your learning space.</p></div>
+    <div class="text-center mb-4"><div class="text-primary fw-semibold small text-uppercase">Course Library</div><h1 class="h2 mt-2">Welcome back</h1><p class="text-secondary mb-0">Sign in to continue to your learning space. If two-factor authentication is enabled, you’ll verify with your authenticator after entering your password.</p></div>
     <form asp-action="Login" method="post">
         <input asp-for="ReturnUrl" type="hidden" />
         <div asp-validation-summary="ModelOnly" class="mb-3"></div>

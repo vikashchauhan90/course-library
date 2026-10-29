@@ -97,14 +97,16 @@ public sealed class AdminController(
                 .OrderBy(scope => scope)
                 .ToList();
 
+            var secretExpiry = ClientSecretLifecycle.GetEffectiveExpiry(application, configuration);
             items.Add(new AdminClientItem(
                 clientId,
                 application.DisplayName,
                 application.CreatedAt,
-                application.SecretCreatedAt,
+                application.ClientSecret is null ? null : application.SecretCreatedAt ?? application.CreatedAt,
                 application.SecretRotatedAt,
-                application.SecretExpiresAt,
-                application.SecretExpiresAt != null && application.SecretExpiresAt <= now,
+                secretExpiry,
+                secretExpiry is not null && secretExpiry <= now,
+                application.ClientSecret is not null,
                 string.Join(", ", scopes)));
         }
 
@@ -126,13 +128,7 @@ public sealed class AdminController(
     }
 
     private DateTimeOffset GetSecretExpiry(DateTimeOffset createdAt)
-    {
-        var lifetimeDays = Math.Clamp(
-            configuration.GetValue("Security:ClientSecretLifetimeDays", 365),
-            1,
-            3650);
-        return createdAt.AddDays(lifetimeDays);
-    }
+        => ClientSecretLifecycle.GetExpiry(createdAt, configuration);
 
     [HttpGet("users/create")]
     public IActionResult CreateUser() => View(new CreateUserViewModel());
@@ -413,13 +409,17 @@ public sealed class AdminController(
             descriptor.Permissions.Add(Permissions.ResponseTypes.Code);
             descriptor.Requirements.Add(Requirements.Features.ProofKeyForCodeExchange);
         }
-        await applicationManager.CreateAsync(descriptor);
         var createdAt = DateTimeOffset.UtcNow;
-        var createdApplication = await dbContext.OpenIddictApplications
-            .SingleAsync(application => application.ClientId == model.ClientId);
-        createdApplication.SecretCreatedAt = createdAt;
-        createdApplication.SecretExpiresAt = GetSecretExpiry(createdAt);
-        await dbContext.SaveChangesAsync();
+        await using (var transaction = await dbContext.Database.BeginTransactionAsync())
+        {
+            await applicationManager.CreateAsync(descriptor);
+            var createdApplication = await dbContext.OpenIddictApplications
+                .SingleAsync(application => application.ClientId == model.ClientId);
+            createdApplication.SecretCreatedAt = createdAt;
+            createdApplication.SecretExpiresAt = GetSecretExpiry(createdAt);
+            await dbContext.SaveChangesAsync();
+            await transaction.CommitAsync();
+        }
         logger.LogInformation("Administrator {AdministratorId} created OAuth client {ClientId}.", userManager.GetUserId(User), model.ClientId);
         TempData["ClientSecret"] = secret;
         TempData["Success"] = "Client created. Copy its secret now; it will not be displayed again.";
@@ -465,15 +465,23 @@ public sealed class AdminController(
         if (client is null) return NotFound();
         var descriptor = new OpenIddictApplicationDescriptor();
         await applicationManager.PopulateAsync(descriptor, client);
+        if (string.IsNullOrEmpty(descriptor.ClientSecret))
+            return BadRequest("This client has no secret to rotate.");
+
         var secret = CreateSecret();
         descriptor.ClientSecret = secret;
-        await applicationManager.UpdateAsync(client, descriptor);
         var rotatedAt = DateTimeOffset.UtcNow;
-        var application = await dbContext.OpenIddictApplications
-            .SingleAsync(item => item.ClientId == clientId);
-        application.SecretRotatedAt = rotatedAt;
-        application.SecretExpiresAt = GetSecretExpiry(rotatedAt);
-        await dbContext.SaveChangesAsync();
+        await using (var transaction = await dbContext.Database.BeginTransactionAsync())
+        {
+            await applicationManager.UpdateAsync(client, descriptor);
+            var application = await dbContext.OpenIddictApplications
+                .SingleAsync(item => item.ClientId == clientId);
+            application.SecretCreatedAt ??= application.CreatedAt;
+            application.SecretRotatedAt = rotatedAt;
+            application.SecretExpiresAt = GetSecretExpiry(rotatedAt);
+            await dbContext.SaveChangesAsync();
+            await transaction.CommitAsync();
+        }
         logger.LogInformation("Administrator {AdministratorId} rotated the secret for OAuth client {ClientId}.", userManager.GetUserId(User), clientId);
         TempData["ClientSecret"] = secret;
         TempData["Success"] = "Client secret rotated. Copy the new value now; it will not be displayed again.";

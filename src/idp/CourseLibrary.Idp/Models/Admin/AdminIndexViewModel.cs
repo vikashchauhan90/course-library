@@ -20,5 +20,6 @@ public sealed record AdminClientItem(
     DateTimeOffset? SecretRotatedAt,
     DateTimeOffset? SecretExpiresAt,
     bool IsSecretExpired,
+    bool HasClientSecret,
     string AllowedScopes);
 public sealed record AdminScopeItem(string Name, string? DisplayName, string Resources);

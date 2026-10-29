@@ -337,7 +337,9 @@ public sealed class AccountController(SignInManager<ApplicationUser> signInManag
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> LoginWithAuthenticator(VerifyAuthenticatorViewModel model, string? returnUrl = null, bool rememberMe = false)
     {
-        if (!ModelState.IsValid) { ViewData["ReturnUrl"] = returnUrl; ViewData["RememberMe"] = rememberMe; return View(model); }
+        ViewData["ReturnUrl"] = returnUrl;
+        ViewData["RememberMe"] = rememberMe;
+        if (!ModelState.IsValid) return View(model);
         var user = await signInManager.GetTwoFactorAuthenticationUserAsync()
             ?? throw new InvalidOperationException("The two-factor sign-in user was not found.");
         var result = await signInManager.TwoFactorAuthenticatorSignInAsync(model.Code.Replace(" ", string.Empty).Replace("-", string.Empty), rememberMe, model.RememberMachine);
@@ -347,7 +349,6 @@ public sealed class AccountController(SignInManager<ApplicationUser> signInManag
             return LocalRedirectOrHome(returnUrl);
         }
         ModelState.AddModelError(string.Empty, result.IsLockedOut ? "This account is temporarily locked." : "The authentication code is invalid.");
-        ViewData["ReturnUrl"] = returnUrl; ViewData["RememberMe"] = rememberMe;
         return View(model);
     }
 
