@@ -87,3 +87,25 @@ bearer headers themselves. The module provides:
 The App registers this module with `AddCourseLibraryClients`. Its OIDC token
 provider is kept in the App composition root, while HTTP concerns remain in
 the shared module.
+
+# Execution example:
+<img width="1905" height="762" alt="image" src="https://github.com/user-attachments/assets/dd71ad0e-6d9e-4b1b-ba48-f593e45bf588" />
+<img width="1910" height="934" alt="image" src="https://github.com/user-attachments/assets/1890b263-2604-496f-8799-670c3e14b623" />
+<img width="1831" height="840" alt="image" src="https://github.com/user-attachments/assets/c6f24d02-48f9-4498-b695-c0a3d8189aee" />
+<img width="1911" height="802" alt="image" src="https://github.com/user-attachments/assets/da7994b8-0d4a-435a-b859-626663bad131" />
+<img width="1910" height="946" alt="image" src="https://github.com/user-attachments/assets/493b762c-b019-4399-a344-ead3cee384b4" />
+<img width="1905" height="937" alt="image" src="https://github.com/user-attachments/assets/b4fb1334-ea44-4567-aea6-1d8ce7f0dd8c" />
+<img width="1911" height="934" alt="image" src="https://github.com/user-attachments/assets/76e2905a-df09-44d4-b793-0d52d8bbe752" />
+<img width="1910" height="933" alt="image" src="https://github.com/user-attachments/assets/ad823af8-c6da-4ce2-ab89-e81994bca81e" />
+<img width="1913" height="958" alt="image" src="https://github.com/user-attachments/assets/64b67a86-f76d-48fd-94d4-ef56daec55b8" />
+<img width="1910" height="934" alt="image" src="https://github.com/user-attachments/assets/62e832fa-4995-4b1a-a410-32df71061e7c" />
+<img width="1910" height="946" alt="image" src="https://github.com/user-attachments/assets/01671376-b47f-410e-a4df-5b4e315acba6" />
+
+
+
+
+
+
+
+
+
