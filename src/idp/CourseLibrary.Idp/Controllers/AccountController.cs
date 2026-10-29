@@ -7,10 +7,12 @@ using Microsoft.AspNetCore.Mvc;
 using QRCoder;
 using Microsoft.AspNetCore.Authentication;
 using System.Security.Claims;
+using CourseLibrary.Idp.Persistence.Data;
+using Microsoft.EntityFrameworkCore;
 
 namespace CourseLibrary.Idp.Controllers;
 
-public sealed class AccountController(SignInManager<ApplicationUser> signInManager, UserManager<ApplicationUser> userManager, IAuthenticationSchemeProvider schemes, IEmailSender emailSender, ILogger<AccountController> logger) : Controller
+public sealed class AccountController(SignInManager<ApplicationUser> signInManager, UserManager<ApplicationUser> userManager, IAuthenticationSchemeProvider schemes, IEmailSender emailSender, ILogger<AccountController> logger, ApplicationDbContext dbContext) : Controller
 {
     [HttpGet("account/register")]
     [AllowAnonymous]
@@ -43,7 +45,7 @@ public sealed class AccountController(SignInManager<ApplicationUser> signInManag
     {
         if (!ModelState.IsValid) return View(model);
 
-        if (await userManager.FindByEmailAsync(model.Email) is not null)
+        if (await IsEmailInUseAsync(model.Email))
         {
             ModelState.AddModelError(nameof(model.Email), "This email is already registered.");
             return View(model);
@@ -53,7 +55,7 @@ public sealed class AccountController(SignInManager<ApplicationUser> signInManag
         var result = await userManager.CreateAsync(user, model.Password);
         if (!result.Succeeded) { AddErrors(result); return View(model); }
         await SendConfirmationEmailAsync(user, model.ReturnUrl);
-        return View("RegistrationConfirmation");
+        return View("RegistrationConfirmation", new EmailViewModel { Email = model.Email, ReturnUrl = model.ReturnUrl });
     }
 
     [HttpGet("account/confirm-email")]
@@ -73,7 +75,7 @@ public sealed class AccountController(SignInManager<ApplicationUser> signInManag
     {
         if (ModelState.IsValid && await userManager.FindByEmailAsync(model.Email) is { } user && !await userManager.IsEmailConfirmedAsync(user))
             await SendConfirmationEmailAsync(user, model.ReturnUrl);
-        return View("RegistrationConfirmation");
+        return View("RegistrationConfirmation", model);
     }
 
     [HttpGet("account/forgot-password")]
@@ -176,6 +178,14 @@ public sealed class AccountController(SignInManager<ApplicationUser> signInManag
         if (!ModelState.IsValid) return RedirectToAction(nameof(Profile));
         var user = await CurrentUserAsync();
         if (!await userManager.CheckPasswordAsync(user, model.Password)) { TempData["Error"] = "The password is invalid."; return RedirectToAction(nameof(Profile)); }
+        if (await dbContext.Users.IgnoreQueryFilters().AnyAsync(existingUser =>
+                existingUser.Id != user.Id &&
+                existingUser.NormalizedEmail == userManager.NormalizeEmail(model.NewEmail)))
+        {
+            TempData["Error"] = "That email address is already associated with an account.";
+            return RedirectToAction(nameof(Profile));
+        }
+
         var token = await userManager.GenerateChangeEmailTokenAsync(user, model.NewEmail);
         var link = Url.Action(nameof(ConfirmEmailChange), "Account", new { userId = user.Id, email = model.NewEmail, token }, Request.Scheme)!;
         await emailSender.SendAsync(model.NewEmail, "Confirm your new email address", link);
@@ -189,8 +199,17 @@ public sealed class AccountController(SignInManager<ApplicationUser> signInManag
     {
         var user = await userManager.FindByIdAsync(userId);
         if (user is null) return View("EmailConfirmation", false);
+        if (await dbContext.Users.IgnoreQueryFilters().AnyAsync(existingUser =>
+                existingUser.Id != user.Id &&
+                existingUser.NormalizedEmail == userManager.NormalizeEmail(email)))
+            return View("EmailConfirmation", false);
+
         var result = await userManager.ChangeEmailAsync(user, email, token);
-        if (result.Succeeded) { user.UserName = email; await userManager.UpdateAsync(user); }
+        if (result.Succeeded)
+        {
+            user.UserName = email;
+            result = await userManager.UpdateAsync(user);
+        }
         return View("EmailConfirmation", result.Succeeded);
     }
 
@@ -229,12 +248,36 @@ public sealed class AccountController(SignInManager<ApplicationUser> signInManag
     [HttpPost("account/2fa/disable")]
     [Authorize]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> DisableTwoFactor() { await userManager.SetTwoFactorEnabledAsync(await CurrentUserAsync(), false); return RedirectToAction(nameof(Profile)); }
+    public async Task<IActionResult> DisableTwoFactor()
+    {
+        var result = await userManager.SetTwoFactorEnabledAsync(await CurrentUserAsync(), false);
+        if (!result.Succeeded)
+            TempData["Error"] = string.Join(" ", result.Errors.Select(error => error.Description));
+        else
+            TempData["Success"] = "Two-factor authentication has been disabled.";
+        return RedirectToAction(nameof(Profile));
+    }
 
     [HttpPost("account/2fa/recovery-codes")]
     [Authorize]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> RegenerateRecoveryCodes() { TempData["RecoveryCodes"] = string.Join(" ", await userManager.GenerateNewTwoFactorRecoveryCodesAsync(await CurrentUserAsync(), 10) ?? []); return RedirectToAction(nameof(Profile)); }
+    public async Task<IActionResult> RegenerateRecoveryCodes()
+    {
+        var user = await CurrentUserAsync();
+        if (!user.TwoFactorEnabled)
+        {
+            TempData["Error"] = "Enable two-factor authentication before generating recovery codes.";
+            return RedirectToAction(nameof(Profile));
+        }
+
+        var recoveryCodes = await userManager.GenerateNewTwoFactorRecoveryCodesAsync(user, 10);
+        if (recoveryCodes is null)
+            throw new InvalidOperationException("Recovery codes could not be generated for the enabled two-factor account.");
+
+        TempData["RecoveryCodes"] = string.Join(" ", recoveryCodes);
+        TempData["Success"] = "New recovery codes were generated. Save them now; previous codes no longer work.";
+        return RedirectToAction(nameof(Profile));
+    }
 
     [HttpPost("account/delete")]
     [Authorize]
@@ -245,7 +288,13 @@ public sealed class AccountController(SignInManager<ApplicationUser> signInManag
         var user = await CurrentUserAsync();
         if (!await userManager.CheckPasswordAsync(user, model.Password)) { TempData["Error"] = "The password is invalid."; return RedirectToAction(nameof(Profile)); }
         user.DeletedAt = DateTimeOffset.UtcNow; user.LockoutEnabled = true; user.LockoutEnd = DateTimeOffset.MaxValue;
-        await userManager.UpdateAsync(user); await signInManager.SignOutAsync();
+        var result = await userManager.UpdateAsync(user);
+        if (!result.Succeeded)
+        {
+            TempData["Error"] = string.Join(" ", result.Errors.Select(error => error.Description));
+            return RedirectToAction(nameof(Profile));
+        }
+        await signInManager.SignOutAsync();
         return RedirectToAction(nameof(HomeController.Index), "Home");
     }
     [HttpGet("account/login")]
@@ -432,13 +481,22 @@ public sealed class AccountController(SignInManager<ApplicationUser> signInManag
         }
 
         var recoveryCodes = await userManager.GenerateNewTwoFactorRecoveryCodesAsync(user, 10);
-        TempData["RecoveryCodes"] = string.Join(" ", recoveryCodes ?? []);
+        if (recoveryCodes is null)
+            throw new InvalidOperationException("Recovery codes could not be generated after enabling two-factor authentication.");
+        TempData["RecoveryCodes"] = string.Join(" ", recoveryCodes);
         TempData["Success"] = "Two-factor authentication is enabled.";
         return RedirectToAction(nameof(EnableAuthenticator));
     }
 
     private async Task<ApplicationUser> CurrentUserAsync() => await userManager.GetUserAsync(User)
         ?? throw new InvalidOperationException("User not found.");
+
+    private async Task<bool> IsEmailInUseAsync(string email)
+    {
+        var normalizedEmail = userManager.NormalizeEmail(email);
+        return await dbContext.Users.IgnoreQueryFilters()
+            .AnyAsync(user => user.NormalizedEmail == normalizedEmail);
+    }
 
     private async Task RecordSuccessfulLoginAsync(ApplicationUser user)
     {

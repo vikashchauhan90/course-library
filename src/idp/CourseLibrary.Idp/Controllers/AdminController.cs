@@ -30,21 +30,125 @@ public sealed class AdminController(
     public async Task<IActionResult> Index()
     {
         return View(new AdminOverviewViewModel(
-            await userManager.Users.CountAsync(),
+            await dbContext.Users.IgnoreQueryFilters().CountAsync(),
             await roleManager.Roles.CountAsync(),
             await dbContext.OpenIddictApplications.CountAsync(),
             await dbContext.OpenIddictScopes.CountAsync()));
     }
 
     [HttpGet("users")]
-    public async Task<IActionResult> Users()
+    public async Task<IActionResult> Users(string status = "all", int page = 1)
     {
-        var users = await userManager.Users.OrderBy(x => x.UserName).Take(100).ToListAsync();
+        status = status is "active" or "inactive" ? status : "all";
+        page = Math.Max(page, 1);
+        const int pageSize = 50;
+        var now = DateTimeOffset.UtcNow;
+        var allUsers = dbContext.Users.IgnoreQueryFilters();
+        var activeUsers = allUsers.Where(user =>
+            user.DeletedAt == null &&
+            user.EmailConfirmed &&
+            (user.LockoutEnd == null || user.LockoutEnd <= now));
+        var activeCount = await activeUsers.CountAsync();
+        var inactiveCount = await allUsers.CountAsync() - activeCount;
+        var filteredUsers = status switch
+        {
+            "active" => activeUsers,
+            "inactive" => allUsers.Where(user =>
+                user.DeletedAt != null ||
+                !user.EmailConfirmed ||
+                (user.LockoutEnd != null && user.LockoutEnd > now)),
+            _ => allUsers
+        };
+        var totalCount = status switch
+        {
+            "active" => activeCount,
+            "inactive" => inactiveCount,
+            _ => activeCount + inactiveCount
+        };
+        page = Math.Min(page, Math.Max(1, (int)Math.Ceiling(totalCount / (double)pageSize)));
+        var users = await filteredUsers
+            .OrderBy(user => user.UserName)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
         var items = new List<AdminUserItem>(users.Count);
         foreach (var user in users)
-            items.Add(new(user.Id, user.UserName ?? user.Id, user.Email ?? string.Empty,
-                user.LockoutEnd > DateTimeOffset.UtcNow, await userManager.IsInRoleAsync(user, "Administrator")));
-        return View(new AdminUsersViewModel(items));
+        {
+            var isLockedOut = user.LockoutEnd > now;
+            var userStatus = user.DeletedAt is not null
+                ? "Deactivated"
+                : !user.EmailConfirmed
+                    ? "Pending activation"
+                    : isLockedOut
+                        ? "Locked"
+                        : "Active";
+            items.Add(new(
+                user.Id,
+                user.UserName ?? user.Id,
+                user.Email ?? string.Empty,
+                userStatus,
+                isLockedOut,
+                user.DeletedAt is not null,
+                user.EmailConfirmed && user.DeletedAt is null,
+                await userManager.IsInRoleAsync(user, "Administrator"),
+                user.LastLoginAt,
+                user.PasswordChangedAt));
+        }
+
+        return View(new AdminUsersViewModel(items, status, page, pageSize, totalCount, activeCount, inactiveCount));
+    }
+
+    [HttpGet("invitations")]
+    public async Task<IActionResult> Invitations()
+    {
+        var now = DateTimeOffset.UtcNow;
+        var invitations = await dbContext.UserInvitations
+            .AsNoTracking()
+            .Join(
+                dbContext.Users.IgnoreQueryFilters(),
+                invitation => invitation.UserId,
+                user => user.Id,
+                (invitation, user) => new { invitation, user })
+            .OrderByDescending(item => item.invitation.CreatedAt)
+            .Select(item => new
+            {
+                item.invitation.Id,
+                Email = item.user.Email ?? string.Empty,
+                item.user.FullName,
+                item.invitation.CreatedAt,
+                item.invitation.ExpiresAt,
+                item.invitation.AcceptedAt,
+                item.invitation.RevokedAt,
+                IsDeactivated = item.user.DeletedAt != null
+            })
+            .ToListAsync();
+
+        var items = invitations.Select(invitation =>
+        {
+            var isExpired = invitation.ExpiresAt <= now;
+            var status = invitation.AcceptedAt is not null
+                ? "Accepted"
+                : invitation.RevokedAt is not null
+                    ? "Revoked"
+                    : isExpired
+                        ? "Expired"
+                        : "Pending";
+            var canResend = invitation.AcceptedAt is null && !invitation.IsDeactivated;
+            var canRevoke = status == "Pending";
+            return new AdminInvitationItem(
+                invitation.Id,
+                invitation.Email,
+                invitation.FullName,
+                invitation.CreatedAt,
+                invitation.ExpiresAt,
+                invitation.AcceptedAt,
+                invitation.RevokedAt,
+                status,
+                canResend,
+                canRevoke);
+        }).ToList();
+
+        return View(new AdminInvitationsViewModel(items));
     }
 
     [HttpGet("roles")]
@@ -141,36 +245,44 @@ public sealed class AdminController(
     public async Task<IActionResult> InviteUser(InviteUserViewModel model)
     {
         if (!ModelState.IsValid) return View(model);
-        if (await userManager.FindByEmailAsync(model.Email) is not null)
+        if (await IsEmailInUseAsync(model.Email))
         { ModelState.AddModelError(nameof(model.Email), "A user with this email already exists."); return View(model); }
 
-        var user = new ApplicationUser { UserName = model.Email, Email = model.Email, FullName = model.FullName, CreatedAt = DateTimeOffset.UtcNow, LockoutEnabled = true };
-        var result = await userManager.CreateAsync(user);
-        if (!result.Succeeded) { AddErrors(result); return View(model); }
-        if (model.IsAdministrator)
-        {
-            result = await userManager.AddToRoleAsync(user, "Administrator");
-            if (!result.Succeeded) { AddErrors(result); return View(model); }
-        }
+        var now = DateTimeOffset.UtcNow;
+        var user = new ApplicationUser { UserName = model.Email, Email = model.Email, FullName = model.FullName, CreatedAt = now, LockoutEnabled = true };
         var token = WebEncoders.Base64UrlEncode(RandomNumberGenerator.GetBytes(32));
-        var activeInvitations = await dbContext.UserInvitations
-            .Where(x => x.UserId == user.Id && x.AcceptedAt == null && x.RevokedAt == null)
-            .ToListAsync();
-        foreach (var invitation in activeInvitations) invitation.RevokedAt = DateTimeOffset.UtcNow;
-        dbContext.UserInvitations.Add(new()
+        await using (var transaction = await dbContext.Database.BeginTransactionAsync())
         {
-            Id = Guid.NewGuid().ToString(),
-            UserId = user.Id,
-            TokenHash = HashToken(token),
-            CreatedAt = DateTimeOffset.UtcNow,
-            ExpiresAt = DateTimeOffset.UtcNow.AddHours(Math.Clamp(HttpContext.RequestServices.GetRequiredService<IConfiguration>().GetValue("Security:InvitationLifetimeHours", 72), 1, 720))
-        });
-        await dbContext.SaveChangesAsync();
+            var result = await userManager.CreateAsync(user);
+            if (!result.Succeeded) { AddErrors(result); return View(model); }
+            if (model.IsAdministrator)
+            {
+                result = await userManager.AddToRoleAsync(user, "Administrator");
+                if (!result.Succeeded) { AddErrors(result); return View(model); }
+            }
+
+            var activeInvitations = await dbContext.UserInvitations
+                .Where(x => x.UserId == user.Id && x.AcceptedAt == null && x.RevokedAt == null && x.ExpiresAt > now)
+                .ToListAsync();
+            foreach (var invitation in activeInvitations) invitation.RevokedAt = now;
+            dbContext.UserInvitations.Add(new()
+            {
+                Id = Guid.NewGuid().ToString(),
+                UserId = user.Id,
+                TokenHash = HashToken(token),
+                CreatedAt = now,
+                ExpiresAt = now.AddHours(Math.Clamp(configuration.GetValue("Security:InvitationLifetimeHours", 72), 1, 720))
+            });
+            await dbContext.SaveChangesAsync();
+            await transaction.CommitAsync();
+        }
+
         var link = Url.Action("AcceptInvitation", "Invitation", new { email = user.Email, token }, Request.Scheme)
             ?? throw new InvalidOperationException("Could not create invitation link.");
+        await emailSender.SendAsync(user.Email!, "Your Course Library invitation", link);
         logger.LogInformation("Administrator {AdministratorId} invited user {UserId}.", userManager.GetUserId(User), user.Id);
         TempData["InvitationLink"] = link;
-        TempData["Success"] = "Invitation created. It is an opaque, single-use token and expires at the configured time.";
+        TempData["Success"] = "Invitation created and emailed. The link is single-use and expires at the configured time.";
         return RedirectToAction(nameof(Index));
     }
 
@@ -179,14 +291,24 @@ public sealed class AdminController(
     public async Task<IActionResult> CreateUser(CreateUserViewModel model)
     {
         if (!ModelState.IsValid) return View(model);
+        if (await IsEmailInUseAsync(model.Email))
+        {
+            ModelState.AddModelError(nameof(model.Email), "A user with this email already exists.");
+            return View(model);
+        }
+
         var now = DateTimeOffset.UtcNow;
         var user = new ApplicationUser { UserName = model.UserName, Email = model.Email, FullName = model.FullName, EmailConfirmed = true, CreatedAt = now, PasswordChangedAt = now };
-        var result = await userManager.CreateAsync(user, model.Password);
-        if (!result.Succeeded) { AddErrors(result); return View(model); }
-        if (model.IsAdministrator)
+        await using (var transaction = await dbContext.Database.BeginTransactionAsync())
         {
-            result = await userManager.AddToRoleAsync(user, "Administrator");
+            var result = await userManager.CreateAsync(user, model.Password);
             if (!result.Succeeded) { AddErrors(result); return View(model); }
+            if (model.IsAdministrator)
+            {
+                result = await userManager.AddToRoleAsync(user, "Administrator");
+                if (!result.Succeeded) { AddErrors(result); return View(model); }
+            }
+            await transaction.CommitAsync();
         }
         logger.LogInformation("Administrator {AdministratorId} created user {UserId}.", userManager.GetUserId(User), user.Id);
         TempData["Success"] = "User created.";
@@ -308,22 +430,23 @@ public sealed class AdminController(
 
     [HttpPost("users/{id}/reset-password")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> ResetUserPassword(string id, string password)
+    public async Task<IActionResult> SendUserPasswordReset(string id)
     {
         var user = await userManager.FindByIdAsync(id);
         if (user is null) return NotFound();
-        var token = await userManager.GeneratePasswordResetTokenAsync(user);
-        var result = await userManager.ResetPasswordAsync(user, token, password);
-        if (!result.Succeeded) AddErrors(result);
-        else
+        if (!user.EmailConfirmed || string.IsNullOrWhiteSpace(user.Email))
         {
-            user.PasswordChangedAt = DateTimeOffset.UtcNow;
-            var updateResult = await userManager.UpdateAsync(user);
-            if (!updateResult.Succeeded)
-                throw new InvalidOperationException($"Could not record the password change date: {string.Join("; ", updateResult.Errors.Select(error => error.Description))}");
-            logger.LogInformation("Administrator {AdministratorId} reset password for user {UserId}.", userManager.GetUserId(User), id);
+            TempData["Error"] = "A password-reset link can only be sent to a confirmed account with an email address.";
+            return RedirectToAction(nameof(Users));
         }
-        return RedirectToAction(nameof(Index));
+
+        var token = await userManager.GeneratePasswordResetTokenAsync(user);
+        var link = Url.Action("ResetPassword", "Account", new { email = user.Email, token }, Request.Scheme)
+            ?? throw new InvalidOperationException("Could not create password-reset link.");
+        await emailSender.SendAsync(user.Email, "Reset your password", link);
+        logger.LogInformation("Administrator {AdministratorId} sent a password-reset link to user {UserId}.", userManager.GetUserId(User), id);
+        TempData["Success"] = "Password-reset link sent.";
+        return RedirectToAction(nameof(Users));
     }
 
     [HttpPost("users/{id}/revoke-sessions")]
@@ -342,10 +465,13 @@ public sealed class AdminController(
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> RevokeInvitation(string id)
     {
-        var invitation = await dbContext.UserInvitations.FindAsync(id);
+        var invitation = await dbContext.UserInvitations.SingleOrDefaultAsync(item => item.Id == id);
         if (invitation is null) return NotFound();
-        invitation.RevokedAt = DateTimeOffset.UtcNow; await dbContext.SaveChangesAsync();
-        return RedirectToAction(nameof(Index));
+        if (invitation.AcceptedAt is not null || invitation.RevokedAt is not null || invitation.ExpiresAt <= DateTimeOffset.UtcNow)
+            return BadRequest("Only pending invitations can be revoked.");
+        invitation.RevokedAt = DateTimeOffset.UtcNow;
+        await dbContext.SaveChangesAsync();
+        return RedirectToAction(nameof(Invitations));
     }
 
     [HttpPost("invitations/{id}/resend")]
@@ -356,13 +482,33 @@ public sealed class AdminController(
         if (invitation is null) return NotFound();
         var user = await userManager.FindByIdAsync(invitation.UserId);
         if (user is null || user.Email is null) return NotFound();
-        invitation.RevokedAt = DateTimeOffset.UtcNow;
+        if (invitation.AcceptedAt is not null || user.EmailConfirmed)
+            return BadRequest("An accepted invitation cannot be resent.");
+
+        var now = DateTimeOffset.UtcNow;
+        var activeInvitations = await dbContext.UserInvitations
+            .Where(item => item.UserId == user.Id &&
+                item.AcceptedAt == null &&
+                item.RevokedAt == null &&
+                item.ExpiresAt > now)
+            .ToListAsync();
+        foreach (var activeInvitation in activeInvitations)
+            activeInvitation.RevokedAt = now;
+
         var token = WebEncoders.Base64UrlEncode(RandomNumberGenerator.GetBytes(32));
-        dbContext.UserInvitations.Add(new UserInvitation { Id = Guid.NewGuid().ToString(), UserId = user.Id, TokenHash = HashToken(token), CreatedAt = DateTimeOffset.UtcNow, ExpiresAt = DateTimeOffset.UtcNow.AddDays(3) });
+        dbContext.UserInvitations.Add(new UserInvitation
+        {
+            Id = Guid.NewGuid().ToString(),
+            UserId = user.Id,
+            TokenHash = HashToken(token),
+            CreatedAt = now,
+            ExpiresAt = now.AddHours(Math.Clamp(configuration.GetValue("Security:InvitationLifetimeHours", 72), 1, 720))
+        });
         await dbContext.SaveChangesAsync();
         var link = Url.Action("AcceptInvitation", "Invitation", new { email = user.Email, token }, Request.Scheme)!;
         await emailSender.SendAsync(user.Email, "Your Course Library invitation", link);
-        return RedirectToAction(nameof(Index));
+        TempData["Success"] = "A new invitation was sent. Previous pending invitations were revoked.";
+        return RedirectToAction(nameof(Invitations));
     }
 
     [HttpGet("clients/create")]
@@ -585,8 +731,20 @@ public sealed class AdminController(
         var users = await userManager.Users.OrderBy(x => x.UserName).Take(100).ToListAsync();
         var userItems = new List<AdminUserItem>(users.Count);
         foreach (var user in users)
-            userItems.Add(new(user.Id, user.UserName ?? user.Id, user.Email ?? string.Empty,
-                user.LockoutEnd > DateTimeOffset.UtcNow, await userManager.IsInRoleAsync(user, PermissionCatalog.AdministratorRole)));
+        {
+            var isLockedOut = user.LockoutEnd > DateTimeOffset.UtcNow;
+            userItems.Add(new(
+                user.Id,
+                user.UserName ?? user.Id,
+                user.Email ?? string.Empty,
+                !user.EmailConfirmed ? "Pending activation" : isLockedOut ? "Locked" : "Active",
+                isLockedOut,
+                user.DeletedAt is not null,
+                user.DeletedAt is null && user.EmailConfirmed,
+                await userManager.IsInRoleAsync(user, PermissionCatalog.AdministratorRole),
+                user.LastLoginAt,
+                user.PasswordChangedAt));
+        }
 
         var roles = new List<AdminRoleItem>();
         foreach (var role in await roleManager.Roles.OrderBy(x => x.Name).ToListAsync())
@@ -631,4 +789,11 @@ public sealed class AdminController(
     private void AddErrors(IdentityResult result) { foreach (var error in result.Errors) ModelState.AddModelError(string.Empty, error.Description); }
     private static string CreateSecret() => Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
     private static string HashToken(string token) => Convert.ToHexString(SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(token)));
+
+    private async Task<bool> IsEmailInUseAsync(string email)
+    {
+        var normalizedEmail = userManager.NormalizeEmail(email);
+        return await dbContext.Users.IgnoreQueryFilters()
+            .AnyAsync(user => user.NormalizedEmail == normalizedEmail);
+    }
 }

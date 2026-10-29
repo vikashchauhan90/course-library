@@ -24,6 +24,14 @@ builder.Services.AddCourseLibraryResilience();
 builder.Services.AddControllersWithViews();
 builder.Services.AddRazorPages();
 builder.Services.AddScoped<IEmailSender, EmailSender>();
+var smtpEmailOptions = builder.Services
+    .AddOptions<SmtpEmailOptions>()
+    .Bind(builder.Configuration.GetSection(SmtpEmailOptions.SectionName))
+    .Validate(options => options.IsValid,
+        "Email:Smtp requires a host, a valid sender address, a valid port, and either both or neither SMTP credentials.");
+if (!builder.Environment.IsDevelopment())
+    smtpEmailOptions.ValidateOnStart();
+
 builder.Services.Configure<OpenIdOptions>(builder.Configuration.GetSection(OpenIdOptions.SectionName));
 
 builder.Services.AddIdpPersistence(

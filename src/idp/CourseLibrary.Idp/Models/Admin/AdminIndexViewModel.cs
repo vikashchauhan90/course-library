@@ -9,7 +9,17 @@ public sealed class AdminIndexViewModel
     public required IReadOnlyList<AdminScopeItem> Scopes { get; init; }
 }
 
-public sealed record AdminUserItem(string Id, string UserName, string Email, bool IsLockedOut, bool IsAdministrator);
+public sealed record AdminUserItem(
+    string Id,
+    string UserName,
+    string Email,
+    string Status,
+    bool IsLockedOut,
+    bool IsDeactivated,
+    bool CanSendPasswordReset,
+    bool IsAdministrator,
+    DateTimeOffset? LastLoginAt,
+    DateTimeOffset? PasswordChangedAt);
 public sealed record AdminRoleItem(string Name, IReadOnlySet<string> Permissions);
 public sealed record AdminPermissionItem(string Value, string DisplayName);
 public sealed record AdminClientItem(
@@ -23,3 +33,14 @@ public sealed record AdminClientItem(
     bool HasClientSecret,
     string AllowedScopes);
 public sealed record AdminScopeItem(string Name, string? DisplayName, string Resources);
+public sealed record AdminInvitationItem(
+    string Id,
+    string Email,
+    string FullName,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset ExpiresAt,
+    DateTimeOffset? AcceptedAt,
+    DateTimeOffset? RevokedAt,
+    string Status,
+    bool CanResend,
+    bool CanRevoke);
