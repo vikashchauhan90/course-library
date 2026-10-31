@@ -389,9 +389,21 @@ public sealed class AccountController(SignInManager<ApplicationUser> signInManag
         ViewData["ReturnUrl"] = returnUrl;
         ViewData["RememberMe"] = rememberMe;
         if (!ModelState.IsValid) return View(model);
-        var user = await signInManager.GetTwoFactorAuthenticationUserAsync()
-            ?? throw new InvalidOperationException("The two-factor sign-in user was not found.");
-        var result = await signInManager.TwoFactorAuthenticatorSignInAsync(model.Code.Replace(" ", string.Empty).Replace("-", string.Empty), rememberMe, model.RememberMachine);
+        var user = await signInManager.GetTwoFactorAuthenticationUserAsync();
+        if (user is null)
+        {
+            TempData["Error"] = "Your sign-in session expired. Please sign in again.";
+            return RedirectToAction(nameof(Login), new { returnUrl });
+        }
+
+        var code = NormalizeTwoFactorCode(model.Code);
+        if (!IsAuthenticatorCode(code))
+        {
+            ModelState.AddModelError(nameof(model.Code), "Enter the six-digit code from your authenticator app.");
+            return View(model);
+        }
+
+        var result = await signInManager.TwoFactorAuthenticatorSignInAsync(code, rememberMe, model.RememberMachine);
         if (result.Succeeded)
         {
             await RecordSuccessfulLoginAsync(user);
@@ -416,9 +428,22 @@ public sealed class AccountController(SignInManager<ApplicationUser> signInManag
     public async Task<IActionResult> LoginWithRecoveryCode(RecoveryCodeViewModel model, string? returnUrl = null)
     {
         if (!ModelState.IsValid) { ViewData["ReturnUrl"] = returnUrl; return View(model); }
-        var user = await signInManager.GetTwoFactorAuthenticationUserAsync()
-            ?? throw new InvalidOperationException("The two-factor sign-in user was not found.");
-        var result = await signInManager.TwoFactorRecoveryCodeSignInAsync(model.Code.Replace(" ", string.Empty));
+        var user = await signInManager.GetTwoFactorAuthenticationUserAsync();
+        if (user is null)
+        {
+            TempData["Error"] = "Your sign-in session expired. Please sign in again.";
+            return RedirectToAction(nameof(Login), new { returnUrl });
+        }
+
+        var code = NormalizeRecoveryCode(model.Code);
+        if (code.Length == 0)
+        {
+            ModelState.AddModelError(nameof(model.Code), "Enter one of your recovery codes.");
+            ViewData["ReturnUrl"] = returnUrl;
+            return View(model);
+        }
+
+        var result = await signInManager.TwoFactorRecoveryCodeSignInAsync(code);
         if (result.Succeeded)
         {
             await RecordSuccessfulLoginAsync(user);
@@ -428,6 +453,15 @@ public sealed class AccountController(SignInManager<ApplicationUser> signInManag
         ViewData["ReturnUrl"] = returnUrl;
         return View(model);
     }
+
+    private static string NormalizeTwoFactorCode(string code) =>
+        string.Concat(code.Where(character => !char.IsWhiteSpace(character) && character != '-'));
+
+    private static string NormalizeRecoveryCode(string code) =>
+        string.Concat(code.Where(character => !char.IsWhiteSpace(character)));
+
+    private static bool IsAuthenticatorCode(string code) =>
+        code.Length == 6 && code.All(char.IsAsciiDigit);
 
     [HttpGet("account/authenticator")]
     [Authorize]
@@ -467,8 +501,17 @@ public sealed class AccountController(SignInManager<ApplicationUser> signInManag
         if (user.TwoFactorEnabled)
             return RedirectToAction(nameof(EnableAuthenticator));
 
-        if (!ModelState.IsValid) { var key = await userManager.GetAuthenticatorKeyAsync(user) ?? string.Empty; model.SharedKey = FormatKey(key); model.AuthenticatorUri = CreateUri(user.Email ?? user.UserName ?? user.Id, key); return View(model); }
-        var valid = await userManager.VerifyTwoFactorTokenAsync(user, userManager.Options.Tokens.AuthenticatorTokenProvider, model.Code.Replace(" ", string.Empty).Replace("-", string.Empty));
+        var code = NormalizeTwoFactorCode(model.Code);
+        if (!ModelState.IsValid || !IsAuthenticatorCode(code))
+        {
+            if (ModelState.IsValid)
+                ModelState.AddModelError(nameof(model.Code), "Enter the six-digit code from your authenticator app.");
+            var key = await userManager.GetAuthenticatorKeyAsync(user) ?? string.Empty;
+            model.SharedKey = FormatKey(key);
+            model.AuthenticatorUri = CreateUri(user.Email ?? user.UserName ?? user.Id, key);
+            return View(model);
+        }
+        var valid = await userManager.VerifyTwoFactorTokenAsync(user, userManager.Options.Tokens.AuthenticatorTokenProvider, code);
         if (!valid) { ModelState.AddModelError(nameof(model.Code), "The authentication code is invalid."); var key = await userManager.GetAuthenticatorKeyAsync(user) ?? string.Empty; model.SharedKey = FormatKey(key); model.AuthenticatorUri = CreateUri(user.Email ?? user.UserName ?? user.Id, key); return View(model); }
         var result = await userManager.SetTwoFactorEnabledAsync(user, true);
         if (!result.Succeeded)
