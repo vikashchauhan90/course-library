@@ -1,0 +1,109 @@
+@model BillingInvoicesViewModel
+<p class="eyebrow">ORGANIZATION BILLING</p>
+<div class="page-heading">
+    <div>
+        <h1>Invoices</h1>
+        <p>@Model.OrganizationName</p>
+    </div>
+    <a class="button secondary" asp-action="Index" asp-route-organizationId="@Model.OrganizationId">Billing account</a>
+</div>
+
+@if (TempData["BillingSuccess"] is string success)
+{
+    <div class="notice success">@success</div>
+}
+@if (TempData["BillingError"] is string error)
+{
+    <div class="notice error">@error</div>
+}
+
+@if (!Model.HasBillingAccount)
+{
+    <div class="notice error">
+        Save a billing account before generating invoices.
+        <a asp-action="Index" asp-route-organizationId="@Model.OrganizationId">Set up billing</a>
+    </div>
+}
+else
+{
+    <form asp-action="GenerateInvoice" asp-route-organizationId="@Model.OrganizationId" method="post">
+        <button class="button primary" type="submit">Generate invoice for subscribed products</button>
+    </form>
+    <p class="hint">Invoices are consolidated by currency. Each invoice includes a separate line for each billable product subscription.</p>
+    <p class="hint">Taxes are not calculated or included.</p>
+}
+
+@if (Model.Invoices.Count == 0)
+{
+    <section class="card empty-state">
+        <h2>No invoices yet</h2>
+        <p>Invoices appear here after they are generated from configured product plan prices.</p>
+    </section>
+}
+else
+{
+    <div class="invoice-list">
+        @foreach (var invoice in Model.Invoices)
+        {
+            var balance = invoice.Total - invoice.AmountPaid;
+            <section class="card invoice-card">
+                <div class="page-heading">
+                    <div>
+                        <h2>@invoice.InvoiceNumber</h2>
+                        <p>Issued @invoice.IssuedAt.ToString("yyyy-MM-dd") · Due @invoice.DueAt.ToString("yyyy-MM-dd")</p>
+                    </div>
+                    <span class="status">@invoice.Status</span>
+                </div>
+                <ul class="plain-list">
+                    @foreach (var line in invoice.LineItems)
+                    {
+                        <li>
+                            <span>
+                                <strong>@line.ProductName — @line.PlanName</strong>
+                                <span class="status"> @line.BillingInterval · @line.PeriodStart.ToString("yyyy-MM-dd") to @line.PeriodEnd.ToString("yyyy-MM-dd")</span>
+                            </span>
+                            <span>@invoice.CurrencyCode @line.LineAmount.ToString("0.####")</span>
+                        </li>
+                    }
+                </ul>
+                <div class="invoice-total">
+                    <span>Subtotal / total</span>
+                    <strong>@invoice.CurrencyCode @invoice.Total.ToString("0.####")</strong>
+                </div>
+                <p class="hint">Paid: @invoice.CurrencyCode @invoice.AmountPaid.ToString("0.####") · Balance: @invoice.CurrencyCode @balance.ToString("0.####")</p>
+
+                @if (invoice.Payments.Count > 0)
+                {
+                    <h3>Recorded payments</h3>
+                    <ul class="plain-list">
+                        @foreach (var payment in invoice.Payments)
+                        {
+                            <li>
+                                <span>@payment.RecordedAt.ToString("yyyy-MM-dd HH:mm") @if (!string.IsNullOrWhiteSpace(payment.ExternalReference)) { <text>· @payment.ExternalReference</text> }</span>
+                                <span>@payment.CurrencyCode @payment.Amount.ToString("0.####")</span>
+                            </li>
+                        }
+                    </ul>
+                }
+
+                @if (invoice.Status is "Issued" or "PartiallyPaid")
+                {
+                    <form asp-action="RecordPayment"
+                          asp-route-organizationId="@Model.OrganizationId"
+                          asp-route-invoiceId="@invoice.Id"
+                          method="post"
+                          class="payment-form">
+                        <h3>Record an external payment</h3>
+                        <label for="Amount-@invoice.Id">Amount (@invoice.CurrencyCode)</label>
+                        <input id="Amount-@invoice.Id" name="Amount" type="number" min="0.0001" step="0.0001" max="@balance" required />
+                        <label for="Reference-@invoice.Id">Payment reference (optional)</label>
+                        <input id="Reference-@invoice.Id" name="ExternalReference" maxlength="200" />
+                        <button class="button secondary" type="submit">Record payment</button>
+                    </form>
+                }
+            </section>
+        }
+    </div>
+}
+
+<p><a asp-controller="Organizations" asp-action="Details" asp-route-id="@Model.OrganizationId">Back to organization</a></p>

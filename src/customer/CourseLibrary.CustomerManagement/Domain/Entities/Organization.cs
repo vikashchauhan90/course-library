@@ -8,4 +8,5 @@ public sealed class Organization
     public DateTimeOffset CreatedAt { get; set; }
     public ICollection<OrganizationMembership> Memberships { get; set; } = [];
     public ICollection<OrganizationSubscription> Subscriptions { get; set; } = [];
+    public BillingAccount? BillingAccount { get; set; }
 }

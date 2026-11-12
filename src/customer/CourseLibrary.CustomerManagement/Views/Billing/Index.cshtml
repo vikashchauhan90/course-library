@@ -1,0 +1,62 @@
+@model BillingAccountViewModel
+<p class="eyebrow">ORGANIZATION BILLING</p>
+<h1>Billing account</h1>
+<p>This billing profile belongs to this organization and is used for invoices across its subscribed products.</p>
+
+@if (TempData["BillingSuccess"] is string success)
+{
+    <div class="notice success">@success</div>
+}
+@if (TempData["BillingError"] is string error)
+{
+    <div class="notice error">@error</div>
+}
+
+<form asp-action="Save" asp-route-organizationId="@Model.OrganizationId" method="post" class="card form-card">
+    <div asp-validation-summary="ModelOnly" class="validation"></div>
+    <label asp-for="LegalName">Legal or business name</label>
+    <input asp-for="LegalName" autocomplete="organization" />
+    <span asp-validation-for="LegalName" class="validation"></span>
+
+    <label asp-for="BillingEmail">Billing email</label>
+    <input asp-for="BillingEmail" type="email" autocomplete="email" />
+    <span asp-validation-for="BillingEmail" class="validation"></span>
+
+    <label asp-for="ContactName">Billing contact</label>
+    <input asp-for="ContactName" autocomplete="name" />
+
+    <label asp-for="Phone">Phone</label>
+    <input asp-for="Phone" type="tel" autocomplete="tel" />
+
+    <label asp-for="AddressLine1">Address line 1</label>
+    <input asp-for="AddressLine1" autocomplete="address-line1" />
+
+    <label asp-for="AddressLine2">Address line 2</label>
+    <input asp-for="AddressLine2" autocomplete="address-line2" />
+
+    <label asp-for="City">City</label>
+    <input asp-for="City" autocomplete="address-level2" />
+
+    <label asp-for="Region">State or region</label>
+    <input asp-for="Region" autocomplete="address-level1" />
+
+    <label asp-for="PostalCode">Postal code</label>
+    <input asp-for="PostalCode" autocomplete="postal-code" />
+
+    <label asp-for="CountryCode">Country code (ISO 3166-1 alpha-2)</label>
+    <input asp-for="CountryCode" maxlength="2" autocomplete="country" />
+    <span asp-validation-for="CountryCode" class="validation"></span>
+
+    <label asp-for="TaxIdentifier">Tax identifier (optional)</label>
+    <input asp-for="TaxIdentifier" />
+
+    <p class="hint">No card or bank details are stored. Taxes are not calculated in this version.</p>
+    <div class="form-actions">
+        <a class="button secondary" asp-controller="Organizations" asp-action="Details" asp-route-id="@Model.OrganizationId">Back to organization</a>
+        @if (Model.IsSaved)
+        {
+            <a class="button secondary" asp-action="Invoices" asp-route-organizationId="@Model.OrganizationId">View invoices</a>
+        }
+        <button class="button primary" type="submit">Save billing account</button>
+    </div>
+</form>

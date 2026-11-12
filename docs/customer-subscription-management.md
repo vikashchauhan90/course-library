@@ -27,9 +27,24 @@ sign-in; it does not create IDP users or store passwords.
 Product and plan data is kept in the `customer_management.products` and
 `customer_management.product_plans` tables. Organization subscriptions and
 member product-access assignments are stored separately. Subscription status
-is currently `Selected`; this app does not process payments, invoices, or
-renewals. Product applications must enforce these grants themselves; the
-existing Course API is not yet integrated with organization or product access.
+is currently `Selected`.
+
+Each organization has one billing account. Its legal name, billing contact,
+address, and tax identifier are organization-level details. A subscribed
+product plan supplies its own price, ISO currency code, and `Monthly` or
+`Yearly` interval. Managers can generate invoices that consolidate billable
+product subscriptions by currency; plans in different currencies produce
+separate invoices. Invoices snapshot the billing details and plan prices.
+Invoices are generated manually when subscriptions are due, and external
+payments can be recorded manually against an invoice. Only one unpaid invoice
+per currency is allowed at a time for an organization.
+
+Live payment processing, stored payment methods, automatic renewals, tax
+calculation, and tax/legal invoice compliance are not implemented. Do not
+store card or bank details in this app. Plans without a configured price cannot
+be invoiced; a zero price is treated as a free plan. Product applications must
+enforce member grants themselves; the existing Course API is not yet
+integrated with organization or product access.
 
 ## Local setup
 
@@ -62,22 +77,31 @@ update`, register the OIDC client with the deployed callback URI, and configure
 `ConnectionStrings__CustomerManagement`, `OpenId__Authority`,
 `OpenId__ClientSecret`, `PublicBaseUrl`, and `Email__Smtp__*`.
 
-Additional products and plans can be added directly to the catalog tables.
-For example:
+Additional products and plans, including plan prices, can be added directly to
+the catalog tables. Replace the illustrative price and currency with the
+commercial values for the product:
 
 ```sql
 INSERT INTO customer_management.products (id, code, name, is_active)
 VALUES ('b49d4893-81c3-478b-92c7-fc8f284ef8b0', 'payroll', 'Payroll', true);
 
-INSERT INTO customer_management.product_plans (id, product_id, code, name, is_active)
+INSERT INTO customer_management.product_plans
+    (id, product_id, code, name, is_active, price_amount, currency_code, billing_interval)
 VALUES (
     'f3f6ad5c-fc22-46a1-a9cd-6e8aa7437032',
     'b49d4893-81c3-478b-92c7-fc8f284ef8b0',
     'standard',
     'Standard',
-    true
+    true,
+    25.0000,
+    'USD',
+    'Monthly'
 );
 ```
+
+Use `price_amount = 0` for a free plan. A `NULL` price means the plan is not
+configured for invoicing. Billing pages and invoice operations are available
+to organization Owners and Administrators.
 
 The Course API currently does not partition course data by organization. This
 app's membership data is not yet a tenant authorization boundary for other

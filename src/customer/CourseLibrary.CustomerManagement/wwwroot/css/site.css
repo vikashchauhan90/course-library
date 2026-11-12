@@ -44,6 +44,11 @@ input[type="checkbox"] { width: auto; }
 fieldset { display: grid; gap: .5rem; border: 1px solid #e3e8f0; border-radius: .5rem; padding: 1rem; }
 legend { padding: 0 .35rem; font-weight: 600; }
 .checkbox-option { display: flex; align-items: center; gap: .6rem; margin: 0; font-weight: 400; }
+.invoice-list { display: grid; gap: 1rem; margin-top: 1.5rem; }
+.invoice-card { display: grid; gap: 1rem; }
+.invoice-card h2, .invoice-card h3, .invoice-card p { margin: 0; }
+.invoice-total { display: flex; justify-content: space-between; padding-top: .75rem; border-top: 1px solid #e3e8f0; }
+.payment-form { display: grid; gap: .65rem; max-width: 420px; padding-top: 1rem; border-top: 1px solid #e3e8f0; }
 .form-actions { display: flex; justify-content: flex-end; gap: .75rem; margin-top: .8rem; }
 .hint { margin: 0; font-size: .9rem; }
 .plain-list { display: grid; gap: .7rem; margin: 0; padding: 0; list-style: none; }

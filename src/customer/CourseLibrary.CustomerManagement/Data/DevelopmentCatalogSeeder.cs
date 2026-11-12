@@ -8,7 +8,16 @@ internal static class DevelopmentCatalogSeeder
     public static async Task SeedAsync(CustomerManagementDbContext dbContext)
     {
         if (await dbContext.Products.AnyAsync())
+        {
+            var defaultPlan = await dbContext.ProductPlans.SingleOrDefaultAsync(
+                item => item.Id == Guid.Parse("05d1ddc2-1828-4b56-a648-80c2248bf4a1"));
+            if (defaultPlan is not null && defaultPlan.PriceAmount is null)
+            {
+                defaultPlan.PriceAmount = 0m;
+                await dbContext.SaveChangesAsync();
+            }
             return;
+        }
 
         var product = new Product
         {
@@ -24,7 +33,8 @@ internal static class DevelopmentCatalogSeeder
             ProductId = product.Id,
             Code = "standard",
             Name = "Standard",
-            IsActive = true
+            IsActive = true,
+            PriceAmount = 0m
         });
         await dbContext.SaveChangesAsync();
     }

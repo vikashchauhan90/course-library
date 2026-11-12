@@ -7,6 +7,9 @@ public sealed class ProductPlan
     public required string Code { get; set; }
     public required string Name { get; set; }
     public bool IsActive { get; set; }
+    public decimal? PriceAmount { get; set; }
+    public string? CurrencyCode { get; set; }
+    public string? BillingInterval { get; set; }
     public Product? Product { get; set; }
     public ICollection<OrganizationSubscription> Subscriptions { get; set; } = [];
 }

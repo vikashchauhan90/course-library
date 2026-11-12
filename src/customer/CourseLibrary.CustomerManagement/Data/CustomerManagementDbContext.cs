@@ -14,6 +14,10 @@ public sealed class CustomerManagementDbContext(DbContextOptions<CustomerManagem
     public DbSet<Product> Products => Set<Product>();
     public DbSet<ProductPlan> ProductPlans => Set<ProductPlan>();
     public DbSet<OrganizationSubscription> OrganizationSubscriptions => Set<OrganizationSubscription>();
+    public DbSet<BillingAccount> BillingAccounts => Set<BillingAccount>();
+    public DbSet<OrganizationInvoice> OrganizationInvoices => Set<OrganizationInvoice>();
+    public DbSet<InvoiceLineItem> InvoiceLineItems => Set<InvoiceLineItem>();
+    public DbSet<InvoicePayment> InvoicePayments => Set<InvoicePayment>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -25,6 +29,10 @@ public sealed class CustomerManagementDbContext(DbContextOptions<CustomerManagem
             entity.Property(item => item.Name).HasMaxLength(200).IsRequired();
             entity.Property(item => item.CreatedByUserId).HasMaxLength(450).IsRequired();
             entity.HasIndex(item => new { item.CreatedByUserId, item.Name });
+            entity.HasOne(item => item.BillingAccount)
+                .WithOne(item => item.Organization)
+                .HasForeignKey<BillingAccount>(item => item.OrganizationId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<OrganizationMembership>(entity =>
@@ -103,6 +111,9 @@ public sealed class CustomerManagementDbContext(DbContextOptions<CustomerManagem
             entity.HasKey(item => item.Id);
             entity.Property(item => item.Code).HasMaxLength(80).IsRequired();
             entity.Property(item => item.Name).HasMaxLength(160).IsRequired();
+            entity.Property(item => item.PriceAmount).HasPrecision(18, 4);
+            entity.Property(item => item.CurrencyCode).HasMaxLength(3);
+            entity.Property(item => item.BillingInterval).HasMaxLength(16);
             entity.HasIndex(item => new { item.ProductId, item.Code }).IsUnique();
             entity.HasAlternateKey(item => new { item.ProductId, item.Id });
             entity.HasOne(item => item.Product)
@@ -126,6 +137,77 @@ public sealed class CustomerManagementDbContext(DbContextOptions<CustomerManagem
                 .WithMany(item => item.Subscriptions)
                 .HasForeignKey(item => item.OrganizationId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<BillingAccount>(entity =>
+        {
+            entity.ToTable("billing_accounts");
+            entity.HasKey(item => item.Id);
+            entity.Property(item => item.LegalName).HasMaxLength(200).IsRequired();
+            entity.Property(item => item.BillingEmail).HasMaxLength(320).IsRequired();
+            entity.Property(item => item.ContactName).HasMaxLength(200);
+            entity.Property(item => item.Phone).HasMaxLength(40);
+            entity.Property(item => item.AddressLine1).HasMaxLength(200);
+            entity.Property(item => item.AddressLine2).HasMaxLength(200);
+            entity.Property(item => item.City).HasMaxLength(120);
+            entity.Property(item => item.Region).HasMaxLength(120);
+            entity.Property(item => item.PostalCode).HasMaxLength(32);
+            entity.Property(item => item.CountryCode).HasMaxLength(2);
+            entity.Property(item => item.TaxIdentifier).HasMaxLength(64);
+            entity.HasIndex(item => item.OrganizationId).IsUnique();
+            entity.HasMany(item => item.Invoices)
+                .WithOne(item => item.BillingAccount)
+                .HasForeignKey(item => item.BillingAccountId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<OrganizationInvoice>(entity =>
+        {
+            entity.ToTable("organization_invoices");
+            entity.HasKey(item => item.Id);
+            entity.Property(item => item.InvoiceNumber).HasMaxLength(32).IsRequired();
+            entity.Property(item => item.Status).HasMaxLength(24).IsRequired();
+            entity.Property(item => item.CurrencyCode).HasMaxLength(3).IsRequired();
+            entity.Property(item => item.BillToName).HasMaxLength(200).IsRequired();
+            entity.Property(item => item.BillToEmail).HasMaxLength(320).IsRequired();
+            entity.Property(item => item.BillToAddress).HasMaxLength(1200).IsRequired();
+            entity.Property(item => item.Subtotal).HasPrecision(18, 4);
+            entity.Property(item => item.Total).HasPrecision(18, 4);
+            entity.HasIndex(item => new { item.BillingAccountId, item.InvoiceNumber }).IsUnique();
+            entity.HasIndex(item => new { item.BillingAccountId, item.CurrencyCode })
+                .IsUnique()
+                .HasFilter("status IN ('Issued', 'PartiallyPaid')");
+            entity.HasMany(item => item.LineItems)
+                .WithOne(item => item.Invoice)
+                .HasForeignKey(item => item.InvoiceId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasMany(item => item.Payments)
+                .WithOne(item => item.Invoice)
+                .HasForeignKey(item => item.InvoiceId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<InvoiceLineItem>(entity =>
+        {
+            entity.ToTable("invoice_line_items");
+            entity.HasKey(item => item.Id);
+            entity.Property(item => item.ProductName).HasMaxLength(160).IsRequired();
+            entity.Property(item => item.PlanName).HasMaxLength(160).IsRequired();
+            entity.Property(item => item.BillingInterval).HasMaxLength(16).IsRequired();
+            entity.Property(item => item.UnitAmount).HasPrecision(18, 4);
+            entity.Property(item => item.LineAmount).HasPrecision(18, 4);
+            entity.HasIndex(item => item.InvoiceId);
+        });
+
+        modelBuilder.Entity<InvoicePayment>(entity =>
+        {
+            entity.ToTable("invoice_payments");
+            entity.HasKey(item => item.Id);
+            entity.Property(item => item.Amount).HasPrecision(18, 4);
+            entity.Property(item => item.CurrencyCode).HasMaxLength(3).IsRequired();
+            entity.Property(item => item.ExternalReference).HasMaxLength(200);
+            entity.Property(item => item.RecordedByUserId).HasMaxLength(450).IsRequired();
+            entity.HasIndex(item => item.InvoiceId);
         });
     }
 }

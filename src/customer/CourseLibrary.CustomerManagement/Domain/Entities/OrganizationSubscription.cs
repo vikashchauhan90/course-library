@@ -8,6 +8,7 @@ public sealed class OrganizationSubscription
     public Guid ProductPlanId { get; set; }
     public required string Status { get; set; }
     public DateTimeOffset SelectedAt { get; set; }
+    public DateTimeOffset NextInvoiceAt { get; set; }
     public Organization? Organization { get; set; }
     public ProductPlan? ProductPlan { get; set; }
 }

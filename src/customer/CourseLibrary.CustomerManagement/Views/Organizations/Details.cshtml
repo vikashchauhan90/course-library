@@ -30,7 +30,11 @@
                 }
             </ul>
         }
-        <p class="hint">Product access is assigned to members separately. Billing and payment are handled separately.</p>
+        <p class="hint">Product access is assigned to members separately from the organization role.</p>
+        @if (Model.CanManage)
+        {
+            <p><a asp-controller="Billing" asp-action="Index" asp-route-organizationId="@Model.Id">Manage billing</a></p>
+        }
     </section>
     <section class="card">
         <h2>Members (@Model.Members.Count)</h2>

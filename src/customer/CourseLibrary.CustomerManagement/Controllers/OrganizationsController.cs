@@ -77,7 +77,8 @@ public sealed class OrganizationsController(CustomerManagementDbContext dbContex
             ProductId = plan.ProductId,
             ProductPlanId = plan.Id,
             Status = "Selected",
-            SelectedAt = now
+            SelectedAt = now,
+            NextInvoiceAt = now
         };
 
         await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
@@ -92,6 +93,15 @@ public sealed class OrganizationsController(CustomerManagementDbContext dbContex
             JoinedAt = now
         });
         dbContext.OrganizationSubscriptions.Add(subscription);
+        dbContext.BillingAccounts.Add(new BillingAccount
+        {
+            Id = organization.Id,
+            OrganizationId = organization.Id,
+            LegalName = organization.Name,
+            BillingEmail = email,
+            CreatedAt = now,
+            UpdatedAt = now
+        });
         if (model.GiveCreatorProductAccess)
         {
             dbContext.OrganizationProductAccess.Add(new OrganizationProductAccess
@@ -229,7 +239,8 @@ public sealed class OrganizationsController(CustomerManagementDbContext dbContex
             ProductId = plan.ProductId,
             ProductPlanId = plan.Id,
             Status = "Selected",
-            SelectedAt = now
+            SelectedAt = now,
+            NextInvoiceAt = now
         };
         await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
         dbContext.OrganizationSubscriptions.Add(subscription);

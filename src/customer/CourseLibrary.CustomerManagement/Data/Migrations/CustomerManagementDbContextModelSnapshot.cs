@@ -23,6 +23,206 @@ namespace CourseLibrary.CustomerManagement.Data.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("CourseLibrary.CustomerManagement.Domain.Entities.BillingAccount", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("AddressLine1")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("address_line1");
+
+                    b.Property<string>("AddressLine2")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("address_line2");
+
+                    b.Property<string>("BillingEmail")
+                        .IsRequired()
+                        .HasMaxLength(320)
+                        .HasColumnType("character varying(320)")
+                        .HasColumnName("billing_email");
+
+                    b.Property<string>("City")
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)")
+                        .HasColumnName("city");
+
+                    b.Property<string>("ContactName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("contact_name");
+
+                    b.Property<string>("CountryCode")
+                        .HasMaxLength(2)
+                        .HasColumnType("character varying(2)")
+                        .HasColumnName("country_code");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("LegalName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("legal_name");
+
+                    b.Property<int>("NextInvoiceNumber")
+                        .HasColumnType("integer")
+                        .HasColumnName("next_invoice_number");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("organization_id");
+
+                    b.Property<string>("Phone")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("phone");
+
+                    b.Property<string>("PostalCode")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("postal_code");
+
+                    b.Property<string>("Region")
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)")
+                        .HasColumnName("region");
+
+                    b.Property<string>("TaxIdentifier")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("tax_identifier");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_billing_accounts");
+
+                    b.HasIndex("OrganizationId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_billing_accounts_organization_id");
+
+                    b.ToTable("billing_accounts", "customer_management");
+                });
+
+            modelBuilder.Entity("CourseLibrary.CustomerManagement.Domain.Entities.InvoiceLineItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("BillingInterval")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("billing_interval");
+
+                    b.Property<Guid>("InvoiceId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("invoice_id");
+
+                    b.Property<decimal>("LineAmount")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("numeric(18,4)")
+                        .HasColumnName("line_amount");
+
+                    b.Property<DateTimeOffset>("PeriodEnd")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("period_end");
+
+                    b.Property<DateTimeOffset>("PeriodStart")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("period_start");
+
+                    b.Property<string>("PlanName")
+                        .IsRequired()
+                        .HasMaxLength(160)
+                        .HasColumnType("character varying(160)")
+                        .HasColumnName("plan_name");
+
+                    b.Property<string>("ProductName")
+                        .IsRequired()
+                        .HasMaxLength(160)
+                        .HasColumnType("character varying(160)")
+                        .HasColumnName("product_name");
+
+                    b.Property<Guid>("ProductSubscriptionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("product_subscription_id");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("integer")
+                        .HasColumnName("quantity");
+
+                    b.Property<decimal>("UnitAmount")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("numeric(18,4)")
+                        .HasColumnName("unit_amount");
+
+                    b.HasKey("Id")
+                        .HasName("pk_invoice_line_items");
+
+                    b.HasIndex("InvoiceId")
+                        .HasDatabaseName("ix_invoice_line_items_invoice_id");
+
+                    b.ToTable("invoice_line_items", "customer_management");
+                });
+
+            modelBuilder.Entity("CourseLibrary.CustomerManagement.Domain.Entities.InvoicePayment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("numeric(18,4)")
+                        .HasColumnName("amount");
+
+                    b.Property<string>("CurrencyCode")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .HasColumnType("character varying(3)")
+                        .HasColumnName("currency_code");
+
+                    b.Property<string>("ExternalReference")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("external_reference");
+
+                    b.Property<Guid>("InvoiceId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("invoice_id");
+
+                    b.Property<DateTimeOffset>("RecordedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("recorded_at");
+
+                    b.Property<string>("RecordedByUserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)")
+                        .HasColumnName("recorded_by_user_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_invoice_payments");
+
+                    b.HasIndex("InvoiceId")
+                        .HasDatabaseName("ix_invoice_payments_invoice_id");
+
+                    b.ToTable("invoice_payments", "customer_management");
+                });
+
             modelBuilder.Entity("CourseLibrary.CustomerManagement.Domain.Entities.Organization", b =>
                 {
                     b.Property<Guid>("Id")
@@ -144,6 +344,86 @@ namespace CourseLibrary.CustomerManagement.Data.Migrations
                     b.ToTable("organization_invitation_products", "customer_management");
                 });
 
+            modelBuilder.Entity("CourseLibrary.CustomerManagement.Domain.Entities.OrganizationInvoice", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("BillToAddress")
+                        .IsRequired()
+                        .HasMaxLength(1200)
+                        .HasColumnType("character varying(1200)")
+                        .HasColumnName("bill_to_address");
+
+                    b.Property<string>("BillToEmail")
+                        .IsRequired()
+                        .HasMaxLength(320)
+                        .HasColumnType("character varying(320)")
+                        .HasColumnName("bill_to_email");
+
+                    b.Property<string>("BillToName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("bill_to_name");
+
+                    b.Property<Guid>("BillingAccountId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("billing_account_id");
+
+                    b.Property<string>("CurrencyCode")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .HasColumnType("character varying(3)")
+                        .HasColumnName("currency_code");
+
+                    b.Property<DateTimeOffset>("DueAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("due_at");
+
+                    b.Property<string>("InvoiceNumber")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("invoice_number");
+
+                    b.Property<DateTimeOffset>("IssuedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("issued_at");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(24)
+                        .HasColumnType("character varying(24)")
+                        .HasColumnName("status");
+
+                    b.Property<decimal>("Subtotal")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("numeric(18,4)")
+                        .HasColumnName("subtotal");
+
+                    b.Property<decimal>("Total")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("numeric(18,4)")
+                        .HasColumnName("total");
+
+                    b.HasKey("Id")
+                        .HasName("pk_organization_invoices");
+
+                    b.HasIndex("BillingAccountId", "CurrencyCode")
+                        .IsUnique()
+                        .HasDatabaseName("ix_organization_invoices_billing_account_id_currency_code")
+                        .HasFilter("status IN ('Issued', 'PartiallyPaid')");
+
+                    b.HasIndex("BillingAccountId", "InvoiceNumber")
+                        .IsUnique()
+                        .HasDatabaseName("ix_organization_invoices_billing_account_id_invoice_number");
+
+                    b.ToTable("organization_invoices", "customer_management");
+                });
+
             modelBuilder.Entity("CourseLibrary.CustomerManagement.Domain.Entities.OrganizationMembership", b =>
                 {
                     b.Property<Guid>("OrganizationId")
@@ -222,6 +502,10 @@ namespace CourseLibrary.CustomerManagement.Data.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<DateTimeOffset>("NextInvoiceAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("next_invoice_at");
+
                     b.Property<Guid>("OrganizationId")
                         .HasColumnType("uuid")
                         .HasColumnName("organization_id");
@@ -297,11 +581,21 @@ namespace CourseLibrary.CustomerManagement.Data.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<string>("BillingInterval")
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("billing_interval");
+
                     b.Property<string>("Code")
                         .IsRequired()
                         .HasMaxLength(80)
                         .HasColumnType("character varying(80)")
                         .HasColumnName("code");
+
+                    b.Property<string>("CurrencyCode")
+                        .HasMaxLength(3)
+                        .HasColumnType("character varying(3)")
+                        .HasColumnName("currency_code");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean")
@@ -312,6 +606,11 @@ namespace CourseLibrary.CustomerManagement.Data.Migrations
                         .HasMaxLength(160)
                         .HasColumnType("character varying(160)")
                         .HasColumnName("name");
+
+                    b.Property<decimal?>("PriceAmount")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("numeric(18,4)")
+                        .HasColumnName("price_amount");
 
                     b.Property<Guid>("ProductId")
                         .HasColumnType("uuid")
@@ -328,6 +627,42 @@ namespace CourseLibrary.CustomerManagement.Data.Migrations
                         .HasDatabaseName("ix_product_plans_product_id_code");
 
                     b.ToTable("product_plans", "customer_management");
+                });
+
+            modelBuilder.Entity("CourseLibrary.CustomerManagement.Domain.Entities.BillingAccount", b =>
+                {
+                    b.HasOne("CourseLibrary.CustomerManagement.Domain.Entities.Organization", "Organization")
+                        .WithOne("BillingAccount")
+                        .HasForeignKey("CourseLibrary.CustomerManagement.Domain.Entities.BillingAccount", "OrganizationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_billing_accounts_organizations_organization_id");
+
+                    b.Navigation("Organization");
+                });
+
+            modelBuilder.Entity("CourseLibrary.CustomerManagement.Domain.Entities.InvoiceLineItem", b =>
+                {
+                    b.HasOne("CourseLibrary.CustomerManagement.Domain.Entities.OrganizationInvoice", "Invoice")
+                        .WithMany("LineItems")
+                        .HasForeignKey("InvoiceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_invoice_line_items_organization_invoices_invoice_id");
+
+                    b.Navigation("Invoice");
+                });
+
+            modelBuilder.Entity("CourseLibrary.CustomerManagement.Domain.Entities.InvoicePayment", b =>
+                {
+                    b.HasOne("CourseLibrary.CustomerManagement.Domain.Entities.OrganizationInvoice", "Invoice")
+                        .WithMany("Payments")
+                        .HasForeignKey("InvoiceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_invoice_payments_organization_invoices_invoice_id");
+
+                    b.Navigation("Invoice");
                 });
 
             modelBuilder.Entity("CourseLibrary.CustomerManagement.Domain.Entities.OrganizationInvitation", b =>
@@ -361,6 +696,18 @@ namespace CourseLibrary.CustomerManagement.Data.Migrations
                     b.Navigation("Invitation");
 
                     b.Navigation("Product");
+                });
+
+            modelBuilder.Entity("CourseLibrary.CustomerManagement.Domain.Entities.OrganizationInvoice", b =>
+                {
+                    b.HasOne("CourseLibrary.CustomerManagement.Domain.Entities.BillingAccount", "BillingAccount")
+                        .WithMany("Invoices")
+                        .HasForeignKey("BillingAccountId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_organization_invoices_billing_accounts_billing_account_id");
+
+                    b.Navigation("BillingAccount");
                 });
 
             modelBuilder.Entity("CourseLibrary.CustomerManagement.Domain.Entities.OrganizationMembership", b =>
@@ -430,8 +777,15 @@ namespace CourseLibrary.CustomerManagement.Data.Migrations
                     b.Navigation("Product");
                 });
 
+            modelBuilder.Entity("CourseLibrary.CustomerManagement.Domain.Entities.BillingAccount", b =>
+                {
+                    b.Navigation("Invoices");
+                });
+
             modelBuilder.Entity("CourseLibrary.CustomerManagement.Domain.Entities.Organization", b =>
                 {
+                    b.Navigation("BillingAccount");
+
                     b.Navigation("Memberships");
 
                     b.Navigation("Subscriptions");
@@ -440,6 +794,13 @@ namespace CourseLibrary.CustomerManagement.Data.Migrations
             modelBuilder.Entity("CourseLibrary.CustomerManagement.Domain.Entities.OrganizationInvitation", b =>
                 {
                     b.Navigation("Products");
+                });
+
+            modelBuilder.Entity("CourseLibrary.CustomerManagement.Domain.Entities.OrganizationInvoice", b =>
+                {
+                    b.Navigation("LineItems");
+
+                    b.Navigation("Payments");
                 });
 
             modelBuilder.Entity("CourseLibrary.CustomerManagement.Domain.Entities.OrganizationMembership", b =>
