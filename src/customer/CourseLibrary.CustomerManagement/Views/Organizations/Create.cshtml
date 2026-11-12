@@ -1,7 +1,7 @@
 @model CreateOrganizationViewModel
 <p class="eyebrow">NEW ORGANIZATION</p>
 <h1>Create an organization</h1>
-<p>Your account will become its Owner. Product and plan selection is saved for this organization.</p>
+<p>Your account will become its Owner. The selected product is attached to this organization.</p>
 
 @if (Model.ProductPlans.Count == 0)
 {
@@ -25,6 +25,11 @@ else
         </select>
         <span asp-validation-for="ProductPlanId" class="validation"></span>
         <p class="hint">This records the selected plan. Billing and payment processing are not part of this service.</p>
+
+        <label>
+            <input asp-for="GiveCreatorProductAccess" />
+            Give me product access
+        </label>
 
         <div class="form-actions">
             <a class="button secondary" asp-action="Index">Cancel</a>

@@ -14,4 +14,5 @@ public sealed class OrganizationInvitation
     public DateTimeOffset? AcceptedAt { get; set; }
     public DateTimeOffset? RevokedAt { get; set; }
     public Organization? Organization { get; set; }
+    public ICollection<OrganizationInvitationProduct> Products { get; set; } = [];
 }

@@ -8,18 +8,28 @@ sign-in; it does not create IDP users or store passwords.
 
 - An authenticated, email-verified user can create multiple organizations.
 - Creating an organization adds that user as its `Owner` and records the
-  selected product plan in an organization subscription.
+  selected product plan in an organization subscription. The creator can
+  explicitly grant themselves access to that product.
 - Owners and organization administrators can invite an email as an
   `Administrator` or `Member`.
+- An organization can subscribe to multiple products, with one selected plan
+  per product. Owners and administrators can add products and choose which
+  current members receive access.
+- Product access is assigned independently of the organization role. Every
+  member, including Owners and Administrators, needs an explicit assignment.
+  Owners and administrators can manage a member's access later.
 - Invitation tokens are random, single-use, time-limited, and stored as hashes.
   The invitee must sign in with the invited, IDP-verified email before
-  membership is created.
+  membership is created. The inviter can select subscribed products for the
+  invitee; those grants are applied when the invitation is accepted.
 - The organization list lets a user switch between organizations.
 
 Product and plan data is kept in the `customer_management.products` and
-`customer_management.product_plans` tables. Subscription selection is stored
-per organization. This first version records the selected plan only; it does
-not process payments, invoices, renewals, or product entitlements.
+`customer_management.product_plans` tables. Organization subscriptions and
+member product-access assignments are stored separately. Subscription status
+is currently `Selected`; this app does not process payments, invoices, or
+renewals. Product applications must enforce these grants themselves; the
+existing Course API is not yet integrated with organization or product access.
 
 ## Local setup
 

@@ -1,0 +1,44 @@
+@model AddOrganizationProductViewModel
+<p class="eyebrow">PRODUCT SUBSCRIPTION</p>
+<h1>Add a product</h1>
+<p>Select a plan and explicitly grant product access to organization members.</p>
+
+@if (Model.ProductPlans.Count == 0)
+{
+    <div class="notice error">No additional active product plans are available for this organization.</div>
+    <p><a asp-action="Details" asp-route-id="@Model.OrganizationId">Back to organization</a></p>
+}
+else
+{
+    <form asp-action="AddProduct" asp-route-id="@Model.OrganizationId" method="post" class="card form-card">
+        <div asp-validation-summary="ModelOnly" class="validation"></div>
+        <label asp-for="ProductPlanId">Product and subscription plan</label>
+        <select asp-for="ProductPlanId">
+            <option value="">Select a product plan</option>
+            @foreach (var plan in Model.ProductPlans)
+            {
+                <option value="@plan.Id">@plan.ProductName — @plan.PlanName</option>
+            }
+        </select>
+        <span asp-validation-for="ProductPlanId" class="validation"></span>
+
+        <fieldset>
+            <legend>Grant access to members</legend>
+            @foreach (var member in Model.Members)
+            {
+                <label class="checkbox-option">
+                    <input type="checkbox" name="SelectedUserIds" value="@member.UserId"
+                           checked="@Model.SelectedUserIds.Contains(member.UserId)" />
+                    @member.Email
+                </label>
+            }
+            <span asp-validation-for="SelectedUserIds" class="validation"></span>
+        </fieldset>
+
+        <p class="hint">Only selected members will have access to this product. Billing and payment processing are not part of this service.</p>
+        <div class="form-actions">
+            <a class="button secondary" asp-action="Details" asp-route-id="@Model.OrganizationId">Cancel</a>
+            <button class="button primary" type="submit">Add product</button>
+        </div>
+    </form>
+}

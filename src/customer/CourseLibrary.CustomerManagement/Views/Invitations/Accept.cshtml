@@ -25,6 +25,14 @@ else
 {
     <section class="card form-card">
         <p>Accept the invitation for <strong>@Model.InvitationEmail</strong> as a member of this organization.</p>
+        @if (Model.Products.Count == 0)
+        {
+            <p>No product access is included yet. An organization administrator can grant it later.</p>
+        }
+        else
+        {
+            <p>Product access: @string.Join(", ", Model.Products)</p>
+        }
         <form asp-action="Accept" method="post">
             <input asp-for="Token" type="hidden" />
             <button class="button primary" type="submit">Accept invitation</button>

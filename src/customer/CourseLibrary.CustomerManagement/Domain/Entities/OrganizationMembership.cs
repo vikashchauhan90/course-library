@@ -9,4 +9,5 @@ public sealed class OrganizationMembership
     public required string Role { get; set; }
     public DateTimeOffset JoinedAt { get; set; }
     public Organization? Organization { get; set; }
+    public ICollection<OrganizationProductAccess> ProductAccess { get; set; } = [];
 }

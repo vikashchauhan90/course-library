@@ -125,6 +125,25 @@ namespace CourseLibrary.CustomerManagement.Data.Migrations
                     b.ToTable("organization_invitations", "customer_management");
                 });
 
+            modelBuilder.Entity("CourseLibrary.CustomerManagement.Domain.Entities.OrganizationInvitationProduct", b =>
+                {
+                    b.Property<Guid>("InvitationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("invitation_id");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("product_id");
+
+                    b.HasKey("InvitationId", "ProductId")
+                        .HasName("pk_organization_invitation_products");
+
+                    b.HasIndex("ProductId")
+                        .HasDatabaseName("ix_organization_invitation_products_product_id");
+
+                    b.ToTable("organization_invitation_products", "customer_management");
+                });
+
             modelBuilder.Entity("CourseLibrary.CustomerManagement.Domain.Entities.OrganizationMembership", b =>
                 {
                     b.Property<Guid>("OrganizationId")
@@ -168,6 +187,34 @@ namespace CourseLibrary.CustomerManagement.Data.Migrations
                     b.ToTable("organization_memberships", "customer_management");
                 });
 
+            modelBuilder.Entity("CourseLibrary.CustomerManagement.Domain.Entities.OrganizationProductAccess", b =>
+                {
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("organization_id");
+
+                    b.Property<string>("UserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)")
+                        .HasColumnName("user_id");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("product_id");
+
+                    b.Property<DateTimeOffset>("GrantedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("granted_at");
+
+                    b.HasKey("OrganizationId", "UserId", "ProductId")
+                        .HasName("pk_organization_product_access");
+
+                    b.HasIndex("ProductId")
+                        .HasDatabaseName("ix_organization_product_access_product_id");
+
+                    b.ToTable("organization_product_access", "customer_management");
+                });
+
             modelBuilder.Entity("CourseLibrary.CustomerManagement.Domain.Entities.OrganizationSubscription", b =>
                 {
                     b.Property<Guid>("Id")
@@ -178,6 +225,10 @@ namespace CourseLibrary.CustomerManagement.Data.Migrations
                     b.Property<Guid>("OrganizationId")
                         .HasColumnType("uuid")
                         .HasColumnName("organization_id");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("product_id");
 
                     b.Property<Guid>("ProductPlanId")
                         .HasColumnType("uuid")
@@ -196,12 +247,12 @@ namespace CourseLibrary.CustomerManagement.Data.Migrations
                     b.HasKey("Id")
                         .HasName("pk_organization_subscriptions");
 
-                    b.HasIndex("ProductPlanId")
-                        .HasDatabaseName("ix_organization_subscriptions_product_plan_id");
-
-                    b.HasIndex("OrganizationId", "ProductPlanId")
+                    b.HasIndex("OrganizationId", "ProductId")
                         .IsUnique()
-                        .HasDatabaseName("ix_organization_subscriptions_organization_id_product_plan_id");
+                        .HasDatabaseName("ix_organization_subscriptions_organization_id_product_id");
+
+                    b.HasIndex("ProductId", "ProductPlanId")
+                        .HasDatabaseName("ix_organization_subscriptions_product_id_product_plan_id");
 
                     b.ToTable("organization_subscriptions", "customer_management");
                 });
@@ -269,6 +320,9 @@ namespace CourseLibrary.CustomerManagement.Data.Migrations
                     b.HasKey("Id")
                         .HasName("pk_product_plans");
 
+                    b.HasAlternateKey("ProductId", "Id")
+                        .HasName("ak_product_plans_product_id_id");
+
                     b.HasIndex("ProductId", "Code")
                         .IsUnique()
                         .HasDatabaseName("ix_product_plans_product_id_code");
@@ -288,6 +342,27 @@ namespace CourseLibrary.CustomerManagement.Data.Migrations
                     b.Navigation("Organization");
                 });
 
+            modelBuilder.Entity("CourseLibrary.CustomerManagement.Domain.Entities.OrganizationInvitationProduct", b =>
+                {
+                    b.HasOne("CourseLibrary.CustomerManagement.Domain.Entities.OrganizationInvitation", "Invitation")
+                        .WithMany("Products")
+                        .HasForeignKey("InvitationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_organization_invitation_products_organization_invitations_i");
+
+                    b.HasOne("CourseLibrary.CustomerManagement.Domain.Entities.Product", "Product")
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_organization_invitation_products_products_product_id");
+
+                    b.Navigation("Invitation");
+
+                    b.Navigation("Product");
+                });
+
             modelBuilder.Entity("CourseLibrary.CustomerManagement.Domain.Entities.OrganizationMembership", b =>
                 {
                     b.HasOne("CourseLibrary.CustomerManagement.Domain.Entities.Organization", "Organization")
@@ -298,6 +373,27 @@ namespace CourseLibrary.CustomerManagement.Data.Migrations
                         .HasConstraintName("fk_organization_memberships_organizations_organization_id");
 
                     b.Navigation("Organization");
+                });
+
+            modelBuilder.Entity("CourseLibrary.CustomerManagement.Domain.Entities.OrganizationProductAccess", b =>
+                {
+                    b.HasOne("CourseLibrary.CustomerManagement.Domain.Entities.Product", "Product")
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_organization_product_access_products_product_id");
+
+                    b.HasOne("CourseLibrary.CustomerManagement.Domain.Entities.OrganizationMembership", "Membership")
+                        .WithMany("ProductAccess")
+                        .HasForeignKey("OrganizationId", "UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_organization_product_access_organization_memberships_organi");
+
+                    b.Navigation("Membership");
+
+                    b.Navigation("Product");
                 });
 
             modelBuilder.Entity("CourseLibrary.CustomerManagement.Domain.Entities.OrganizationSubscription", b =>
@@ -311,10 +407,11 @@ namespace CourseLibrary.CustomerManagement.Data.Migrations
 
                     b.HasOne("CourseLibrary.CustomerManagement.Domain.Entities.ProductPlan", "ProductPlan")
                         .WithMany("Subscriptions")
-                        .HasForeignKey("ProductPlanId")
+                        .HasForeignKey("ProductId", "ProductPlanId")
+                        .HasPrincipalKey("ProductId", "Id")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
-                        .HasConstraintName("fk_organization_subscriptions_product_plans_product_plan_id");
+                        .HasConstraintName("fk_organization_subscriptions_product_plans_product_id_product");
 
                     b.Navigation("Organization");
 
@@ -338,6 +435,16 @@ namespace CourseLibrary.CustomerManagement.Data.Migrations
                     b.Navigation("Memberships");
 
                     b.Navigation("Subscriptions");
+                });
+
+            modelBuilder.Entity("CourseLibrary.CustomerManagement.Domain.Entities.OrganizationInvitation", b =>
+                {
+                    b.Navigation("Products");
+                });
+
+            modelBuilder.Entity("CourseLibrary.CustomerManagement.Domain.Entities.OrganizationMembership", b =>
+                {
+                    b.Navigation("ProductAccess");
                 });
 
             modelBuilder.Entity("CourseLibrary.CustomerManagement.Domain.Entities.Product", b =>

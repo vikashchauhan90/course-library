@@ -7,7 +7,10 @@
     </div>
     @if (Model.CurrentRole is "Owner" or "Administrator")
     {
-        <a class="button primary" asp-controller="Invitations" asp-action="Create" asp-route-organizationId="@Model.Id">Invite a teammate</a>
+        <div class="form-actions">
+            <a class="button secondary" asp-action="AddProduct" asp-route-id="@Model.Id">Add a product</a>
+            <a class="button primary" asp-controller="Invitations" asp-action="Create" asp-route-organizationId="@Model.Id">Invite a teammate</a>
+        </div>
     }
 </div>
 
@@ -27,14 +30,27 @@
                 }
             </ul>
         }
-        <p class="hint">Plan selection is recorded per organization. Billing and payment are handled separately.</p>
+        <p class="hint">Product access is assigned to members separately. Billing and payment are handled separately.</p>
     </section>
     <section class="card">
         <h2>Members (@Model.Members.Count)</h2>
         <ul class="plain-list">
             @foreach (var member in Model.Members)
             {
-                <li><span>@member.Email</span><span class="status">@member.Role</span></li>
+                <li>
+                    <span>
+                        <strong>@member.Email</strong>
+                        <span class="status">@member.Role</span>
+                        <br />
+                        <span class="status">
+                            @(member.Products.Count == 0 ? "No product access" : string.Join(", ", member.Products))
+                        </span>
+                    </span>
+                    @if (Model.CanManage)
+                    {
+                        <a asp-action="ManageProductAccess" asp-route-id="@Model.Id" asp-route-userId="@member.UserId">Manage access</a>
+                    }
+                </li>
             }
         </ul>
     </section>

@@ -31,11 +31,13 @@ public sealed class InvitationsController(
         if (!access.CanInvite)
             return Forbid();
 
-        return View(new CreateInvitationViewModel
+        var model = new CreateInvitationViewModel
         {
             OrganizationId = organizationId,
             OrganizationName = access.OrganizationName
-        });
+        };
+        await LoadAvailableProductsAsync(model, cancellationToken);
+        return View(model);
     }
 
     [Authorize]
@@ -54,6 +56,7 @@ public sealed class InvitationsController(
 
         model.OrganizationId = organizationId;
         model.OrganizationName = access.OrganizationName;
+        await LoadAvailableProductsAsync(model, cancellationToken);
         if (!ModelState.IsValid)
             return View(model);
         if (model.Role is not ("Administrator" or "Member"))
@@ -69,6 +72,16 @@ public sealed class InvitationsController(
                 cancellationToken))
         {
             ModelState.AddModelError(nameof(model.Email), "This person is already a member of this organization.");
+            return View(model);
+        }
+
+        var selectedProductIds = model.SelectedProductIds.Distinct().ToArray();
+        var availableProductIds = model.AvailableProducts.Select(item => item.ProductId).ToHashSet();
+        if (selectedProductIds.Except(availableProductIds).Any())
+        {
+            ModelState.AddModelError(
+                nameof(model.SelectedProductIds),
+                "Only products currently subscribed to by this organization can be assigned.");
             return View(model);
         }
 
@@ -105,6 +118,12 @@ public sealed class InvitationsController(
         };
 
         dbContext.OrganizationInvitations.Add(invitation);
+        dbContext.OrganizationInvitationProducts.AddRange(selectedProductIds.Select(productId =>
+            new OrganizationInvitationProduct
+            {
+                InvitationId = invitation.Id,
+                ProductId = productId
+            }));
         await dbContext.SaveChangesAsync(cancellationToken);
 
         var relativeLink = Url.Action(
@@ -116,12 +135,19 @@ public sealed class InvitationsController(
             publicBaseUri.Scheme != Uri.UriSchemeHttps)
             throw new InvalidOperationException("PublicBaseUrl must be configured as an absolute HTTPS URL.");
         var link = new Uri(publicBaseUri, relativeLink).AbsoluteUri;
+        var selectedProductNames = model.AvailableProducts
+            .Where(item => selectedProductIds.Contains(item.ProductId))
+            .Select(item => item.ProductName)
+            .ToArray();
+        var productAccessMessage = selectedProductNames.Length == 0
+            ? "No product access is assigned yet."
+            : $"Product access: {string.Join(", ", selectedProductNames)}.";
         try
         {
             await emailSender.SendAsync(
                 invitation.Email,
                 $"Join {access.OrganizationName}",
-                $"You have been invited to join {access.OrganizationName} as a {invitation.Role}.\n\nAccept the invitation: {link}\n\nThis link expires at {invitation.ExpiresAt:O}.",
+                $"You have been invited to join {access.OrganizationName} as a {invitation.Role}.\n{productAccessMessage}\n\nAccept the invitation: {link}\n\nThis link expires at {invitation.ExpiresAt:O}.",
                 cancellationToken);
         }
         catch (Exception exception) when (
@@ -165,7 +191,11 @@ public sealed class InvitationsController(
             Token = token,
             OrganizationName = invitation.Organization!.Name,
             InvitationEmail = invitation.Email,
-            SignedInEmail = User.FindFirstValue("email")
+            SignedInEmail = User.FindFirstValue("email"),
+            Products = invitation.Products
+                .Select(item => item.Product!.Name)
+                .OrderBy(name => name)
+                .ToList()
         };
         if (!EmailMatchesInvitation(model.SignedInEmail, invitation.NormalizedEmail))
         {
@@ -200,6 +230,10 @@ public sealed class InvitationsController(
             model.OrganizationName = invitation.Organization!.Name;
             model.InvitationEmail = invitation.Email;
             model.SignedInEmail = email;
+            model.Products = invitation.Products
+                .Select(item => item.Product!.Name)
+                .OrderBy(name => name)
+                .ToList();
             model.Error = $"Sign in with {invitation.Email} to accept this invitation.";
             return View(model);
         }
@@ -210,7 +244,7 @@ public sealed class InvitationsController(
             cancellationToken);
         if (membership is null)
         {
-            dbContext.OrganizationMemberships.Add(new OrganizationMembership
+            membership = new OrganizationMembership
             {
                 OrganizationId = invitation.OrganizationId,
                 UserId = userId,
@@ -218,6 +252,25 @@ public sealed class InvitationsController(
                 NormalizedEmail = invitation.NormalizedEmail,
                 Role = invitation.Role,
                 JoinedAt = DateTimeOffset.UtcNow
+            };
+            dbContext.OrganizationMemberships.Add(membership);
+        }
+
+        var invitedProductIds = invitation.Products.Select(item => item.ProductId).ToArray();
+        var existingProductIds = await dbContext.OrganizationProductAccess
+            .Where(item => item.OrganizationId == invitation.OrganizationId &&
+                item.UserId == userId &&
+                invitedProductIds.Contains(item.ProductId))
+            .Select(item => item.ProductId)
+            .ToListAsync(cancellationToken);
+        foreach (var productId in invitedProductIds.Except(existingProductIds))
+        {
+            dbContext.OrganizationProductAccess.Add(new OrganizationProductAccess
+            {
+                OrganizationId = invitation.OrganizationId,
+                UserId = userId,
+                ProductId = productId,
+                GrantedAt = DateTimeOffset.UtcNow
             });
         }
 
@@ -235,12 +288,32 @@ public sealed class InvitationsController(
         CancellationToken cancellationToken) =>
         await dbContext.OrganizationInvitations
             .Include(item => item.Organization)
+            .Include(item => item.Products)
+                .ThenInclude(item => item.Product)
             .SingleOrDefaultAsync(
                 item => item.TokenHash == HashToken(token) &&
                     item.AcceptedAt == null &&
                     item.RevokedAt == null &&
                     item.ExpiresAt > DateTimeOffset.UtcNow,
                 cancellationToken);
+
+    private async Task LoadAvailableProductsAsync(
+        CreateInvitationViewModel model,
+        CancellationToken cancellationToken)
+    {
+        model.AvailableProducts = await dbContext.OrganizationSubscriptions
+            .AsNoTracking()
+            .Where(item => item.OrganizationId == model.OrganizationId &&
+                item.Status == "Selected" &&
+                item.ProductPlan!.IsActive &&
+                item.ProductPlan.Product!.IsActive)
+            .OrderBy(item => item.ProductPlan!.Product!.Name)
+            .Select(item => new ProductAccessOption(
+                item.ProductId,
+                item.ProductPlan!.Product!.Name,
+                item.ProductPlan.Name))
+            .ToListAsync(cancellationToken);
+    }
 
     private async Task<InvitationAccess?> GetInvitationAccessAsync(
         Guid organizationId,

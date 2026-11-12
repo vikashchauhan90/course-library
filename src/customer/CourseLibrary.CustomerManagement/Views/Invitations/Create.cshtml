@@ -16,6 +16,26 @@
     </select>
     <span asp-validation-for="Role" class="validation"></span>
 
+    <fieldset>
+        <legend>Product access</legend>
+        @if (Model.AvailableProducts.Count == 0)
+        {
+            <p class="hint">This organization has no active product subscriptions. You can assign access after adding a product.</p>
+        }
+        else
+        {
+            @foreach (var product in Model.AvailableProducts)
+            {
+                <label class="checkbox-option">
+                    <input type="checkbox" name="SelectedProductIds" value="@product.ProductId"
+                           checked="@Model.SelectedProductIds.Contains(product.ProductId)" />
+                    @product.ProductName — @product.PlanName
+                </label>
+            }
+        }
+        <span asp-validation-for="SelectedProductIds" class="validation"></span>
+    </fieldset>
+
     <div class="form-actions">
         <a class="button secondary" asp-controller="Organizations" asp-action="Details" asp-route-id="@Model.OrganizationId">Cancel</a>
         <button class="button primary" type="submit">Send invitation</button>

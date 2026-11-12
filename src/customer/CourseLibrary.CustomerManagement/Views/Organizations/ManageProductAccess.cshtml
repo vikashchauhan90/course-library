@@ -1,0 +1,36 @@
+@model ManageMemberProductAccessViewModel
+<p class="eyebrow">PRODUCT ACCESS</p>
+<h1>Manage access for @Model.Email</h1>
+<p>Organization role: @Model.Role. Product access is independent of this role.</p>
+
+<form asp-action="ManageProductAccess"
+      asp-route-id="@Model.OrganizationId"
+      asp-route-userId="@Model.UserId"
+      method="post"
+      class="card form-card">
+    <div asp-validation-summary="ModelOnly" class="validation"></div>
+    @if (Model.AvailableProducts.Count == 0)
+    {
+        <p>This organization has no active product subscriptions.</p>
+    }
+    else
+    {
+        <fieldset>
+            <legend>Products this member can access</legend>
+            @foreach (var product in Model.AvailableProducts)
+            {
+                <label class="checkbox-option">
+                    <input type="checkbox" name="SelectedProductIds" value="@product.ProductId"
+                           checked="@Model.SelectedProductIds.Contains(product.ProductId)" />
+                    @product.ProductName — @product.PlanName
+                </label>
+            }
+            <span asp-validation-for="SelectedProductIds" class="validation"></span>
+        </fieldset>
+    }
+
+    <div class="form-actions">
+        <a class="button secondary" asp-action="Details" asp-route-id="@Model.OrganizationId">Cancel</a>
+        <button class="button primary" type="submit">Save access</button>
+    </div>
+</form>
