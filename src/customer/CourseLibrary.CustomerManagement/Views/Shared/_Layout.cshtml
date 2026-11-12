@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Customer &amp; Subscription Management</title>
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body>
+    <header>
+        <a class="brand" asp-controller="Organizations" asp-action="Index">Customer Platform</a>
+        <nav>
+            @if (User.Identity?.IsAuthenticated == true)
+            {
+                <span>@User.FindFirst("email")?.Value</span>
+                <form asp-controller="Home" asp-action="Logout" method="post">
+                    <input type="hidden" name="returnUrl" value="/home/signed-out" />
+                    <button class="link-button" type="submit">Sign out</button>
+                </form>
+            }
+        </nav>
+    </header>
+    <main>
+        @if (TempData["Success"] is string success)
+        {
+            <p class="notice success">@success</p>
+        }
+        @RenderBody()
+    </main>
+</body>
+</html>

@@ -16,6 +16,7 @@
     <ProjectReference Include="..\src\course\CourseLibrary.Course.Api\CourseLibrary.Course.Api.csproj" />
     <ProjectReference Include="..\src\course\CourseLibrary.Course.App\CourseLibrary.Course.App.csproj" />
     <ProjectReference Include="..\src\course\CourseLibrary.Course.EventConsumer\CourseLibrary.Course.EventConsumer.csproj" />
+    <ProjectReference Include="..\src\customer\CourseLibrary.CustomerManagement\CourseLibrary.CustomerManagement.csproj" />
     <ProjectReference Include="..\src\gateway\CourseLibrary.Gateway\CourseLibrary.Gateway.csproj" />
     <ProjectReference Include="..\src\idp\CourseLibrary.Idp\CourseLibrary.Idp.csproj" />
   </ItemGroup>

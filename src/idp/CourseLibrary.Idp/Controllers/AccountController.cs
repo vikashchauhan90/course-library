@@ -60,8 +60,9 @@ public sealed class AccountController(SignInManager<ApplicationUser> signInManag
 
     [HttpGet("account/confirm-email")]
     [AllowAnonymous]
-    public async Task<IActionResult> ConfirmEmail(string userId, string token)
+    public async Task<IActionResult> ConfirmEmail(string userId, string token, string? returnUrl = null)
     {
+        ViewData["ReturnUrl"] = returnUrl;
         var user = await userManager.FindByIdAsync(userId);
         if (user is null) return View("EmailConfirmation", false);
         var result = await userManager.ConfirmEmailAsync(user, token);

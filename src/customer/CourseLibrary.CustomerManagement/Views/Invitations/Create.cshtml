@@ -1,0 +1,23 @@
+@model CreateInvitationViewModel
+<p class="eyebrow">TEAM ACCESS</p>
+<h1>Invite someone to @Model.OrganizationName</h1>
+<p>They can use an existing Course Library account or create and verify one before accepting.</p>
+
+<form asp-action="Create" asp-route-organizationId="@Model.OrganizationId" method="post" class="card form-card">
+    <div asp-validation-summary="ModelOnly" class="validation"></div>
+    <label asp-for="Email">Email address</label>
+    <input asp-for="Email" type="email" autocomplete="email" />
+    <span asp-validation-for="Email" class="validation"></span>
+
+    <label asp-for="Role">Organization role</label>
+    <select asp-for="Role">
+        <option value="Member">Member</option>
+        <option value="Administrator">Administrator</option>
+    </select>
+    <span asp-validation-for="Role" class="validation"></span>
+
+    <div class="form-actions">
+        <a class="button secondary" asp-controller="Organizations" asp-action="Details" asp-route-id="@Model.OrganizationId">Cancel</a>
+        <button class="button primary" type="submit">Send invitation</button>
+    </div>
+</form>

@@ -1,0 +1,42 @@
+@model OrganizationDetailsViewModel
+<p class="eyebrow">ORGANIZATION</p>
+<div class="page-heading">
+    <div>
+        <h1>@Model.Name</h1>
+        <p>You are an @Model.CurrentRole.ToLowerInvariant().</p>
+    </div>
+    @if (Model.CurrentRole is "Owner" or "Administrator")
+    {
+        <a class="button primary" asp-controller="Invitations" asp-action="Create" asp-route-organizationId="@Model.Id">Invite a teammate</a>
+    }
+</div>
+
+<div class="details-grid">
+    <section class="card">
+        <h2>Products and subscriptions</h2>
+        @if (Model.Subscriptions.Count == 0)
+        {
+            <p>No product plan is selected.</p>
+        }
+        else
+        {
+            <ul class="plain-list">
+                @foreach (var subscription in Model.Subscriptions)
+                {
+                    <li><strong>@subscription.ProductName</strong> — @subscription.PlanName <span class="status">@subscription.Status</span></li>
+                }
+            </ul>
+        }
+        <p class="hint">Plan selection is recorded per organization. Billing and payment are handled separately.</p>
+    </section>
+    <section class="card">
+        <h2>Members (@Model.Members.Count)</h2>
+        <ul class="plain-list">
+            @foreach (var member in Model.Members)
+            {
+                <li><span>@member.Email</span><span class="status">@member.Role</span></li>
+            }
+        </ul>
+    </section>
+</div>
+<p><a asp-action="Index">Switch organization</a></p>

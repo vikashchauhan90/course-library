@@ -1,0 +1,34 @@
+@model AcceptInvitationViewModel
+<p class="eyebrow">ORGANIZATION INVITATION</p>
+<h1>Join @Model.OrganizationName</h1>
+
+@if (!string.IsNullOrWhiteSpace(Model.Error))
+{
+    <div class="notice error">@Model.Error</div>
+    @if (!string.IsNullOrWhiteSpace(Model.InvitationEmail))
+    {
+        <p>Invitation for <strong>@Model.InvitationEmail</strong>.</p>
+    }
+    @if (!string.IsNullOrWhiteSpace(Model.SignedInEmail))
+    {
+        <form asp-controller="Home" asp-action="Logout" method="post">
+            <input type="hidden" name="returnUrl" value="@Url.Action("Accept", "Invitations", new { token = Model.Token })" />
+            <button class="button secondary" type="submit">Sign out and use another account</button>
+        </form>
+    }
+}
+else if (string.IsNullOrWhiteSpace(Model.Token))
+{
+    <div class="notice error">This invitation is invalid or has expired.</div>
+}
+else
+{
+    <section class="card form-card">
+        <p>Accept the invitation for <strong>@Model.InvitationEmail</strong> as a member of this organization.</p>
+        <form asp-action="Accept" method="post">
+            <input asp-for="Token" type="hidden" />
+            <button class="button primary" type="submit">Accept invitation</button>
+        </form>
+    </section>
+}
+<p><a asp-controller="Organizations" asp-action="Index">Your organizations</a></p>

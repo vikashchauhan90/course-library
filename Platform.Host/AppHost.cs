@@ -31,6 +31,11 @@ var api = builder
 var idp = builder
    .AddProject<Projects.CourseLibrary_Idp>("idp");
 
+var customerManagement = builder
+    .AddProject<Projects.CourseLibrary_CustomerManagement>("customer-management")
+    .WithHttpsEndpoint(port: 7182)
+    .WithReference(idp);
+
 var consumer = builder
     .AddProject<Projects.CourseLibrary_Course_EventConsumer>("consumer")
     .WaitFor(serviceBus);

@@ -34,6 +34,7 @@ public static class DevelopmentDataSeeder
         await AuthorizationDataSeeder.SeedAsync(serviceProvider);
         await SeedApiScopeAsync(scopeManager, configuration);
         await SeedWebApplicationAsync(applicationManager, dbContext, configuration);
+        await SeedCustomerManagementApplicationAsync(applicationManager, dbContext, configuration);
     }
 
     private static async Task SeedAdministratorAsync(
@@ -143,6 +144,46 @@ public static class DevelopmentDataSeeder
         descriptor.Requirements.Add(Requirements.Features.ProofKeyForCodeExchange);
 
         await applicationManager.CreateAsync(descriptor);
+        await BackfillClientSecretMetadataAsync(dbContext, clientId, configuration);
+    }
+
+    private static async Task SeedCustomerManagementApplicationAsync(
+        IOpenIddictApplicationManager applicationManager,
+        ApplicationDbContext dbContext,
+        IConfiguration configuration)
+    {
+        var section = configuration.GetSection("OpenId:Clients:CustomerManagement");
+        var clientId = Required(section, "ClientId");
+
+        var descriptor = new OpenIddictApplicationDescriptor
+        {
+            ClientId = clientId,
+            ClientSecret = Required(section, "ClientSecret"),
+            ClientType = ClientTypes.Confidential,
+            DisplayName = section["DisplayName"] ?? "Course Library Customer Management"
+        };
+
+        foreach (var redirectUri in section.GetSection("RedirectUris").Get<string[]>() ?? [])
+        {
+            if (Uri.TryCreate(redirectUri, UriKind.Absolute, out var uri))
+                descriptor.RedirectUris.Add(uri);
+        }
+
+        descriptor.Permissions.Add(Permissions.Endpoints.Authorization);
+        descriptor.Permissions.Add(Permissions.Endpoints.Token);
+        descriptor.Permissions.Add(Permissions.GrantTypes.AuthorizationCode);
+        descriptor.Permissions.Add(Permissions.ResponseTypes.Code);
+        descriptor.Permissions.Add(Permissions.Prefixes.Scope + Scopes.OpenId);
+        descriptor.Permissions.Add(Permissions.Prefixes.Scope + Scopes.Profile);
+        descriptor.Permissions.Add(Permissions.Prefixes.Scope + Scopes.Email);
+        descriptor.Requirements.Add(Requirements.Features.ProofKeyForCodeExchange);
+
+        var existingApplication = await applicationManager.FindByClientIdAsync(clientId);
+        if (existingApplication is null)
+            await applicationManager.CreateAsync(descriptor);
+        else
+            await applicationManager.UpdateAsync(existingApplication, descriptor);
+
         await BackfillClientSecretMetadataAsync(dbContext, clientId, configuration);
     }
 

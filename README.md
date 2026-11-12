@@ -88,6 +88,13 @@ The App registers this module with `AddCourseLibraryClients`. Its OIDC token
 provider is kept in the App composition root, while HTTP concerns remain in
 the shared module.
 
+## Customer & Subscription Management
+
+The separate `CourseLibrary.CustomerManagement` app provides global-IDP-backed
+organization onboarding, memberships, invitations, and per-organization
+product-plan selection. See [docs/customer-subscription-management.md](./docs/customer-subscription-management.md)
+for setup, catalog tables, and current service boundaries.
+
 # Execution example:
 <img width="1905" height="762" alt="image" src="https://github.com/user-attachments/assets/dd71ad0e-6d9e-4b1b-ba48-f593e45bf588" />
 <img width="1910" height="934" alt="image" src="https://github.com/user-attachments/assets/1890b263-2604-496f-8799-670c3e14b623" />

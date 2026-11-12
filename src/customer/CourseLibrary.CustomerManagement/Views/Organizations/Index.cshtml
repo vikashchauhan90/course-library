@@ -1,0 +1,31 @@
+@model IReadOnlyList<OrganizationListItem>
+<div class="page-heading">
+    <div>
+        <p class="eyebrow">CUSTOMER PLATFORM</p>
+        <h1>Your organizations</h1>
+        <p>One account can belong to and manage multiple organizations.</p>
+    </div>
+    <a class="button primary" asp-action="Create">Create organization</a>
+</div>
+
+@if (Model.Count == 0)
+{
+    <section class="card empty-state">
+        <h2>Get started</h2>
+        <p>Create an organization to choose its product plan and invite your team.</p>
+        <a class="button primary" asp-action="Create">Create your first organization</a>
+    </section>
+}
+else
+{
+    <section class="organization-grid">
+        @foreach (var organization in Model)
+        {
+            <a class="card organization-card" asp-action="Details" asp-route-id="@organization.Id">
+                <h2>@organization.Name</h2>
+                <p>@organization.Role · @organization.MemberCount member(s)</p>
+                <span class="text-link">Open organization</span>
+            </a>
+        }
+    </section>
+}
